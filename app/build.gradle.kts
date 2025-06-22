@@ -2,6 +2,9 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     id("org.jetbrains.kotlin.plugin.compose") version "2.0.0"
+
+    //Firebase Google Services Plugin
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -53,6 +56,12 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material)
     implementation(libs.androidx.compose.ui.tooling.preview)
+
+    //Firebase BoM
+    implementation(platform("com.google.firebase:firebase-bom:33.15.0"))
+
+    //Firebase Analytics 예시
+    implementation("com.google.firebase:firebase-analytics")
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
