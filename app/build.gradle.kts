@@ -68,6 +68,8 @@ dependencies {
 
     implementation ("com.google.firebase:firebase-database-ktx:20.0.4")
 
+    implementation("androidx.compose.material3:material3:1.2.1")
+
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
