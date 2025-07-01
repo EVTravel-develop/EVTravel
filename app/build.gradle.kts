@@ -57,11 +57,16 @@ dependencies {
     implementation(libs.androidx.compose.material)
     implementation(libs.androidx.compose.ui.tooling.preview)
 
+    implementation(libs.androidx.core)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+
     //Firebase BoM
     implementation(platform("com.google.firebase:firebase-bom:33.15.0"))
 
     //Firebase Analytics 예시
     implementation("com.google.firebase:firebase-analytics")
+
+    implementation ("com.google.firebase:firebase-database-ktx:20.0.4")
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
