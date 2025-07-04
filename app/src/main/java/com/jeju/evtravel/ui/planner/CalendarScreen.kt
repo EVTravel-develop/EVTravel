@@ -1,32 +1,29 @@
+// 📁 com.jeju.evtravel.ui.planner.CalendarScreen.kt
 package com.jeju.evtravel.ui.planner
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.ui.graphics.Color
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-
-
+import androidx.compose.ui.unit.dp
 import java.time.LocalDate
 
 @Composable
 fun CalendarScreen(
+    viewModel: PlannerViewModel,
     onNextClick: () -> Unit = {}
 ) {
     var currentMonth by remember { mutableStateOf(LocalDate.now().withDayOfMonth(1)) }
     val daysInMonth = currentMonth.lengthOfMonth()
     val firstDayOfWeek = currentMonth.dayOfWeek.value % 7
-    val firstDayOfMonth = currentMonth
-
 
     var selectedStartDate by remember { mutableStateOf<LocalDate?>(null) }
     var selectedEndDate by remember { mutableStateOf<LocalDate?>(null) }
@@ -35,13 +32,13 @@ fun CalendarScreen(
     val rows = (totalGridItems / 7) + if (totalGridItems % 7 > 0) 1 else 0
     val dates = List(rows * 7) { index ->
         val day = index - firstDayOfWeek + 1
-        if (day in 1..daysInMonth) firstDayOfMonth.withDayOfMonth(day) else null
+        if (day in 1..daysInMonth) currentMonth.withDayOfMonth(day) else null
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp, vertical = 32.dp),
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
@@ -58,27 +55,20 @@ fun CalendarScreen(
             IconButton(onClick = { currentMonth = currentMonth.minusMonths(1) }) {
                 Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "이전 달")
             }
-
-            Text(
-                text = "${currentMonth.year}년 ${currentMonth.monthValue}월",
-                style = MaterialTheme.typography.titleMedium
-            )
-
+            Text("${currentMonth.year}년 ${currentMonth.monthValue}월", style = MaterialTheme.typography.titleMedium)
             IconButton(onClick = { currentMonth = currentMonth.plusMonths(1) }) {
                 Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "다음 달")
             }
         }
 
-        // 요일 헤더
+        Spacer(modifier = Modifier.height(16.dp))
+
         Row(modifier = Modifier.fillMaxWidth()) {
             listOf("일", "월", "화", "수", "목", "금", "토").forEach {
                 Text(it, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelSmall)
             }
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
-
-        // 날짜 그리드
         for (week in dates.chunked(7)) {
             Row(modifier = Modifier.fillMaxWidth()) {
                 week.forEach { date ->
@@ -122,7 +112,14 @@ fun CalendarScreen(
 
         // 다음 버튼
         Button(
-            onClick = { onNextClick() },
+            onClick = {
+                selectedStartDate?.let { start ->
+                    selectedEndDate?.let { end ->
+                        viewModel.setDateRange(start, end)
+                        onNextClick()
+                    }
+                }
+            },
             enabled = selectedStartDate != null && selectedEndDate != null
         ) {
             Text("다음")
