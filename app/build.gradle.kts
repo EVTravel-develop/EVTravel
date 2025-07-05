@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -6,6 +8,18 @@ plugins {
     //Firebase Google Services Plugin
     id("com.google.gms.google-services")
 }
+val secretProperties = Properties().apply {
+    val secretFile = rootProject.file("local.properties")
+    if (secretFile.exists()) {
+        load(secretFile.inputStream())
+    } else {
+        throw GradleException(".secret.properties file not found")
+    }
+}
+
+val kakaoKey = secretProperties.getProperty("KAKAO_NATIVE_APP_KEY")
+    ?: throw GradleException("KAKAO_NATIVE_APP_KEY is missing in .secret.properties")
+
 
 android {
     namespace = "com.jeju.evtravel"
@@ -19,10 +33,14 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"${kakaoKey}\"")
+        manifestPlaceholders["KAKAO_MAP_KEY"] = kakaoKey
     }
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     buildTypes {
@@ -57,11 +75,28 @@ dependencies {
     implementation(libs.androidx.compose.material)
     implementation(libs.androidx.compose.ui.tooling.preview)
 
+    implementation(libs.androidx.core)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+
+    // 위치 서비스
+    implementation("com.google.android.gms:play-services-location:21.0.1")
+    implementation("androidx.compose.runtime:runtime-livedata:1.5.4")
+
+    // Kakao Map SDK
+    implementation("com.kakao.maps.open:android:2.12.8")
+
     //Firebase BoM
     implementation(platform("com.google.firebase:firebase-bom:33.15.0"))
 
     //Firebase Analytics 예시
-    implementation("com.google.firebase:firebase-analytics")
+    implementation ("com.google.firebase:firebase-database-ktx:20.0.4")
+
+    implementation("androidx.compose.material3:material3:1.2.1")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
+
+    implementation ("com.maxkeppeler.sheets-compose-dialogs:core:1.0.2")
+    implementation ("com.maxkeppeler.sheets-compose-dialogs:calendar:1.0.2")
+    implementation("androidx.navigation:navigation-compose:2.7.7")
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
