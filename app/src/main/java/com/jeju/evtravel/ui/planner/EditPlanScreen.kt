@@ -97,9 +97,25 @@ fun EditPlanScreen(
             Button(onClick = { /* TODO: 여행지 추가 */ }) {
                 Text("여행지 추가")
             }
-            Button(onClick = { /* TODO: 저장 */ }) {
+            Button(
+                onClick = {
+                    if (startDate != null && endDate != null) {
+                        val days = generateSequence(startDate) { date ->
+                            if (date < endDate) date.plusDays(1) else null
+                        }.plus(endDate).toList() // 끝 날짜 포함
+
+                        viewModel.saveCurrentPlan(
+                            start = startDate.toString(), // "2025-07-04"
+                            end = endDate.toString(),
+                            days = days.map { it.toString() }
+                        )
+                    }
+                },
+                enabled = startDate != null && endDate != null
+            ) {
                 Text("저장")
             }
+
         }
     }
 }

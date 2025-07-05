@@ -65,7 +65,7 @@ dependencies {
 
     //Firebase Analytics 예시
     implementation("com.google.firebase:firebase-analytics")
-
+    implementation("com.google.firebase:firebase-firestore-ktx") // Firestore
     implementation ("com.google.firebase:firebase-database-ktx:20.0.4")
 
     implementation("androidx.compose.material3:material3:1.2.1")
