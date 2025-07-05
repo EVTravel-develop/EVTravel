@@ -35,13 +35,17 @@ fun EVTravelApp(viewModel: PlannerViewModel) {
         composable("calendar") {
             CalendarScreen(
                 viewModel = viewModel,
+                navController = navController,
                 onNextClick = {
                     navController.navigate("editPlan") // 달력 화면에서 다음 일정 추가 화면으로 이동
                 }
             )
         }
         composable("editPlan") {
-            EditPlanScreen(viewModel = viewModel)
+            EditPlanScreen(
+                viewModel = viewModel,
+                onBackClick = { navController.popBackStack() }
+            )
         }
     }
 }
