@@ -1,4 +1,4 @@
-package com.jeju.evtravel.ui
+package com.jeju.evtravel
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
