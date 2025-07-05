@@ -11,14 +11,15 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 class PlannerViewModel : ViewModel() {
+
+    private val repository = PlanRepositoryImpl()
+    private val savePlanUseCase = SavePlanUseCase(repository)
+
     private val _startDate = MutableStateFlow<LocalDate?>(null)
     val startDate: StateFlow<LocalDate?> = _startDate
 
     private val _endDate = MutableStateFlow<LocalDate?>(null)
     val endDate: StateFlow<LocalDate?> = _endDate
-
-    private val repository = PlanRepositoryImpl()
-    private val savePlanUseCase = SavePlanUseCase(repository)
 
     fun setDateRange(start: LocalDate, end: LocalDate) {
         _startDate.value = start
