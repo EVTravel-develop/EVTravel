@@ -12,17 +12,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+/**
+ * 플래너 메인 화면 컴포저블
+ * 새로운 여행 계획을 생성할 수 있는 시작 화면을 표시합니다.
+ *
+ * @param onCreatePlanClick 플랜 생성 버튼 클릭 시 실행될 콜백
+ */
 @Composable
 fun PlannerScreen(
     onCreatePlanClick: () -> Unit
 ) {
+    // 전체 화면을 차지하는 박스
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
-            .padding(horizontal = 24.dp),
-        contentAlignment = Alignment.Center
+            .padding(horizontal = 24.dp),  // 좌우 여백 24dp
+        contentAlignment = Alignment.Center  // 중앙 정렬
     ) {
+        // 세로로 정렬된 컨텐츠
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "새로운 여행을 계획해볼까요?",

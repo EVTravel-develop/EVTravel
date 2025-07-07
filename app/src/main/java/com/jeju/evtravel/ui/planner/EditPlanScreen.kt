@@ -13,13 +13,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import java.time.format.DateTimeFormatter
 
+/**
+ * 여행 일정을 편집하는 화면
+ * 
+ * @param viewModel 플래너 뷰모델
+ * @param onBackClick 뒤로가기 버튼 클릭 시 실행될 콜백
+ */
 @Composable
 fun EditPlanScreen(
     viewModel: PlannerViewModel,
     onBackClick: () -> Unit
 ) {
+    // 뷰모델에서 여행 시작일과 종료일을 상태로 가져옴
     val startDate = viewModel.startDate.collectAsState().value
     val endDate = viewModel.endDate.collectAsState().value
+    
+    // 날짜 포맷터
     val formatter = DateTimeFormatter.ofPattern("yyyy년 M월 d일")
 
     Column(
@@ -28,7 +37,7 @@ fun EditPlanScreen(
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // 상단 헤더
+        // 상단 헤더 영역
         Row(
             modifier = Modifier
                 .fillMaxWidth()

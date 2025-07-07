@@ -15,6 +15,13 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import java.time.LocalDate
 
+/**
+ * 여행 일정을 선택할 수 있는 캘린더 화면 컴포저블
+ * 
+ * @param viewModel 플래너 뷰모델
+ * @param navController 네비게이션 컨트롤러
+ * @param onNextClick 다음 버튼 클릭 시 실행될 콜백
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarScreen(
@@ -22,15 +29,22 @@ fun CalendarScreen(
     navController: NavController,
     onNextClick: () -> Unit = {}
 ) {
+    // 현재 표시 중인 월 (매월 1일로 설정)
     var currentMonth by remember { mutableStateOf(LocalDate.now().withDayOfMonth(1)) }
+    // 현재 월의 일수
     val daysInMonth = currentMonth.lengthOfMonth()
+    // 현재 월의 첫 날 요일 (0=일요일, 1=월요일, ..., 6=토요일)
     val firstDayOfWeek = currentMonth.dayOfWeek.value % 7
 
+    // 선택된 시작일과 종료일 상태
     var selectedStartDate by remember { mutableStateOf<LocalDate?>(null) }
     var selectedEndDate by remember { mutableStateOf<LocalDate?>(null) }
 
-    val totalGridItems = firstDayOfWeek + daysInMonth
-    val rows = (totalGridItems / 7) + if (totalGridItems % 7 > 0) 1 else 0
+    // 캘린더 그리드를 위한 계산
+    val totalGridItems = firstDayOfWeek + daysInMonth  // 첫 주 빈 칸 + 일수
+    val rows = (totalGridItems / 7) + if (totalGridItems % 7 > 0) 1 else 0  // 필요한 행 수 계산
+    
+    // 캘린더에 표시할 날짜 리스트 생성 (null은 빈 칸)
     val dates = List(rows * 7) { index ->
         val day = index - firstDayOfWeek + 1
         if (day in 1..daysInMonth) currentMonth.withDayOfMonth(day) else null
