@@ -25,7 +25,8 @@ class MainActivity : ComponentActivity() {
                     KakaoMapScreen(
                         modifier = Modifier.fillMaxSize(),
                         locationX = 126.570667, // 예시 경도
-                        locationY = 33.450701  // 예시 위도
+                        locationY = 33.450701,  // 예시 위도
+                        zoomLevel = 15 // 기본 줌 레벨, 필요에 따라 조정 가능
                     )
                 }
             }
