@@ -23,7 +23,9 @@ import java.time.format.DateTimeFormatter
 fun EditPlanScreen(
     viewModel: PlannerViewModel,
     onBackClick: () -> Unit,
-    onEditDateClick: () -> Unit // 날짜 편집 버튼 클릭 시 실행될 콜백
+    onEditDateClick: () -> Unit, // 날짜 편집 버튼 클릭 시 실행될 콜백
+    onAddDestinationClick: () -> Unit // 여행지 추가 버튼 클릭 시 실행될 콜백
+
 ) {
     // 뷰모델에서 여행 시작일과 종료일을 상태로 가져옴
     val startDate = viewModel.startDate.collectAsState().value
@@ -113,7 +115,7 @@ fun EditPlanScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            Button(onClick = { /* TODO: 여행지 추가 */ }) {
+            Button(onClick = { onAddDestinationClick() }) {
                 Text("여행지 추가")
             }
             Button(

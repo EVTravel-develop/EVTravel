@@ -45,7 +45,14 @@ fun EVTravelApp(viewModel: PlannerViewModel) {
             EditPlanScreen(
                 viewModel = viewModel,
                 onBackClick = { navController.popBackStack() },
-                onEditDateClick = { navController.navigate("calendar") }
+                onEditDateClick = { navController.navigate("calendar") },
+                onAddDestinationClick = { navController.navigate("searchDestination") }
+            )
+        }
+        
+        composable("searchDestination") {
+            SearchDestinationScreen(
+                onBackClick = { navController.popBackStack() }
             )
         }
     }
