@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import com.jeju.evtravel.domain.model.Place
+import com.jeju.evtravel.domain.usecase.SearchPlaceUseCase
+import com.jeju.evtravel.data.repository.PlaceRepositoryImpl
 
 /**
  * 플래너 화면의 뷰모델 클래스
@@ -36,6 +39,22 @@ class PlannerViewModel : ViewModel() {
     fun setDateRange(start: LocalDate, end: LocalDate) {
         _startDate.value = start
         _endDate.value = end
+    }
+
+    private val searchPlaceUseCase = SearchPlaceUseCase(PlaceRepositoryImpl())
+
+    private val _searchResults = MutableStateFlow<List<Place>>(emptyList())
+    val searchResults: StateFlow<List<Place>> = _searchResults
+
+    fun searchPlaces(query: String) {
+        viewModelScope.launch {
+            if (query.isBlank()) {
+                _searchResults.value = emptyList() // 빈 문자열이면 결과 초기화
+            } else {
+                val results = searchPlaceUseCase(query)
+                _searchResults.value = results
+            }
+        }
     }
 
     /**

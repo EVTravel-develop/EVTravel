@@ -52,6 +52,7 @@ fun EVTravelApp(viewModel: PlannerViewModel) {
         
         composable("searchDestination") {
             SearchDestinationScreen(
+                viewModel = viewModel,
                 onBackClick = { navController.popBackStack() }
             )
         }
