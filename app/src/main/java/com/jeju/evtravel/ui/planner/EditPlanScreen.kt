@@ -22,7 +22,8 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun EditPlanScreen(
     viewModel: PlannerViewModel,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onEditDateClick: () -> Unit // 날짜 편집 버튼 클릭 시 실행될 콜백
 ) {
     // 뷰모델에서 여행 시작일과 종료일을 상태로 가져옴
     val startDate = viewModel.startDate.collectAsState().value
@@ -67,7 +68,7 @@ fun EditPlanScreen(
                 else "여행 기간을 선택해주세요",
                 style = MaterialTheme.typography.bodyLarge
             )
-            TextButton(onClick = { /* TODO: 다시 캘린더로 이동 */ }) {
+            TextButton(onClick = { onEditDateClick() }) {
                 Text("편집")
             }
         }
