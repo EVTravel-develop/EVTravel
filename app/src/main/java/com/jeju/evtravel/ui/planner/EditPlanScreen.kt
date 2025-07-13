@@ -15,7 +15,7 @@ import java.time.format.DateTimeFormatter
 
 /**
  * 여행 일정을 편집하는 화면
- * 
+ *
  * @param viewModel 플래너 뷰모델
  * @param onBackClick 뒤로가기 버튼 클릭 시 실행될 콜백
  */
@@ -27,7 +27,7 @@ fun EditPlanScreen(
     // 뷰모델에서 여행 시작일과 종료일을 상태로 가져옴
     val startDate = viewModel.startDate.collectAsState().value
     val endDate = viewModel.endDate.collectAsState().value
-    
+
     // 날짜 포맷터
     val formatter = DateTimeFormatter.ofPattern("yyyy년 M월 d일")
 
@@ -56,6 +56,7 @@ fun EditPlanScreen(
             )
         }
 
+        // 여행 기간 표시 및 편집 버튼
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
@@ -73,21 +74,29 @@ fun EditPlanScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 날짜별 버튼 (예시)
-        if (startDate != null && endDate != null) {
-            val days = generateSequence(startDate) { date ->
-                if (date < endDate) date.plusDays(1) else null
-            }.toList()
+        // 날짜별 버튼
+        startDate?.let { start ->
+            endDate?.let { end ->
+                val days = buildList {
+                    var date = start
+                    while (!date.isAfter(end)) {
+                        add(date)
+                        date = date.plusDays(1)
+                    }
+                }
 
-            Row {
-                days.forEach { date ->
-                    Text(
-                        text = "${date.dayOfMonth}일 (${date.dayOfWeek.name.take(1)})",
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline))
-                            .padding(8.dp)
-                    )
+                println("생성된 날짜 목록: $days") // 디버그용 로그
+
+                Row {
+                    days.forEach { date ->
+                        Text(
+                            text = "${date.dayOfMonth}일 (${date.dayOfWeek.name.take(1)})",
+                            modifier = Modifier
+                                .padding(end = 8.dp)
+                                .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline))
+                                .padding(8.dp)
+                        )
+                    }
                 }
             }
         }
@@ -109,9 +118,10 @@ fun EditPlanScreen(
             Button(
                 onClick = {
                     if (startDate != null && endDate != null) {
-                        val days = generateSequence(startDate) { date ->
-                            if (date < endDate) date.plusDays(1) else null
-                        }.plus(endDate).toList() // 끝 날짜 포함
+                        val days = generateSequence(startDate) { current ->
+                            val next = current.plusDays(1)
+                            if (!next.isAfter(endDate)) next else null
+                        }.toList()
 
                         viewModel.saveCurrentPlan(
                             start = startDate.toString(), // "2025-07-04"
