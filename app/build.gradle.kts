@@ -3,7 +3,7 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    id("org.jetbrains.kotlin.plugin.compose") version "2.0.0"
+    alias(libs.plugins.kotlin.plugin.compose)
 
     //Firebase Google Services Plugin
     id("com.google.gms.google-services")
@@ -79,8 +79,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
 
     // 위치 서비스
+    implementation("com.google.accompanist:accompanist-permissions:0.34.0")
     implementation("com.google.android.gms:play-services-location:21.0.1")
-    implementation("androidx.compose.runtime:runtime-livedata:1.5.4")
 
     // Kakao Map SDK
     implementation("com.kakao.maps.open:android:2.12.8")
