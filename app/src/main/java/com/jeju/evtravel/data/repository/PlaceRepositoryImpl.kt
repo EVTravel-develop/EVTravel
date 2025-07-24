@@ -21,13 +21,14 @@ class PlaceRepositoryImpl(
      * @return 장소 도메인 모델 리스트
      */
     override suspend fun getPlaces(): List<Place> {
-        // 원격 데이터 소스에서 DTO 리스트를 가져와 도메인 모델로 변환
         return remoteDataSource.fetchPlaces().map { dto ->
             Place(
                 id = dto.id,
                 name = dto.name,
-                address = dto.address,
-                type = dto.type
+                categoryGroupCode = dto.categoryGroupCode,
+                roadAddressName = dto.roadAddressName,
+                x = dto.x,
+                y = dto.y
             )
         }
     }

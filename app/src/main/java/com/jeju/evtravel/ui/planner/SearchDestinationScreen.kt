@@ -69,7 +69,6 @@ fun SearchDestinationScreen(
                 ) {
                     Column {
                         Text(place.name, style = MaterialTheme.typography.bodyLarge)
-                        Text(place.address, style = MaterialTheme.typography.bodySmall)
                     }
                     Button(onClick = {
                         // TODO: 장소 추가 및 일정으로 이동

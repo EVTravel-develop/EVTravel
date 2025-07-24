@@ -10,6 +10,8 @@ package com.jeju.evtravel.domain.model
 data class Place(
     val id: String,
     val name: String,
-    val address: String,
-    val type: String
+    val categoryGroupCode: String,
+    val roadAddressName: String,
+    val x: Double,
+    val y: Double
 )
