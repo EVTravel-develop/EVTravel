@@ -2,15 +2,20 @@ package com.jeju.evtravel.ui.planner
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import org.burnoutcrew.reorderable.*
 import java.time.format.DateTimeFormatter
 
 /**
@@ -30,9 +35,18 @@ fun EditPlanScreen(
     // 뷰모델에서 여행 시작일과 종료일을 상태로 가져옴
     val startDate = viewModel.startDate.collectAsState().value
     val endDate = viewModel.endDate.collectAsState().value
+    val dayPlans by viewModel.dayPlans.collectAsState()
+    val selectedDate by viewModel.selectedDate.collectAsState()
 
     // 날짜 포맷터
     val formatter = DateTimeFormatter.ofPattern("yyyy년 M월 d일")
+
+    val reorderableState = rememberReorderableLazyListState(onMove = { from, to ->
+        val date = selectedDate
+        if (date != null) {
+            viewModel.reorderPlaces(date, from.index, to.index)
+        }
+    })
 
     Column(
         modifier = Modifier
@@ -48,15 +62,9 @@ fun EditPlanScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = { onBackClick() }) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "뒤로가기"
-                )
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로가기")
             }
-            Text(
-                "플래너",
-                style = MaterialTheme.typography.headlineSmall
-            )
+            Text("플래너", style = MaterialTheme.typography.headlineSmall)
         }
 
         // 여행 기간 표시 및 편집 버튼
@@ -77,28 +85,71 @@ fun EditPlanScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 날짜별 버튼
-        startDate?.let { start ->
-            endDate?.let { end ->
-                val days = buildList {
-                    var date = start
-                    while (!date.isAfter(end)) {
-                        add(date)
-                        date = date.plusDays(1)
+        // 날짜 리스트
+        LazyColumn(
+            state = reorderableState.listState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .reorderable(reorderableState)
+                .detectReorderAfterLongPress(reorderableState)
+        ) {
+            itemsIndexed(dayPlans, key = { _, dayPlan -> dayPlan.date }) { _, dayPlan ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                ) {
+                    // 날짜 박스
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(
+                                BorderStroke(
+                                    1.dp,
+                                    if (selectedDate == dayPlan.date)
+                                        MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.outline
+                                )
+                            )
+                            .padding(8.dp)
+                            .clickable { viewModel.setSelectedDate(dayPlan.date) }
+                    ) {
+                        Text("${dayPlan.date} (${
+                            java.time.LocalDate.parse(dayPlan.date).dayOfWeek.name.take(1)
+                        })")
                     }
-                }
 
-                println("생성된 날짜 목록: $days") // 디버그용 로그
+                    // 선택된 날짜의 장소 목록 (드래그 없이 단순 표시)
+                    if (selectedDate == dayPlan.date && dayPlan.places.isNotEmpty()) {
+                        Column(modifier = Modifier.padding(start = 16.dp, top = 4.dp)) {
+                            dayPlan.places.forEach { place ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "• ${place.name}",
+                                        modifier = Modifier.weight(1f) // 남는 공간 차지해서 X 버튼 안 밀리게
+                                    )
+                                    IconButton(
+                                        onClick = { viewModel.removePlaceFromDate(dayPlan.date, place.id) },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Close,
+                                            contentDescription = "삭제",
+                                            tint = Color.Red,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
 
-                Row {
-                    days.forEach { date ->
-                        Text(
-                            text = "${date.dayOfMonth}일 (${date.dayOfWeek.name.take(1)})",
-                            modifier = Modifier
-                                .padding(end = 8.dp)
-                                .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline))
-                                .padding(8.dp)
-                        )
                     }
                 }
             }
@@ -115,21 +166,15 @@ fun EditPlanScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            Button(onClick = { onAddDestinationClick() }) {
+            Button(onClick = { onAddDestinationClick() }, enabled = selectedDate != null) {
                 Text("여행지 추가")
             }
             Button(
                 onClick = {
                     if (startDate != null && endDate != null) {
-                        val days = generateSequence(startDate) { current ->
-                            val next = current.plusDays(1)
-                            if (!next.isAfter(endDate)) next else null
-                        }.toList()
-
                         viewModel.saveCurrentPlan(
-                            start = startDate.toString(), // "2025-07-04"
-                            end = endDate.toString(),
-                            days = days.map { it.toString() }
+                            start = startDate.toString(),
+                            end = endDate.toString()
                         )
                     }
                 },
@@ -137,7 +182,6 @@ fun EditPlanScreen(
             ) {
                 Text("저장")
             }
-
         }
     }
 }

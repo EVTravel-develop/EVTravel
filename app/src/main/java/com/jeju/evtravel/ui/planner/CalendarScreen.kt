@@ -158,6 +158,7 @@ fun CalendarScreen(
                     selectedStartDate?.let { start ->
                         selectedEndDate?.let { end ->
                             viewModel.setDateRange(start, end)
+                            viewModel.initDayPlans(start, end) // 날짜별 일정 초기화
                             onNextClick()
                         }
                     }

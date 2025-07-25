@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.input.TextFieldValue
+import com.jeju.evtravel.data.model.PlaceDto
 
 /**
  * 목적지 검색 화면을 구현하는 Composable 함수
@@ -71,7 +72,25 @@ fun SearchDestinationScreen(
                         Text(place.name, style = MaterialTheme.typography.bodyLarge)
                     }
                     Button(onClick = {
-                        // TODO: 장소 추가 및 일정으로 이동
+                        val date = viewModel.selectedDate.value
+                        if (date != null) {
+                            // Place를 PlaceDto로 변환
+                            val placeDto = PlaceDto(
+                                id = place.id,
+                                name = place.name,
+                                categoryGroupCode = place.categoryGroupCode,
+                                roadAddressName = place.roadAddressName,
+                                x = place.x,
+                                y = place.y
+                            )
+                            viewModel.addPlaceToDate(date, placeDto)
+
+                            // 검색어 초기화
+                            query = TextFieldValue("")
+                            viewModel.searchPlaces("")
+
+                            onBackClick() // 추가 후 돌아가기
+                        }
                     }) {
                         Text("추가")
                     }

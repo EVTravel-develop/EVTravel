@@ -74,6 +74,8 @@ dependencies {
     implementation ("com.maxkeppeler.sheets-compose-dialogs:core:1.0.2")
     implementation ("com.maxkeppeler.sheets-compose-dialogs:calendar:1.0.2")
     implementation("androidx.navigation:navigation-compose:2.7.7")
+    implementation("org.burnoutcrew.composereorderable:reorderable:0.9.6")
+    implementation("androidx.compose.material:material-icons-extended:1.5.0")
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
