@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import org.burnoutcrew.reorderable.*
 import java.time.format.DateTimeFormatter
 
@@ -27,6 +28,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun EditPlanScreen(
     viewModel: PlannerViewModel,
+    navController: NavController,
     onBackClick: () -> Unit,
     onEditDateClick: () -> Unit, // 날짜 편집 버튼 클릭 시 실행될 콜백
     onAddDestinationClick: () -> Unit // 여행지 추가 버튼 클릭 시 실행될 콜백
@@ -172,16 +174,21 @@ fun EditPlanScreen(
             Button(
                 onClick = {
                     if (startDate != null && endDate != null) {
-                        viewModel.saveCurrentPlan(
-                            start = startDate.toString(),
-                            end = endDate.toString()
-                        )
+                        val startStr = startDate.toString()
+                        val endStr = endDate.toString()
+
+                        viewModel.saveCurrentPlan(startStr, endStr)
+
+                        navController.navigate("planList/${startDate}/${endDate}") {
+                            popUpTo("planList") { inclusive = true }
+                        }
                     }
                 },
                 enabled = startDate != null && endDate != null
             ) {
                 Text("저장")
             }
+
         }
     }
 }
