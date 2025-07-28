@@ -16,8 +16,8 @@ import com.jeju.evtravel.domain.usecase.SearchPlaceUseCase
 import com.jeju.evtravel.data.repository.PlaceRepositoryImpl
 
 /**
- * 플래너 화면의 뷰모델 클래스
- * UI 상태를 관리하고 비즈니스 로직을 처리합니다.
+ * PlannerViewModel은 여행 계획을 관리하는 ViewModel입니다.
+ * 여행 기간 설정, 장소 검색, 플랜 저장 등의 기능을 제공합니다.
  */
 class PlannerViewModel : ViewModel() {
     // 의존성 주입 (실제 앱에서는 Hilt 등을 사용하여 주입)
@@ -32,13 +32,26 @@ class PlannerViewModel : ViewModel() {
     private val _selectedDate = MutableStateFlow<String?>(null)
     val selectedDate: StateFlow<String?> = _selectedDate
 
-    // 여행 시작일 상태 (관찰 가능한 상태)
+    // 여행 시작일 상태
     private val _startDate = MutableStateFlow<LocalDate?>(null)
     val startDate: StateFlow<LocalDate?> = _startDate
 
-    // 여행 종료일 상태 (관찰 가능한 상태)
+    // 여행 종료일 상태
     private val _endDate = MutableStateFlow<LocalDate?>(null)
     val endDate: StateFlow<LocalDate?> = _endDate
+
+    // 플랜 목록 상태
+    private val _plans = MutableStateFlow<List<PlanDto>>(emptyList())
+    val plans: StateFlow<List<PlanDto>> = _plans
+
+    // 장소 검색을 위한 UseCase와 상태
+    private val searchPlaceUseCase = SearchPlaceUseCase(PlaceRepositoryImpl())
+
+    // 검색 결과 상태
+    private val _searchResults = MutableStateFlow<List<Place>>(emptyList())
+
+    // 외부에서 관찰 가능한 검색 결과 상태
+    val searchResults: StateFlow<List<Place>> = _searchResults
 
     /**
      * 여행 기간을 설정하는 메서드
@@ -51,11 +64,10 @@ class PlannerViewModel : ViewModel() {
         _endDate.value = end
     }
 
-    private val searchPlaceUseCase = SearchPlaceUseCase(PlaceRepositoryImpl())
-
-    private val _searchResults = MutableStateFlow<List<Place>>(emptyList())
-    val searchResults: StateFlow<List<Place>> = _searchResults
-
+    /**
+     * 장소 검색 메서드
+     * @param query 검색어
+     */
     fun searchPlaces(query: String) {
         viewModelScope.launch {
             if (query.isBlank()) {
@@ -68,7 +80,9 @@ class PlannerViewModel : ViewModel() {
     }
 
     /**
-     * 현재 플랜을 저장하는 메서드
+     * 현재 플랜을 저장합니다.
+     * @param start 여행 시작일 (yyyy-MM-dd 형식)
+     * @param end 여행 종료일 (yyyy-MM-dd 형식)
      */
     fun saveCurrentPlan(start: String, end: String) {
         viewModelScope.launch {
@@ -78,7 +92,9 @@ class PlannerViewModel : ViewModel() {
                 days = _dayPlans.value,  // 날짜별 DayPlan 객체들 그대로 저장
                 userId = "somi"      // 실제 로그인 사용자 ID로 대체
             )
-            savePlanUseCase(plan)
+            savePlanUseCase(plan,
+                onSuccess = { loadPlans("somi") }   // 저장 후 목록 갱신
+            )
         }
     }
 
@@ -111,12 +127,16 @@ class PlannerViewModel : ViewModel() {
     fun addPlaceToDate(date: String, place: PlaceDto) {
         _dayPlans.value = _dayPlans.value.map { dayPlan ->
             if (dayPlan.date == date) {
-                dayPlan.copy(places = dayPlans.value.find { it.date == date }?.places.orEmpty() + place)
+                dayPlan.copy(places = dayPlan.places + place)
             } else dayPlan
         }
     }
 
-    // 특정 날짜의 장소 삭제
+    /**
+     * 특정 날짜에서 장소를 제거합니다.
+     * @param date 날짜 (yyyy-MM-dd 형식)
+     * @param placeId 제거할 장소의 ID
+     */
     fun removePlaceFromDate(date: String, placeId: String) {
         _dayPlans.value = _dayPlans.value.map { dayPlan ->
             if (dayPlan.date == date) {
@@ -125,6 +145,12 @@ class PlannerViewModel : ViewModel() {
         }
     }
 
+    /**
+     * 특정 날짜의 장소를 재정렬합니다.
+     * @param date 날짜 (yyyy-MM-dd 형식)
+     * @param fromIndex 이동할 장소의 현재 인덱스
+     * @param toIndex 이동할 장소의 목표 인덱스
+     */
     fun reorderPlaces(date: String, fromIndex: Int, toIndex: Int) {
         _dayPlans.value = _dayPlans.value.map { dayPlan ->
             if (dayPlan.date == date) {
@@ -136,8 +162,23 @@ class PlannerViewModel : ViewModel() {
         }
     }
 
-    fun clearSearch() {
-        _searchResults.value = emptyList()
+    /**
+     * Firestore에서 플랜 목록을 불러옵니다.
+     * @param userId 사용자 ID
+     */
+    fun loadPlans(userId: String) {
+        viewModelScope.launch {
+            _plans.value = repository.getPlans(userId)
+        }
     }
 
+    /**
+     * 특정 플랜을 삭제합니다.
+     * @param planId 삭제할 플랜의 ID
+     */
+    fun deletePlan(planId: String) {
+        repository.deletePlan(planId, onComplete = {
+            loadPlans("somi") // 삭제 후 목록 새로고침
+        }, onFailure = {})
+    }
 }
