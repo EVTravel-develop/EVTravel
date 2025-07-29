@@ -1,0 +1,17 @@
+language: "ko-KR"
+early_access: false
+
+reviews:
+  profile: "balanced"
+  request_changes_workflow: true
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: true
+  auto_review:
+    enabled: true
+    drafts: false
+  allow_non_default_branch: true
+
+chat:
+  auto_reply: true
