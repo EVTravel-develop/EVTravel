@@ -45,7 +45,7 @@ class PlanRepositoryImpl(
      * @param onComplete 삭제 완료 시 실행될 콜백 함수
      * @param onFailure 삭제 실패 시 실행될 콜백 함수 (예외 전달)
      */
-    fun deletePlan(planId: String, onComplete: () -> Unit, onFailure: (Exception) -> Unit) {
-        remote.deletePlan(planId, onComplete, onFailure)
+    suspend fun deletePlan(planId: String) {
+        remote.deletePlan(planId)
     }
 }

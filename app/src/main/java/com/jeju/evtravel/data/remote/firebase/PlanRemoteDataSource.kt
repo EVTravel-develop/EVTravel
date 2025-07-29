@@ -59,14 +59,13 @@ class PlanRemoteDataSource(
      * @param onComplete 삭제 완료 시 실행될 콜백 함수
      * @param onFailure 삭제 실패 시 실행될 콜백 함수 (예외 전달)
      */
-    fun deletePlan(
-        planId: String,
-        onComplete: () -> Unit = {},
-        onFailure: (Exception) -> Unit = {}
-    ) {
-        db.collection("plans").document(planId)
-            .delete()
-            .addOnSuccessListener { onComplete() }
-            .addOnFailureListener { onFailure(it) }
+    suspend fun deletePlan(planId: String) {
+        try {
+            db.collection("plans").document(planId)
+                .delete()
+                .await()
+        } catch (e: Exception) {
+            throw e
+        }
     }
 }

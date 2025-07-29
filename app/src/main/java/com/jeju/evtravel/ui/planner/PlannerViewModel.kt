@@ -177,8 +177,13 @@ class PlannerViewModel : ViewModel() {
      * @param planId 삭제할 플랜의 ID
      */
     fun deletePlan(planId: String) {
-        repository.deletePlan(planId, onComplete = {
-            loadPlans("somi") // 삭제 후 목록 새로고침
-        }, onFailure = {})
+        viewModelScope.launch {
+            try {
+                repository.deletePlan(planId)
+                loadPlans("somi") // 삭제 후 플랜 목록 갱신
+            } catch (e: Exception) {
+                println("플랜 삭제 중 오류 발생: ${e.message}")
+            }
+        }
     }
 }
