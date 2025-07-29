@@ -38,8 +38,8 @@ data class PlanDto(
     var userId: String = "",
 
     // 생성 시각
-    var createdAt: Timestamp = Timestamp.now(),
+    var createdAt: Timestamp? = null,
 
     // 수정 시각
-    var updatedAt: Timestamp = Timestamp.now()
+    var updatedAt: Timestamp? = null
 )
