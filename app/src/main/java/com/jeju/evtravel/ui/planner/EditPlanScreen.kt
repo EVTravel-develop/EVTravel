@@ -38,6 +38,7 @@ import org.burnoutcrew.reorderable.*
 @Composable
 fun EditPlanScreen(
     viewModel: PlannerViewModel,
+    planId: String?,
     navController: NavController,
     onBackClick: () -> Unit,
     onEditDateClick: () -> Unit, // 날짜 편집 버튼 클릭 시 실행될 콜백
@@ -59,6 +60,17 @@ fun EditPlanScreen(
             viewModel.reorderPlaces(date, from.index, to.index)
         }
     })
+
+
+    // 화면 진입 시 플랜 ID가 있다면 해당 플랜을 로드합니다.
+    LaunchedEffect(planId) {
+        if (planId != null) {
+            val planToLoad = viewModel.plans.value.find { it.id == planId }
+            if (planToLoad != null) {
+                viewModel.loadPlanDetails(planToLoad)
+            }
+        }
+    }
 
     LaunchedEffect(dayPlans) {
         if (selectedDate == null && dayPlans.isNotEmpty()) {

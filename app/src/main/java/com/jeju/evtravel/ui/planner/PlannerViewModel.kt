@@ -186,4 +186,27 @@ class PlannerViewModel : ViewModel() {
             }
         }
     }
+
+    /**
+     * 기존 PlanDto 객체를 받아 ViewModel의 상태를 설정합니다.
+     * (플랜 조회 또는 수정 시 사용)
+     * @param plan 화면에 표시할 플랜 데이터
+     */
+    fun loadPlanDetails(plan: PlanDto) {
+        _startDate.value = LocalDate.parse(plan.startDate)
+        _endDate.value = LocalDate.parse(plan.endDate)
+        _dayPlans.value = plan.days
+    }
+
+    /**
+     * ViewModel의 상태를 초기화합니다.
+     * (새로운 플랜 생성 시작 시 사용)
+     */
+    fun clearPlanDetails() {
+        _startDate.value = null
+        _endDate.value = null
+        _dayPlans.value = emptyList()
+        _selectedDate.value = null
+        _searchResults.value = emptyList()
+    }
 }

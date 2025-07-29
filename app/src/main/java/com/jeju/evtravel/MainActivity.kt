@@ -8,9 +8,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.jeju.evtravel.ui.planner.*
 
 class MainActivity : ComponentActivity() {
@@ -55,7 +57,9 @@ fun EVTravelApp(viewModel: PlannerViewModel) {
                 viewModel = viewModel,
                 onBackClick = { /* 추후 수정 */ },
                 onCreatePlanClick = { navController.navigate("calendar") },
-                onPlanClick = { navController.navigate("editPlan") }
+                onPlanClick = { plan ->
+                    navController.navigate("editPlan/${plan.id}")
+                }
             )
         }
 
@@ -69,7 +73,9 @@ fun EVTravelApp(viewModel: PlannerViewModel) {
                 selectedEnd = end,
                 onBackClick = { /* 추후 수정 */ },
                 onCreatePlanClick = { navController.navigate("calendar") },
-                onPlanClick = { navController.navigate("editPlan") }
+                onPlanClick = { plan ->
+                    navController.navigate("editPlan/${plan.id}")
+                }
             )
         }
 
@@ -79,15 +85,24 @@ fun EVTravelApp(viewModel: PlannerViewModel) {
                 viewModel = viewModel,
                 navController = navController,
                 onNextClick = {
-                    navController.navigate("editPlan") // 달력 화면에서 다음 일정 추가 화면으로 이동
+                    navController.navigate("editPlan/new") // 달력 화면에서 다음 일정 추가 화면으로 이동
                 }
             )
         }
 
         // 여행 일정 편집 화면
-        composable("editPlan") {
+        composable(
+            // "editPlan/new" 또는 "editPlan/기존planID" 형태의 경로를 모두 처리합니다.
+            route = "editPlan/{planId}",
+            arguments = listOf(navArgument("planId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            // 경로에서 planId 값을 추출합니다.
+            val planId = backStackEntry.arguments?.getString("planId")
+
             EditPlanScreen(
                 viewModel = viewModel,
+                // 추출한 planId가 "new"이면 null을, 아니라면 실제 id를 전달합니다.
+                planId = if (planId == "new") null else planId,
                 navController = navController,
                 onBackClick = { navController.popBackStack() },
                 onEditDateClick = { navController.navigate("calendar") },
