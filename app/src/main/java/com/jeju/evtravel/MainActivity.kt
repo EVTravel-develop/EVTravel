@@ -13,7 +13,9 @@ import com.google.android.gms.location.LocationServices
 import com.jeju.evtravel.ui.map.KakaoMapScreen
 import com.kakao.vectormap.KakaoMapSdk
 import com.kakao.vectormap.utils.MapUtils
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private lateinit var fusedLocationClient: FusedLocationProviderClient
 
