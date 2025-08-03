@@ -8,8 +8,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
+import com.jeju.evtravel.ui.detail.PlaceDetailScreen
 import com.jeju.evtravel.ui.map.KakaoMapScreen
 import com.kakao.vectormap.KakaoMapSdk
 import com.kakao.vectormap.utils.MapUtils
@@ -36,7 +40,24 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    KakaoMapScreen(fusedLocationClient)
+//                    KakaoMapScreen(fusedLocationClient)
+                    val navController = rememberNavController()
+
+                    NavHost(
+                        navController = navController,
+                        startDestination = "map"
+                    ) {
+                        composable("map") {
+                            KakaoMapScreen(
+                                fusedLocationClient = fusedLocationClient,
+                                navController = navController
+                            )
+                        }
+                        composable("place_detail/{placeId}") { backStackEntry ->
+                            val placeId = backStackEntry.arguments?.getString("placeId") ?: return@composable
+                            PlaceDetailScreen(placeId)
+                        }
+                    }
                 }
             }
         }

@@ -16,13 +16,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.jeju.evtravel.R
 import com.jeju.evtravel.domain.model.Place
 import com.kakao.vectormap.KakaoMap
 import com.kakao.vectormap.LatLng
-import com.kakao.vectormap.camera.CameraAnimation
 import com.kakao.vectormap.camera.CameraUpdateFactory
 import com.kakao.vectormap.label.Label
 import com.kakao.vectormap.label.LabelStyle
@@ -42,7 +42,8 @@ import com.kakao.vectormap.label.LabelTextStyle
 @Composable
 fun KakaoMapScreen(
     fusedLocationClient: FusedLocationProviderClient,
-    viewModel: MapViewModel = hiltViewModel()
+    viewModel: MapViewModel = hiltViewModel(),
+    navController: NavController
 ) {
     val context = LocalContext.current
     val permissionState = rememberLocationPermissionState()
@@ -54,7 +55,6 @@ fun KakaoMapScreen(
     var placeList by remember { mutableStateOf<List<Place>>(emptyList()) }  // 주변 장소 목록
 
     val uiState by viewModel.uiState.collectAsState()
-
 
     // 권한이 필요할 때 다이얼로그 표시
     var showRationaleDialog by remember { mutableStateOf(false) }
@@ -110,8 +110,6 @@ fun KakaoMapScreen(
                 val defaultStyles = LabelStyles.from(defaultStyle)
                 val emptyText = LabelTextBuilder().setTexts("")
 
-                // 📦 3. 지도에서 제거된 라벨이 아니면만 스타일 복원
-                // 예외 방지 처리
                 try {
                     prevLabel.changeStylesAndText(defaultStyles, emptyText)
                 } catch (e: Exception) {
@@ -131,27 +129,59 @@ fun KakaoMapScreen(
 
                 // 지도 중심 이동
                 val latLng = LatLng.from(it.latitude, it.longitude)
+
                 val zoomLevel = kakaoMap?.zoomLevel
-                Log.d("zoomLevel", "$zoomLevel")
+                Log.d("zoomLevel", "zoomLevel: $zoomLevel")
+
+                // 지도 상태 저장
+                viewModel.lastCenter = latLng
+                viewModel.lastZoomLevel = zoomLevel
+                viewModel.lastSelectedPlaceId = it.id
+                viewModel.isMapRestored = false
+
                 val cameraUpdate = CameraUpdateFactory.newCenterPosition(latLng, zoomLevel ?: 16)
                 // 애니메이션 설정 : 단위 ms
-                val cameraAnimation = CameraAnimation.from(200)
-                kakaoMap?.moveCamera(cameraUpdate, cameraAnimation)
+//                val cameraAnimation = CameraAnimation.from(200)
+                kakaoMap?.moveCamera(cameraUpdate)
 
                 selectedLabel = label
                 selectedPlace = it
+
+                navController.navigate("place_detail/${it.id}")
             }
             true
         }
     }
 
-    // 검색된 장소 마커 추가
+    // 검색된 장소 마커 추가 및 지도 상태 복원 처리
     LaunchedEffect(uiState) {
         if (uiState is MapUiState.Success && kakaoMap != null) {
             kakaoMap?.labelManager?.layer?.removeAll()
             val places = (uiState as MapUiState.Success).places
             placeList = places
             kakaoMap?.addMarkers(currentLatLng, places)
+
+            if (!viewModel.isMapRestored) {
+                viewModel.lastCenter?.let { center ->
+                    viewModel.lastZoomLevel?.let { zoom ->
+                        kakaoMap?.moveCamera(CameraUpdateFactory.newCenterPosition(center, zoom))
+                    }
+                }
+
+                val placeId = viewModel.lastSelectedPlaceId
+                val place = places.find { it.id == placeId }
+                place?.let {
+                    val label = kakaoMap?.labelManager?.layer?.getLabel(it.id)
+                    val textStyle = LabelTextStyle.from(40, 0xFF000000.toInt())
+                    val selectedStyle = LabelStyle.from(R.drawable.blue_marker_selected)
+                        .setTextStyles(textStyle)
+                    label?.changeStylesAndText(LabelStyles.from(selectedStyle), LabelTextBuilder().setTexts(it.name))
+                    selectedLabel = label
+                    selectedPlace = it
+                }
+
+                viewModel.isMapRestored = true
+            }
         }
     }
 
