@@ -14,7 +14,7 @@ android {
 
     defaultConfig {
         applicationId = "com.jeju.evtravel"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
@@ -66,8 +66,17 @@ dependencies {
 
     //Firebase Analytics 예시
     implementation("com.google.firebase:firebase-analytics")
-
+    implementation("com.google.firebase:firebase-firestore-ktx") // Firestore
     implementation ("com.google.firebase:firebase-database-ktx:20.0.4")
+
+    implementation("androidx.compose.material3:material3:1.2.1")
+
+    implementation ("com.maxkeppeler.sheets-compose-dialogs:core:1.0.2")
+    implementation ("com.maxkeppeler.sheets-compose-dialogs:calendar:1.0.2")
+    implementation("androidx.navigation:navigation-compose:2.7.7")
+    implementation("org.burnoutcrew.composereorderable:reorderable:0.9.6")
+    implementation("androidx.compose.material:material-icons-extended:1.5.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
