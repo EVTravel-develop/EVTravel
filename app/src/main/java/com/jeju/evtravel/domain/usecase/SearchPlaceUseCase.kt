@@ -12,15 +12,23 @@ class SearchPlaceUseCase(
     private val repository: PlaceRepository
 ) {
     /**
-     * 주어진 검색어로 장소를 검색
+     * 주어진 검색어와 위치 정보로 장소 검색
      *
-     * @param query 검색어 (대소문자 구분 없이 검색됨)
-     * @return 검색어가 이름에 포함된 장소 리스트 (대소문자 구분 없음)
+     * @param query 검색어
+     * @param x 현재 경도 (longitude)
+     * @param y 현재 위도 (latitude)
      */
-    suspend operator fun invoke(query: String): List<Place> {
-        // 저장소에서 모든 장소를 가져온 후, 이름에 검색어가 포함된 장소만 필터링
-        return repository.getPlaces().filter {
-            it.name.contains(query, ignoreCase = true)
-        }
+    suspend operator fun invoke(
+        query: String,
+        x: Double,
+        y: Double,
+        radius: Int? = 2000 // 기본 2km 반경
+    ): List<Place> {
+        return repository.searchNearbyPlaces(
+            query = query,
+            x = x,
+            y = y,
+            radius = radius
+        )
     }
 }

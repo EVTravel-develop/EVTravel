@@ -20,6 +20,8 @@ import com.jeju.evtravel.data.model.PlaceDto
 @Composable
 fun SearchDestinationScreen(
     viewModel: PlannerViewModel,
+    x: Double, // 경도
+    y: Double, // 위도
     onBackClick: () -> Unit
 ) {
     // 검색어 상태 관리
@@ -51,7 +53,7 @@ fun SearchDestinationScreen(
             value = query,
             onValueChange = {
                 query = it
-                viewModel.searchPlaces(it.text)
+                viewModel.searchPlaces(it.text,x,y)
             },
             placeholder = { Text("장소를 입력해주세요") },
             modifier = Modifier.fillMaxWidth()
@@ -78,16 +80,16 @@ fun SearchDestinationScreen(
                             val placeDto = PlaceDto(
                                 id = place.id,
                                 name = place.name,
-                                categoryGroupCode = place.categoryGroupCode,
-                                roadAddressName = place.roadAddressName,
-                                x = place.x,
-                                y = place.y
+                                roadAddressName = place.roadAddress ?: "",
+                                categoryGroupCode = "",
+                                x = place.longitude,
+                                y = place.latitude
                             )
                             viewModel.addPlaceToDate(date, placeDto)
 
                             // 검색어 초기화
                             query = TextFieldValue("")
-                            viewModel.searchPlaces("")
+                            viewModel.searchPlaces("",x,y)
 
                             onBackClick() // 추가 후 돌아가기
                         }
