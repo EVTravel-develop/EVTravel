@@ -18,4 +18,14 @@ interface KakaoLocalApi {
         @Query("size") size: Int = 15,
         @Query("sort") sort: String = "distance"   // distance | accuracy
     ): PlaceSearchResponseDto
+
+    @GET("/v2/local/search/keyword.json")
+    suspend fun searchChargers(
+        @Header("Authorization") authorization: String,
+        @Query("query") query: String = "전기차 충전소",
+        @Query("x") x: Double,
+        @Query("y") y: Double,
+        @Query("radius") radius: Int = 500,
+        @Query("sort") sort: String = "distance"
+    ): PlaceSearchResponseDto
 }

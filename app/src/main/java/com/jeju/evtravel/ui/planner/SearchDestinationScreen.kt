@@ -12,6 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.input.TextFieldValue
 import com.jeju.evtravel.data.model.PlaceDto
+import androidx.compose.ui.res.painterResource
+import com.jeju.evtravel.R
 
 /**
  * 목적지 검색 화면을 구현하는 Composable 함수
@@ -53,7 +55,7 @@ fun SearchDestinationScreen(
             value = query,
             onValueChange = {
                 query = it
-                viewModel.searchPlaces(it.text,x,y)
+                viewModel.searchPlaces(it.text, x, y)
             },
             placeholder = { Text("장소를 입력해주세요") },
             modifier = Modifier.fillMaxWidth()
@@ -63,41 +65,71 @@ fun SearchDestinationScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         LazyColumn {
-            items(searchResults) { place ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text(place.name, style = MaterialTheme.typography.bodyLarge)
-                    }
-                    Button(onClick = {
-                        val date = viewModel.selectedDate.value
-                        if (date != null) {
-                            // Place를 PlaceDto로 변환
-                            val placeDto = PlaceDto(
-                                id = place.id,
-                                name = place.name,
-                                roadAddressName = place.roadAddress ?: "",
-                                categoryGroupCode = "",
-                                x = place.longitude,
-                                y = place.latitude
+            items(searchResults) { uiPlace ->
+
+                Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(uiPlace.place.name, style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                uiPlace.place.roadAddress ?: uiPlace.place.address ?: "",
+                                style = MaterialTheme.typography.bodySmall
                             )
-                            viewModel.addPlaceToDate(date, placeDto)
-
-                            // 검색어 초기화
-                            query = TextFieldValue("")
-                            viewModel.searchPlaces("",x,y)
-
-                            onBackClick() // 추가 후 돌아가기
                         }
-                    }) {
-                        Text("추가")
+
+                        Row {
+                            IconButton(onClick = {
+                                viewModel.toggleChargerSection(uiPlace.place.id)
+                            }) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_battery_charge),
+                                    contentDescription = "충전소 보기"
+                                )
+                            }
+                        }
+
+                            Button(onClick = {
+                                val date = viewModel.selectedDate.value
+                                if (date != null) {
+                                    val place = uiPlace.place
+                                    val placeDto = PlaceDto(
+                                        id = place.id,
+                                        name = place.name,
+                                        roadAddressName = place.roadAddress ?: "",
+                                        categoryGroupCode = "",
+                                        x = place.longitude,
+                                        y = place.latitude
+                                    )
+                                    viewModel.addPlaceToDate(date, placeDto)
+                                    query = TextFieldValue("")
+                                    viewModel.searchPlaces("", x, y)
+                                    onBackClick()
+                                }
+                            }) {
+                                Text("추가")
+                            }
+                        }
+                    }
+
+                    if (uiPlace.isExpanded && uiPlace.chargers != null) {
+                        Column(modifier = Modifier.padding(start = 24.dp)) {
+                            uiPlace.chargers.forEach { charger ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(charger.name)
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     }
-}

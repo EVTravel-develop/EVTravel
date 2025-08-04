@@ -11,11 +11,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import com.jeju.evtravel.domain.model.Place
 import com.jeju.evtravel.domain.usecase.SearchPlaceUseCase
 import com.jeju.evtravel.data.repository.PlaceRepositoryImpl
 import com.jeju.evtravel.data.remote.RetrofitInstance
 import com.jeju.evtravel.BuildConfig
+import com.jeju.evtravel.data.repository.ChargerRepositoryImpl
 
 /**
  * PlannerViewModel은 여행 계획을 관리하는 ViewModel입니다.
@@ -54,11 +54,16 @@ class PlannerViewModel : ViewModel() {
         )
     )
 
-    // 검색 결과 상태
-    private val _searchResults = MutableStateFlow<List<Place>>(emptyList())
+    // 충전소 검색을 위한 ChargerRepository
+    private val chargerRepository = ChargerRepositoryImpl(
+        api = RetrofitInstance.kakaoLocalApi,
+        restApiKey = BuildConfig.KAKAO_REST_API_KEY
+    )
 
-    // 외부에서 관찰 가능한 검색 결과 상태
-    val searchResults: StateFlow<List<Place>> = _searchResults
+    // 장소 검색 결과 상태
+    private val _searchResults = MutableStateFlow<List<UiPlace>>(emptyList())
+    // 검색 결과를 UI에서 사용할 수 있도록 UiPlace로 변환하여 저장
+    val searchResults: StateFlow<List<UiPlace>> = _searchResults
 
     /**
      * 여행 기간을 설정하는 메서드
@@ -81,7 +86,7 @@ class PlannerViewModel : ViewModel() {
                 _searchResults.value = emptyList() // 빈 문자열이면 결과 초기화
             } else {
                 val results = searchPlaceUseCase(query, x, y)
-                _searchResults.value = results
+                _searchResults.value = results.map { UiPlace(place = it) }
             }
         }
     }
@@ -215,5 +220,26 @@ class PlannerViewModel : ViewModel() {
         _dayPlans.value = emptyList()
         _selectedDate.value = null
         _searchResults.value = emptyList()
+    }
+
+    fun toggleChargerSection(placeId: String) {
+        viewModelScope.launch {
+            _searchResults.value = _searchResults.value.map { item ->
+                if (item.place.id == placeId) {
+                    val expanded = !item.isExpanded
+                    val chargers = if (expanded) {
+                        chargerRepository.getNearbyChargers(
+                            lat = item.place.latitude,
+                            lon = item.place.longitude
+                        ).take(5)
+                    } else null
+
+                    item.copy(
+                        isExpanded = expanded,
+                        chargers = chargers
+                    )
+                } else item.copy(isExpanded = false)
+            }
+        }
     }
 }

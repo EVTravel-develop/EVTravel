@@ -164,8 +164,8 @@ fun EditPlanScreen(
 
                 Box(
                     modifier = Modifier
-                        .width(60.dp)
-                        .height(24.dp)
+                        .width(86.dp)
+                        .height(36.dp)
                         .background(
                             color = if (isSelected) Variables.Blue700 else Color(0xFFF4F4F5),
                             shape = RoundedCornerShape(5.dp)
