@@ -29,7 +29,15 @@ import com.jeju.evtravel.ui.map.KakaoMapScreen
 import com.jeju.evtravel.ui.planner.*
 import com.kakao.vectormap.KakaoMapSdk
 import com.kakao.vectormap.utils.MapUtils
+import dagger.hilt.android.AndroidEntryPoint
+import com.jeju.evtravel.ui.detail.PlaceDetailScreen
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.setValue
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private val plannerViewModel by viewModels<PlannerViewModel>()
@@ -51,8 +59,10 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // 모든 화면을 관리하는 MainScreen 컴포저블을 호출
-                    MainScreen(fusedLocationClient, plannerViewModel)
+                    MainScreen(
+                        fusedLocationClient = fusedLocationClient,
+                        plannerViewModel = plannerViewModel
+                    )
                 }
             }
         }
@@ -74,18 +84,30 @@ fun MainScreen(
         Box(modifier = Modifier.padding(innerPadding)) {
             NavHost(navController = navController, startDestination = "map") {
                 // 홈 탭: 지도 화면
-                composable("map") {
-                    KakaoMapScreen(fusedLocationClient)
+                composable(route = "map") {
+                    KakaoMapScreen(
+                        fusedLocationClient = fusedLocationClient,
+                        navController = navController
+                    )
                 }
 
                 // 플래너 탭: EVTravelApp (플래너 관련 NavHost)
                 composable("plannerTab") {
-                    EVTravelApp(plannerViewModel)
+                    EVTravelApp(
+                        viewModel = plannerViewModel,
+                        fusedLocationClient = fusedLocationClient
+                    )
                 }
 
                 // 마이 탭
                 composable("my") {
                     Text(text = "마이 페이지")
+                }
+
+                composable("place_detail/{placeId}") { backStackEntry ->
+                    val placeId =
+                        backStackEntry.arguments?.getString("placeId") ?: return@composable
+                    PlaceDetailScreen(placeId)
                 }
             }
         }
@@ -93,7 +115,10 @@ fun MainScreen(
 }
 
 @Composable
-fun EVTravelApp(viewModel: PlannerViewModel) {
+fun EVTravelApp(
+    viewModel: PlannerViewModel,
+    fusedLocationClient: FusedLocationProviderClient
+) {
     val navController = rememberNavController()
 
     // 앱 시작 시 Firestore에서 플랜 목록 로드
@@ -184,10 +209,35 @@ fun EVTravelApp(viewModel: PlannerViewModel) {
 
         // 여행지 검색 화면
         composable("searchDestination") {
-            SearchDestinationScreen(
-                viewModel = viewModel,
-                onBackClick = { navController.popBackStack() }
-            )
+            var x by remember { mutableStateOf<Double?>(null) }
+            var y by remember { mutableStateOf<Double?>(null) }
+
+            LaunchedEffect(Unit) {
+                try {
+                    fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                        location?.let {
+                            x = it.longitude
+                            y = it.latitude
+                        }
+                    }
+                } catch (e: SecurityException) {
+                    Log.e("Location", "Location permission not granted: ${e.message}")
+                }
+            }
+
+            if (x != null && y != null) {
+                SearchDestinationScreen(
+                    viewModel = viewModel,
+                    x = x!!,
+                    y = y!!,
+                    onBackClick = { navController.popBackStack() }
+                )
+            } else {
+                // 위치 가져오는 중일 때 로딩 표시
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
         }
     }
 }

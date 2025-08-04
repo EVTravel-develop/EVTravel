@@ -8,6 +8,11 @@ plugins {
 
     //Firebase Google Services Plugin
     id("com.google.gms.google-services")
+
+    // dagger
+    id("com.google.dagger.hilt.android")
+    // kotlin kapt
+    id("kotlin-kapt")
 }
 val secretProperties = Properties().apply {
     val secretFile = rootProject.file("local.properties")
@@ -18,8 +23,11 @@ val secretProperties = Properties().apply {
     }
 }
 
-val kakaoKey = secretProperties.getProperty("KAKAO_NATIVE_APP_KEY")
+val kakaoNativeKey = secretProperties.getProperty("KAKAO_NATIVE_APP_KEY")
     ?: throw GradleException("KAKAO_NATIVE_APP_KEY is missing in local.properties")
+
+val kakaoRestKey = secretProperties.getProperty("KAKAO_REST_API_KEY")
+    ?: throw GradleException("KAKAO_REST_API_KEY is missing in local.properties")
 
 android {
     namespace = "com.jeju.evtravel"
@@ -34,8 +42,10 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"${kakaoKey}\"")
-        manifestPlaceholders["KAKAO_MAP_KEY"] = kakaoKey
+        buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"${kakaoNativeKey}\"")
+        buildConfigField("String", "KAKAO_REST_API_KEY", "\"${kakaoRestKey}\"")
+
+        manifestPlaceholders["KAKAO_MAP_KEY"] = kakaoNativeKey
     }
 
     buildFeatures {
@@ -87,6 +97,17 @@ dependencies {
 
     // Kakao Map SDK
     implementation("com.kakao.maps.open:android:2.12.8")
+
+    // Retrofit Core
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    // Json 파싱 (Gson 사용 시)
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+
+    // Hilt
+    implementation("com.google.dagger:hilt-android:2.48")
+    kapt("com.google.dagger:hilt-compiler:2.48")
+    // compose에서 Hlit ViewModel 사용
+    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 
     //Firebase BoM
     implementation(platform("com.google.firebase:firebase-bom:33.15.0"))
