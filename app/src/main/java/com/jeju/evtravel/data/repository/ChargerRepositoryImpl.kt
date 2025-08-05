@@ -18,7 +18,10 @@ class ChargerRepositoryImpl(
 
         return response.documents.map {
             Charger(
-                name = it.placeName
+                name = it.placeName,
+                address = it.roadAddressName ?: it.addressName ?: "주소 없음",
+                latitude = it.y.toDouble(),
+                longitude = it.x.toDouble()
             )
         }
     }

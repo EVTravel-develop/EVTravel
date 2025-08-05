@@ -14,6 +14,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import com.jeju.evtravel.data.model.PlaceDto
 import androidx.compose.ui.res.painterResource
 import com.jeju.evtravel.R
+import com.jeju.evtravel.data.model.ChargerDto
 
 /**
  * 목적지 검색 화면을 구현하는 Composable 함수
@@ -92,26 +93,37 @@ fun SearchDestinationScreen(
                             }
                         }
 
-                            Button(onClick = {
-                                val date = viewModel.selectedDate.value
-                                if (date != null) {
-                                    val place = uiPlace.place
-                                    val placeDto = PlaceDto(
-                                        id = place.id,
-                                        name = place.name,
-                                        roadAddressName = place.roadAddress ?: "",
-                                        categoryGroupCode = "",
-                                        x = place.longitude,
-                                        y = place.latitude
+                        Button(onClick = {
+                            val date = viewModel.selectedDate.value
+                            if (date != null) {
+                                val placeChargers = uiPlace.chargers?.map {
+                                    ChargerDto(
+                                        name = it.name,
+                                        address = it.address,
+                                        latitude = it.latitude,
+                                        longitude = it.longitude
                                     )
-                                    viewModel.addPlaceToDate(date, placeDto)
-                                    query = TextFieldValue("")
-                                    viewModel.searchPlaces("", x, y)
-                                    onBackClick()
-                                }
-                            }) {
-                                Text("추가")
+                                } ?: emptyList()
+
+                                val placeDto = PlaceDto(
+                                    id = uiPlace.place.id,
+                                    name = uiPlace.place.name,
+                                    roadAddressName = uiPlace.place.roadAddress ?: "",
+                                    categoryGroupCode = "",
+                                    x = uiPlace.place.longitude,
+                                    y = uiPlace.place.latitude,
+                                    chargers = placeChargers
+                                )
+
+
+                                viewModel.addPlaceToDate(date, placeDto)
+                                query = TextFieldValue("")
+                                viewModel.searchPlaces("", x, y)
+                                onBackClick()
                             }
+                        }) {
+                            Text("추가")
+                        }
                         }
                     }
 
