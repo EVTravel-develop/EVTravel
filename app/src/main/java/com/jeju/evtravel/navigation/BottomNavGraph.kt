@@ -24,7 +24,7 @@ data class BottomNavItem(
 // 탭 리스트
 val items = listOf(
     BottomNavItem(name = "홈", route = "map", icon = Icons.Default.Home),
-    BottomNavItem(name = "플래너", route = "plannerTab", icon = Icons.Default.Settings),
+    BottomNavItem(name = "플래너", route = "planner", icon = Icons.Default.Settings),
     BottomNavItem(name = "마이", route = "my", icon = Icons.Default.Person)
 )
 
