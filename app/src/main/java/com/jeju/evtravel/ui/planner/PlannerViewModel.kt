@@ -14,6 +14,8 @@ import java.time.LocalDate
 import com.jeju.evtravel.domain.model.Place
 import com.jeju.evtravel.domain.usecase.SearchPlaceUseCase
 import com.jeju.evtravel.data.repository.PlaceRepositoryImpl
+import com.jeju.evtravel.data.remote.RetrofitInstance
+import com.jeju.evtravel.BuildConfig
 
 /**
  * PlannerViewModel은 여행 계획을 관리하는 ViewModel입니다.
@@ -45,7 +47,12 @@ class PlannerViewModel : ViewModel() {
     val plans: StateFlow<List<PlanDto>> = _plans
 
     // 장소 검색을 위한 UseCase와 상태
-    private val searchPlaceUseCase = SearchPlaceUseCase(PlaceRepositoryImpl())
+    private val searchPlaceUseCase = SearchPlaceUseCase(
+        PlaceRepositoryImpl(
+            api = RetrofitInstance.kakaoLocalApi,
+            restApiKey = BuildConfig.KAKAO_REST_API_KEY
+        )
+    )
 
     // 검색 결과 상태
     private val _searchResults = MutableStateFlow<List<Place>>(emptyList())
@@ -68,12 +75,12 @@ class PlannerViewModel : ViewModel() {
      * 장소 검색 메서드
      * @param query 검색어
      */
-    fun searchPlaces(query: String) {
+    fun searchPlaces(query: String, x: Double, y: Double) {
         viewModelScope.launch {
             if (query.isBlank()) {
                 _searchResults.value = emptyList() // 빈 문자열이면 결과 초기화
             } else {
-                val results = searchPlaceUseCase(query)
+                val results = searchPlaceUseCase(query, x, y)
                 _searchResults.value = results
             }
         }
