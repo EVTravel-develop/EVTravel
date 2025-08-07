@@ -1,9 +1,7 @@
 package com.jeju.evtravel.ui.map
 
-import android.content.Intent
-import android.net.Uri
-import android.provider.Settings
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -56,20 +54,16 @@ fun KakaoMapScreen(
 
     val uiState by viewModel.uiState.collectAsState()
 
-    // 권한이 필요할 때 다이얼로그 표시
-    var showRationaleDialog by remember { mutableStateOf(false) }
-    var showSettingsDialog by remember { mutableStateOf(false) }
-
-    // 권한 상태에 따라 다이얼로그 표시
-    LaunchedEffect(Unit) {
-        if (!permissionState.allPermissionsGranted) {
-            if (permissionState.shouldShowRationale) {
-                showRationaleDialog = true
-            } else {
-                showSettingsDialog = true
-            }
+    HandlePermissionRequest(
+        permissionState = permissionState,
+        onPermissionDenied = {
+            Toast.makeText(
+                context,
+                "'정확한 위치' 사용 권한을 허용해주세요.",
+                Toast.LENGTH_SHORT
+            ).show()
         }
-    }
+    )
 
     // 현재 위치 정보 가져오기 + 주변 검색
     LaunchedEffect(permissionState.allPermissionsGranted, kakaoMap) {
@@ -191,33 +185,5 @@ fun KakaoMapScreen(
             .fillMaxSize()
     ) {
         KakaoMapView(onMapReady = { kakaoMap = it })
-    }
-
-
-    // 위치 권한 알림 다이얼로그
-    if (showRationaleDialog) {
-        PermissionRationaleDialog(
-            onConfirm = {
-                permissionState.launchMultiplePermissionRequest()
-                showRationaleDialog = false
-            },
-            onDismiss = { showRationaleDialog = false }
-        )
-    }
-
-    // 권한 설정 이동 다이얼로그
-    if (showSettingsDialog) {
-        PermissionSettingsDialog(
-            onConfirm = {
-                context.startActivity(
-                    Intent(
-                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                        Uri.fromParts("package", context.packageName, null)
-                    )
-                )
-                showSettingsDialog = false
-            },
-            onDismiss = { showSettingsDialog = false }
-        )
     }
 }
