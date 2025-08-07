@@ -11,8 +11,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.jeju.evtravel.R
 import java.time.LocalDate
 
 /**
@@ -32,17 +38,17 @@ fun CalendarScreen(
 ) {
     // 현재 표시 중인 월 (매월 1일을 기준으로 초기화)
     var currentMonth by remember { mutableStateOf(LocalDate.now().withDayOfMonth(1)) }
-
+    
     // 현재 월의 일 수
     val daysInMonth = currentMonth.lengthOfMonth()
-
+    
     // 현재 월의 첫 번째 날의 요일 (0=일요일, ... 6=토요일)
     val firstDayOfWeek = currentMonth.dayOfWeek.value % 7
-
+    
     // 사용자가 선택한 시작일과 종료일
     var selectedStartDate by remember { mutableStateOf<LocalDate?>(null) }
     var selectedEndDate by remember { mutableStateOf<LocalDate?>(null) }
-
+    
     // 한 달을 표시하기 위해 필요한 그리드 아이템 수 계산 (빈칸 + 날짜)
     val totalGridItems = firstDayOfWeek + daysInMonth
     // 전체 그리드 아이템 수를 7로 나누어 필요한 행 수 계산
@@ -52,35 +58,54 @@ fun CalendarScreen(
         val day = index - firstDayOfWeek + 1
         if (day in 1..daysInMonth) currentMonth.withDayOfMonth(day) else null
     }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "뒤로가기"
-                        )
-                    }
-                }
+    
+    Box(modifier = Modifier.fillMaxSize()) {
+        
+        // 뒤로가기
+        Box(
+            modifier = Modifier
+                .padding(start = 24.dp, top = 84.dp)
+                .size(22.dp)
+                .clickable { navController.popBackStack() },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_back),
+                contentDescription = "뒤로가기",
+                tint = Color.Unspecified,
+                modifier = Modifier.fillMaxSize()
             )
         }
-    ) { innerPadding ->
+        
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(24.dp),
+                .padding(top = 136.dp, start = 24.dp, end = 24.dp, bottom = 90.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            
             // 화면 헤더 텍스트
-            Text("여행기간을 선택해주세요", style = MaterialTheme.typography.headlineSmall)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("요일별로 여행지를 추가할 수 있어요")
+            Column(modifier = Modifier.fillMaxWidth()) { //왼쪽 정렬
+                Text(
+                    text = "여행 기간을 선택해주세요",
+                    fontSize = 20.sp,
+                    fontFamily = FontFamily(Font(R.font.roboto)),
+                    fontWeight = FontWeight.Bold, // FontWeight(700) = Bold 입니다.
+                    color = Color.Black,
+                    letterSpacing = 0.25.sp
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "요일별로 여행지를 추가할 수 있어요.",
+                    fontSize = 13.sp,
+                    fontFamily = FontFamily(Font(R.font.roboto)),
+                    fontWeight = FontWeight.Normal, // FontWeight(400) = Normal 입니다.
+                    color = Color(0xFF707070),
+                    letterSpacing = 0.13.sp
+                )
+            }
             Spacer(modifier = Modifier.height(24.dp))
-
+            
             // 월 변경 버튼과 현재 월 표시
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -104,9 +129,9 @@ fun CalendarScreen(
                     )
                 }
             }
-
+            
             Spacer(modifier = Modifier.height(16.dp))
-
+            
             // 요일 헤더
             Row(modifier = Modifier.fillMaxWidth()) {
                 listOf("일", "월", "화", "수", "목", "금", "토").forEach {
@@ -117,7 +142,7 @@ fun CalendarScreen(
                     )
                 }
             }
-
+            
             // 주 단위로 날짜 그리드 출력
             for (week in dates.chunked(7)) {
                 Row(modifier = Modifier.fillMaxWidth()) {
@@ -128,7 +153,7 @@ fun CalendarScreen(
                                                 !date.isBefore(selectedStartDate) && !date.isAfter(
                                             selectedEndDate
                                         )))
-
+                        
                         // 각 날짜 셀
                         Box(
                             modifier = Modifier
@@ -161,23 +186,33 @@ fun CalendarScreen(
                     }
                 }
             }
-
+            
             Spacer(modifier = Modifier.height(24.dp))
-
+            
             // "다음" 버튼: 선택된 날짜 범위를 ViewModel에 저장 후 EditPlanScreen으로 이동
-            Button(
-                onClick = {
-                    selectedStartDate?.let { start ->
-                        selectedEndDate?.let { end ->
-                            viewModel.setDateRange(start, end)       // 날짜 범위 ViewModel에 저장
-                            viewModel.initDayPlans(start, end)       // DayPlan 초기화
-                            onNextClick()                            // 다음 화면(EditPlanScreen)으로 이동
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()       // 전체 폭을 차지
+                    .height(90.dp)        // 전체 높이를 차지
+                    .clickable(           // 클릭도 Box 전체에
+                        enabled = selectedStartDate != null && selectedEndDate != null
+                    ) {
+                        selectedStartDate?.let { start ->
+                            selectedEndDate?.let { end ->
+                                viewModel.setDateRange(start, end)
+                                viewModel.initDayPlans(start, end)
+                                onNextClick()
+                            }
                         }
-                    }
-                },
-                enabled = selectedStartDate != null && selectedEndDate != null
+                    },
+                contentAlignment = Alignment.Center  // 아이콘 중앙 정렬
             ) {
-                Text("다음")
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_planner_next),
+                    contentDescription = "다음",
+                    tint = Color.Unspecified,
+                    modifier = Modifier.matchParentSize() // Box 크기 그대로 채우기
+                )
             }
         }
     }

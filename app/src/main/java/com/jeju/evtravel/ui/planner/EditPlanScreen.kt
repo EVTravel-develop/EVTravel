@@ -8,8 +8,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,6 +28,8 @@ import com.jeju.evtravel.ui.theme.Variables
 import java.time.format.DateTimeFormatter
 import org.burnoutcrew.reorderable.*
 import java.time.LocalDate
+import androidx.compose.foundation.Image
+import androidx.compose.ui.layout.ContentScale
 
 /**
  * 여행 일정을 편집하는 화면
@@ -54,17 +54,16 @@ fun EditPlanScreen(
     val selectedDate by viewModel.selectedDate.collectAsState()
     val hasAnyPlace = dayPlans.any { it.places.isNotEmpty() }
     // 날짜 포맷터
-    val formatter = DateTimeFormatter.ofPattern("yyyy년 M월 d일")
-
+    val formatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
+    
     val reorderableState = rememberReorderableLazyListState(onMove = { from, to ->
         val date = selectedDate
         if (date != null) {
             viewModel.reorderPlaces(date, from.index, to.index)
         }
     })
-
     var expandedPlaceId by remember { mutableStateOf<String?>(null) }
-
+    
     // 화면 진입 시 플랜 ID가 있다면 해당 플랜을 로드합니다.
     LaunchedEffect(planId) {
         if (planId != null) {
@@ -74,40 +73,40 @@ fun EditPlanScreen(
             }
         }
     }
-
+    
     LaunchedEffect(dayPlans) {
         if (selectedDate == null && dayPlans.isNotEmpty()) {
             viewModel.setSelectedDate(dayPlans.first().date)
         }
     }
-
+    
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
     ) {
+        Box(
+            modifier = Modifier
+                .padding(start = 24.dp, top = 84.dp)
+                .size(22.dp)
+                .clickable { onBackClick() },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_back),
+                contentDescription = "뒤로가기",
+                tint = Color.Unspecified,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 120.dp) // 버튼 영역 확보
+                .padding(top = 136.dp, start = 24.dp, end = 24.dp, bottom = 16.dp) // 하단 패딩 수정
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // 뒤로가기 버튼
-                IconButton(onClick = { onBackClick() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로가기")
-                }
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 53.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -120,7 +119,6 @@ fun EditPlanScreen(
                         color = Color.Black
                     )
                 )
-                // 날짜 편집 버튼 ("편집" 텍스트)
                 TextButton(onClick = { onEditDateClick() }) {
                     Text(
                         text = "편집",
@@ -134,7 +132,7 @@ fun EditPlanScreen(
                     )
                 }
             }
-
+            
             Spacer(modifier = Modifier.height(8.dp))
             if (startDate != null && endDate != null) {
                 Text(
@@ -147,28 +145,27 @@ fun EditPlanScreen(
                     )
                 )
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
+            
+            Spacer(modifier = Modifier.height(32.dp))
+            
             Text(
                 text = "여행 일정",
                 style = TextStyle(
                     fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight(700),
                     fontFamily = FontFamily(Font(R.font.roboto)),
                     color = Color.Black
                 )
             )
-
+            
             Spacer(modifier = Modifier.height(16.dp))
-
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(dayPlans) { dayPlan ->
                     val localDate = LocalDate.parse(dayPlan.date)
                     val dayOfWeek =
                         listOf("월", "화", "수", "목", "금", "토", "일")[localDate.dayOfWeek.ordinal]
                     val isSelected = selectedDate == dayPlan.date
-                    // 날짜 선택 버튼들 ("1일 (월)", "2일 (화)" 등)
                     Box(
                         modifier = Modifier
                             .width(86.dp)
@@ -192,115 +189,16 @@ fun EditPlanScreen(
                     }
                 }
             }
-
+            
             Spacer(modifier = Modifier.height(24.dp))
-
-            LazyColumn(
-                state = reorderableState.listState,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .reorderable(reorderableState)
-                    .detectReorderAfterLongPress(reorderableState)
-            ) {
-                itemsIndexed(dayPlans, key = { _, plan -> plan.date }) { _, dayPlan ->
-                    if (selectedDate == dayPlan.date && dayPlan.places.isNotEmpty()) {
-                        Column {
-                            dayPlan.places.forEach { place ->
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(56.dp)
-                                        .padding(vertical = 6.dp)
-                                        .background(Color.White, shape = RoundedCornerShape(10.dp))
-                                        .shadow(
-                                            elevation = 4.dp,
-                                            shape = RoundedCornerShape(10.dp),
-                                            ambientColor = Color(0x40A7A7A7),
-                                            spotColor = Color(0x40A7A7A7)
-                                        )
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.ic_menu),
-                                        contentDescription = "메뉴",
-                                        tint = Color.Black,
-                                        modifier = Modifier
-                                            .align(Alignment.CenterStart)
-                                            .padding(start = 15.dp)
-                                            .size(18.dp)
-                                    )
-
-                                    Text(
-                                        text = place.name,
-                                        style = TextStyle(
-                                            fontSize = 15.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            fontFamily = FontFamily(Font(R.font.roboto)),
-                                            color = Color(0xFF1C1917)
-                                        ),
-                                        modifier = Modifier
-                                            .align(Alignment.CenterStart)
-                                            .padding(start = 48.dp)
-                                    )
-
-                                    // 충전소 정보 확장/축소 버튼 (배터리 아이콘)
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.ic_battery_charge),
-                                        contentDescription = "충전 현황",
-                                        tint = Color(0xFF9D9D9D),
-                                        modifier = Modifier
-                                            .align(Alignment.CenterEnd)
-                                            .padding(end = 56.dp)
-                                            .size(20.dp)
-                                            .clickable {
-                                                expandedPlaceId =
-                                                    if (expandedPlaceId == place.id) null else place.id
-                                            }
-                                    )
-                                    // 여행지 삭제 버튼 (X 아이콘)
-                                    IconButton(
-                                        onClick = {
-                                            viewModel.removePlaceFromDate(
-                                                dayPlan.date,
-                                                place.id
-                                            )
-                                        },
-                                        modifier = Modifier
-                                            .align(Alignment.CenterEnd)
-                                            .padding(end = 16.dp)
-                                            .size(20.dp)
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(id = R.drawable.ic_close),
-                                            contentDescription = "삭제",
-                                            tint = Color.Black
-                                        )
-                                    }
-                                }
-
-                                if (expandedPlaceId == place.id && !place.chargers.isNullOrEmpty()) {
-                                    Column(modifier = Modifier.padding(start = 15.dp, top = 8.dp)) {
-                                        place.chargers!!.forEach { charger ->
-                                            Text(
-                                                text = " ${charger.name}",
-                                                fontFamily = FontFamily(Font(R.font.roboto)),
-                                                color = Color.Black,
-                                                fontSize = 14.sp,
-                                                modifier = Modifier.padding(vertical = 6.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
+            
             if (!hasAnyPlace) {
-                Spacer(modifier = Modifier.height(40.dp))
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f) // 남은 공간 차지
+                        .offset(y = (-100).dp),
+                    verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
@@ -326,77 +224,256 @@ fun EditPlanScreen(
                         textAlign = TextAlign.Center
                     )
                 }
+            } else {
+                LazyColumn(
+                    state = reorderableState.listState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f) // 남은 공간을 차지하도록 weight 추가
+                        .reorderable(reorderableState)
+                        .detectReorderAfterLongPress(reorderableState)
+                ) {
+                    itemsIndexed(dayPlans, key = { _, plan -> plan.date }) { _, dayPlan ->
+                        if (selectedDate == dayPlan.date && dayPlan.places.isNotEmpty()) {
+                            Column {
+                                dayPlan.places.forEach { place ->
+                                    Column(modifier = Modifier.padding(bottom = 12.dp)) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(60.dp)
+                                                .shadow(
+                                                    elevation = 4.dp,
+                                                    shape = RoundedCornerShape(10.dp),
+                                                    ambientColor = Color(0x40A7A7A7),
+                                                    spotColor = Color(0x40A7A7A7)
+                                                )
+                                                .background(
+                                                    Color.White,
+                                                    shape = RoundedCornerShape(10.dp)
+                                                ),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.ic_menu),
+                                                contentDescription = "메뉴",
+                                                tint = Color.Black,
+                                                modifier = Modifier
+                                                    .padding(start = 16.dp)
+                                                    .size(18.dp)
+                                            )
+                                            
+                                            Text(
+                                                text = place.name,
+                                                style = TextStyle(
+                                                    fontSize = 15.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    fontFamily = FontFamily(Font(R.font.roboto)),
+                                                    color = Color(0xFF1C1917)
+                                                ),
+                                                modifier = Modifier
+                                                    .weight(1f) // Row 내부에서 weight 사용
+                                                    .padding(start = 16.dp)
+                                            )
+                                            
+                                            val chargerIconId = if (expandedPlaceId == place.id) {
+                                                R.drawable.ic_charger_on // 선택 시 ic_charger_on
+                                            } else {
+                                                R.drawable.ic_charger_off // 미선택 시 ic_charger_off
+                                            }
+                                            
+                                            Icon(
+                                                painter = painterResource(id = chargerIconId),
+                                                contentDescription = "충전 현황",
+                                                tint = if (expandedPlaceId == place.id) Color(
+                                                    0xFF000000
+                                                ) else Color(0xFF9D9D9D),
+                                                modifier = Modifier
+                                                    .padding(end = 12.dp)
+                                                    .size(20.dp)
+                                                    .clickable {
+                                                        expandedPlaceId =
+                                                            if (expandedPlaceId == place.id) null else place.id
+                                                    }
+                                            )
+                                            IconButton(
+                                                onClick = {
+                                                    viewModel.removePlaceFromDate(
+                                                        dayPlan.date,
+                                                        place.id
+                                                    )
+                                                },
+                                                modifier = Modifier
+                                                    .padding(end = 16.dp)
+                                                    .size(20.dp)
+                                            ) {
+                                                Icon(
+                                                    painter = painterResource(id = R.drawable.ic_close),
+                                                    contentDescription = "삭제",
+                                                    tint = Color.Black
+                                                )
+                                            }
+                                        }
+                                        
+                                        // 충전소 목록
+                                        if (expandedPlaceId == place.id && !place.chargers.isNullOrEmpty()) {
+                                            Column(
+                                                modifier = Modifier
+                                                    .padding(start = 8.dp, end = 0.dp)
+                                                    .offset(y = (-4).dp)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .shadow(
+                                                            elevation = 4.dp,
+                                                            spotColor = Color(0x40A7A7A7),
+                                                            ambientColor = Color(0x40A7A7A7),
+                                                            shape = RoundedCornerShape(
+                                                                bottomStart = 10.dp,
+                                                                bottomEnd = 10.dp
+                                                            )
+                                                        )
+                                                        .background(
+                                                            color = Color(0xFFFFFFFF),
+                                                            shape = RoundedCornerShape(
+                                                                bottomStart = 10.dp,
+                                                                bottomEnd = 10.dp
+                                                            )
+                                                        )
+                                                        .padding(
+                                                            vertical = 12.dp,
+                                                            horizontal = 16.dp
+                                                        )
+                                                ) {
+                                                    Column {
+                                                        place.chargers!!.forEachIndexed { index, charger ->
+                                                            Row(
+                                                                modifier = Modifier.fillMaxWidth(),
+                                                                verticalAlignment = Alignment.CenterVertically
+                                                            ) {
+                                                                Text(
+                                                                    text = charger.name,
+                                                                    style = TextStyle(
+                                                                        fontSize = 14.sp,
+                                                                        fontFamily = FontFamily(
+                                                                            Font(
+                                                                                R.font.roboto
+                                                                            )
+                                                                        ),
+                                                                        fontWeight = FontWeight(400),
+                                                                        color = Color(0xFF000000),
+                                                                    )
+                                                                )
+                                                            }
+                                                            
+                                                            // 마지막 아이템이 아닌 경우에만 구분선 추가
+                                                            if (index < place.chargers.size - 1) {
+                                                                Spacer(modifier = Modifier.height(8.dp))
+                                                                Box(
+                                                                    modifier = Modifier
+                                                                        .fillMaxWidth()
+                                                                        .height(0.5.dp)
+                                                                        .background(Color(0xFFDBDBDB))
+                                                                )
+                                                                Spacer(modifier = Modifier.height(8.dp))
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
-        }
-
-        // 하단 고정 버튼
-        if (hasAnyPlace) {
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+            
+            // 하단 버튼 영역을 LazyColumn과 분리하여 Column 내부에서 관리
+            Spacer(modifier = Modifier.height(12.dp))
+            if (hasAnyPlace) {
                 // 여행지 추가 버튼
                 Box(
                     modifier = Modifier
+                        .fillMaxWidth()
+                        .height(59.dp)
+                        .shadow(
+                            elevation = 4.dp,
+                            shape = RoundedCornerShape(10.dp),
+                            ambientColor = Color(0x40A7A7A7),
+                            spotColor = Color(0x40A7A7A7)
+                        )
                         .background(
-                            color = Color(0xFFEFF6FF),
-                            shape = RoundedCornerShape(6.dp)
+                            color = Color.White,
+                            shape = RoundedCornerShape(size = 10.dp)
                         )
-                        .clickable { onAddDestinationClick() }
-                        .padding(horizontal = 20.dp, vertical = 8.dp)
+                        .clickable { onAddDestinationClick() },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        "여행지 추가",
-                        style = TextStyle(
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium,
-                            fontFamily = FontFamily(Font(R.font.roboto)),
-                            color = Color(0xFF2563EB)
-                        )
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_add_plan_spot),
+                        contentDescription = "여행지 추가",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize() // Box에 맞춰 아이콘 크기를 조정
                     )
                 }
-
+                
                 Spacer(modifier = Modifier.height(12.dp))
-
-                // 저장 버튼
-                Button(
-                    onClick = {
-                        if (startDate != null && endDate != null) {
-                            viewModel.saveCurrentPlan(startDate.toString(), endDate.toString())
-                            navController.navigate("planList/${startDate}/${endDate}") {
-                                popUpTo("planList") { inclusive = true }
+                
+                // "다음" 버튼
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(59.dp)
+                        .background(
+                            color = Color(0xFF007BFF),
+                            shape = RoundedCornerShape(size = 10.dp)
+                        )
+                        .clickable {
+                            if (startDate != null && endDate != null) {
+                                viewModel.saveCurrentPlan(startDate.toString(), endDate.toString())
+                                navController.navigate("planList?start=${startDate}&end=${endDate}") {
+                                    popUpTo("planList") { inclusive = true }
+                                    launchSingleTop = true
+                                }
                             }
-                        }
-                    },
-                    enabled = startDate != null && endDate != null
+                        },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text("저장")
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_planner_next),
+                        contentDescription = "다음",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize() // Box에 맞춰 아이콘 크기를 조정
+                    )
                 }
-            }
-        } else {
-            // 장소가 없을 때는 여행지 추가 버튼만 보여줌
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 16.dp)
-                    .background(
-                        color = Color(0xFFEFF6FF),
-                        shape = RoundedCornerShape(6.dp)
+            } else {
+                // 여행지 추가 버튼 (hasAnyPlace가 false일 때)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(59.dp)
+                        .shadow(
+                            elevation = 4.dp,
+                            shape = RoundedCornerShape(10.dp),
+                            ambientColor = Color(0x40A7A7A7),
+                            spotColor = Color(0x40A7A7A7)
+                        )
+                        .background(
+                            color = Color.White,
+                            shape = RoundedCornerShape(size = 10.dp)
+                        )
+                        .clickable { onAddDestinationClick() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_add_plan_spot_small),
+                        contentDescription = "여행지 추가",
+                        contentScale = ContentScale.Fit
                     )
-                    .clickable { onAddDestinationClick() }
-                    .padding(horizontal = 20.dp, vertical = 8.dp)
-            ) {
-                Text(
-                    "여행지 추가",
-                    style = TextStyle(
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium,
-                        fontFamily = FontFamily(Font(R.font.roboto)),
-                        color = Color(0xFF2563EB)
-                    )
-                )
+                }
             }
         }
     }
