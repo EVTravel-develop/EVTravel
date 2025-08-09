@@ -22,12 +22,12 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import com.jeju.evtravel.data.model.PlaceDto
 import androidx.compose.ui.res.painterResource
 import com.jeju.evtravel.R
 import com.jeju.evtravel.data.model.ChargerDto
-import androidx.compose.ui.graphics.Color
 
 /**
  * 목적지 검색 화면을 구현하는 Composable 함수
@@ -47,104 +47,95 @@ fun SearchDestinationScreen(
     val isFocused by interactionSource.collectIsFocusedAsState()
     var selectedPlace by remember { mutableStateOf<PlaceDto?>(null) }
     
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
     ) {
         // 상단 헤더 (뒤로가기 버튼 + 검색 상자)
-        Row(
+        Box(
+            modifier = Modifier
+                .padding(start = 24.dp, top = 84.dp)
+                .size(22.dp)
+                .clickable { onBackClick() },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_back),
+                contentDescription = "뒤로가기",
+                tint = Color.Unspecified,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        
+        // 검색 상자: 뒤로가기 버튼 옆에 별도로 위치 지정
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 24.dp, end = 24.dp, top = 60.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // 뒤로가기 버튼
-            Box(
-                modifier = Modifier
-                    .size(22.dp)
-                    .clickable { onBackClick() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_back),
-                    contentDescription = "뒤로가기",
-                    tint = Color.Unspecified,
-                    modifier = Modifier.fillMaxSize()
+                .padding(start = 62.dp, end = 24.dp) // 뒤로가기 버튼 크기와 간격을 고려해 padding 조정
+                .offset(y = 75.dp) // 뒤로가기 버튼과 세로 정렬 맞추기 위해 offset 조정
+                .shadow(
+                    elevation = 6.dp,
+                    spotColor = Color(0xA09A9A9A),
+                    ambientColor = Color(0xA09A9A9A),
+                    shape = RoundedCornerShape(size = 10.dp)
                 )
-            }
-            
-            // 커스텀 검색 상자
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .shadow(
-                        elevation = 6.dp,
-                        spotColor = Color(0xA09A9A9A),
-                        ambientColor = Color(0xA09A9A9A),
-                        shape = RoundedCornerShape(size = 10.dp)
-                    )
-                    .height(51.dp)
-                    .background(
-                        color = Color(0xFFFFFFFF),
-                        shape = RoundedCornerShape(size = 10.dp)
-                    )
-                    .padding(start = 13.dp, top = 13.dp, end = 13.dp, bottom = 11.dp)
+                .height(51.dp)
+                .background(
+                    color = Color(0xFFFFFFFF),
+                    shape = RoundedCornerShape(size = 10.dp)
+                )
+                .padding(start = 13.dp, top = 13.dp, end = 13.dp, bottom = 11.dp)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxSize()
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxSize()
+                Image(
+                    painter = painterResource(
+                        id = if (isFocused || query.text.isNotEmpty())
+                            R.drawable.ic_search_on
+                        else
+                            R.drawable.ic_search_off
+                    ),
+                    contentDescription = "search icon",
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.size(17.dp)
+                )
+                
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.CenterStart
                 ) {
-                    // 검색 아이콘 (포커스 상태에 따라 변경)
-                    Image(
-                        painter = painterResource(
-                            id = if (isFocused || query.text.isNotEmpty())
-                                R.drawable.ic_search_on
-                            else
-                                R.drawable.ic_search_off
+                    BasicTextField(
+                        value = query,
+                        onValueChange = {
+                            query = it
+                            viewModel.searchPlaces(it.text, x, y)
+                        },
+                        textStyle = TextStyle(
+                            fontSize = 15.sp,
+                            fontFamily = FontFamily(Font(R.font.roboto)),
+                            fontWeight = FontWeight(400),
+                            color = Color.Black
                         ),
-                        contentDescription = "search icon",
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier.size(17.dp)
+                        singleLine = true,
+                        interactionSource = interactionSource,
+                        modifier = Modifier.fillMaxWidth()
                     )
                     
-                    // 텍스트 필드 영역
-                    Box(
-                        modifier = Modifier.weight(1f),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        BasicTextField(
-                            value = query,
-                            onValueChange = {
-                                query = it
-                                viewModel.searchPlaces(it.text, x, y)
-                            },
-                            textStyle = TextStyle(
+                    if (query.text.isEmpty()) {
+                        Text(
+                            text = "장소를 입력해주세요",
+                            style = TextStyle(
                                 fontSize = 15.sp,
+                                lineHeight = 26.53.sp,
                                 fontFamily = FontFamily(Font(R.font.roboto)),
                                 fontWeight = FontWeight(400),
-                                color = Color.Black
-                            ),
-                            singleLine = true,
-                            interactionSource = interactionSource,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        
-                        // Placeholder 텍스트
-                        if (query.text.isEmpty()) {
-                            Text(
-                                text = "장소를 입력해주세요",
-                                style = TextStyle(
-                                    fontSize = 15.sp,
-                                    lineHeight = 26.53.sp,
-                                    fontFamily = FontFamily(Font(R.font.roboto)),
-                                    fontWeight = FontWeight(400),
-                                    color = Color(0xFF949494),
-                                )
+                                color = Color(0xFF949494),
                             )
-                        }
+                        )
                     }
                 }
             }
@@ -153,8 +144,9 @@ fun SearchDestinationScreen(
         // 검색 결과 표시
         LazyColumn(
             modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 24.dp, vertical = 16.dp)
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .offset(y = 155.dp) // 상단 검색 영역 전체 높이를 고려하여 offset 조정
         ) {
             items(searchResults) { uiPlace ->
                 Row(
@@ -297,12 +289,12 @@ fun SearchDestinationScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(24.dp)
-                    .width(382.dp)
                     .height(59.dp)
                     .background(
-                        color = Color(0xFF007BFF), // Blue700 색상
+                        color = Color(0xFF007BFF),
                         shape = RoundedCornerShape(size = 10.dp)
                     )
+                    .align(Alignment.BottomCenter)
                     .clickable {
                         val date = viewModel.selectedDate.value
                         if (date != null && selectedPlace != null) {
