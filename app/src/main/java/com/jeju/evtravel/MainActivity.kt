@@ -8,51 +8,45 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.jeju.evtravel.navigation.BottomNavigationBar
+import com.jeju.evtravel.ui.detail.PlaceDetailScreen
 import com.jeju.evtravel.ui.map.KakaoMapScreen
 import com.jeju.evtravel.ui.planner.*
 import com.kakao.vectormap.KakaoMapSdk
 import com.kakao.vectormap.utils.MapUtils
 import dagger.hilt.android.AndroidEntryPoint
-import com.jeju.evtravel.ui.detail.PlaceDetailScreen
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.runtime.setValue
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private val plannerViewModel by viewModels<PlannerViewModel>()
-
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         // 카카오 키 해시 출력
         Log.d("KeyHash", MapUtils.getHashKey(this))
         // Kakao SDK 초기화
         KakaoMapSdk.init(this, BuildConfig.KAKAO_NATIVE_APP_KEY)
-
+        
         super.onCreate(savedInstanceState)
-
+        
         // 현재 위치 정보를 가져 오기 위한 fusedLocationClient 초기화
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-
         setContent {
             MaterialTheme {
                 Surface(
@@ -75,167 +69,188 @@ fun MainScreen(
     plannerViewModel: PlannerViewModel
 ) {
     val navController = rememberNavController()
-
+    
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    
+    val currentRoute = navBackStackEntry?.destination?.route
+    
+    // 하단 네비게이션 바를 보여줄 라우트 목록에 'planner' 추가
+    val bottomBarRoutes = setOf("map", "planner", "planner_initial", "my", "planList")
+    
+    val shouldShowBottomBar = bottomBarRoutes.any { routePrefix ->
+        currentRoute?.startsWith(routePrefix) == true
+    }
+    
+    // 앱 시작 시 딱 한번만 플랜 목록을 로드합니다.
+    LaunchedEffect(Unit) {
+        plannerViewModel.loadPlans("somi") // 사용자 ID는 실제 값으로 변경 예정
+    }
+    
     Scaffold(
         bottomBar = {
-            BottomNavigationBar(navController = navController)
+            // 조건에 따라 하단 네비게이션 바를 표시하거나 숨깁니다.
+            if (shouldShowBottomBar) {
+                BottomNavigationBar(navController = navController)
+            }
         }
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding)) {
             NavHost(navController = navController, startDestination = "map") {
                 // 홈 탭: 지도 화면
-                composable(route = "map") {
+                composable("map") {
                     KakaoMapScreen(
                         fusedLocationClient = fusedLocationClient,
                         navController = navController
                     )
                 }
-
-                // 플래너 탭: EVTravelApp (플래너 관련 NavHost)
-                composable("plannerTab") {
-                    EVTravelApp(
-                        viewModel = plannerViewModel,
-                        fusedLocationClient = fusedLocationClient
-                    )
-                }
-
+                
                 // 마이 탭
                 composable("my") {
                     Text(text = "마이 페이지")
                 }
-
+                
+                // 장소 상세 화면
                 composable("place_detail/{placeId}") { backStackEntry ->
                     val placeId =
                         backStackEntry.arguments?.getString("placeId") ?: return@composable
                     PlaceDetailScreen(placeId)
                 }
-            }
-        }
-    }
-}
-
-@Composable
-fun EVTravelApp(
-    viewModel: PlannerViewModel,
-    fusedLocationClient: FusedLocationProviderClient
-) {
-    val navController = rememberNavController()
-
-    // 앱 시작 시 Firestore에서 플랜 목록 로드
-    LaunchedEffect(Unit) {
-        viewModel.loadPlans("somi")
-    }
-
-    val plans by viewModel.plans.collectAsState()
-
-    // 플랜 유무에 따라 첫 화면 결정
-    val startDestination = if (plans.isEmpty()) "planner" else "planList"
-
-    NavHost(navController = navController, startDestination = startDestination) {
-
-        // 플랜이 없을 때 보여주는 화면 (PlannerScreen)
-        composable("planner") {
-            PlannerScreen(
-                onCreatePlanClick = {
-                    navController.navigate("calendar") // 달력 화면으로 이동
-                }
-            )
-        }
-
-        // 플랜 목록 화면 (플랜이 있는 경우)
-        composable("planList") {
-            PlanListScreen(
-                viewModel = viewModel,
-                onBackClick = { /* 추후 수정 */ },
-                onCreatePlanClick = { navController.navigate("calendar") },
-                onPlanClick = { plan ->
-                    navController.navigate("editPlan/${plan.id}")
-                }
-            )
-        }
-
-        // 방금 생성된 플랜 날짜를 강조해서 보여줄 때 (start, end 파라미터 포함)
-        composable(
-            route = "planList/{start}/{end}",
-            arguments = listOf(
-                navArgument("start") { type = NavType.StringType },
-                navArgument("end") { type = NavType.StringType }
-            )
-        ) { backStackEntry ->
-            val start = backStackEntry.arguments?.getString("start")
-            val end = backStackEntry.arguments?.getString("end")
-            PlanListScreen(
-                viewModel = viewModel,
-                selectedStart = start,
-                selectedEnd = end,
-                onBackClick = { /* 추후 수정 */ },
-                onCreatePlanClick = { navController.navigate("calendar") },
-                onPlanClick = { plan ->
-                    navController.navigate("editPlan/${plan.id}")
-                }
-            )
-        }
-
-        // 여행 날짜 선택 화면
-        composable("calendar") {
-            CalendarScreen(
-                viewModel = viewModel,
-                navController = navController,
-                onNextClick = {
-                    navController.navigate("editPlan/new") // 달력 화면에서 다음 일정 추가 화면으로 이동
-                }
-            )
-        }
-
-        // 여행 일정 편집 화면
-        composable(
-            // "editPlan/new" 또는 "editPlan/기존planID" 형태의 경로를 모두 처리합니다.
-            route = "editPlan/{planId}",
-            arguments = listOf(navArgument("planId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            // 경로에서 planId 값을 추출합니다.
-            val planId = backStackEntry.arguments?.getString("planId")
-
-            EditPlanScreen(
-                viewModel = viewModel,
-                // 추출한 planId가 "new"이면 null을, 아니라면 실제 id를 전달합니다.
-                planId = if (planId == "new") null else planId,
-                navController = navController,
-                onBackClick = { navController.popBackStack() },
-                onEditDateClick = { navController.navigate("calendar") },
-                onAddDestinationClick = { navController.navigate("searchDestination") }
-            )
-        }
-
-        // 여행지 검색 화면
-        composable("searchDestination") {
-            var x by remember { mutableStateOf<Double?>(null) }
-            var y by remember { mutableStateOf<Double?>(null) }
-
-            LaunchedEffect(Unit) {
-                try {
-                    fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-                        location?.let {
-                            x = it.longitude
-                            y = it.latitude
+                
+                // --- 플래너 관련 화면들 ---
+                
+                // 플래너 탭의 분기점 역할. UI 없음.
+                composable("planner") {
+                    val plans by plannerViewModel.plans.collectAsState()
+                    
+                    // plans 상태가 변경될 때마다 실행
+                    LaunchedEffect(plans) {
+                        // plans가 null이 아닐 때(로딩 완료)만 네비게이션 실행
+                        plans?.let { planList ->
+                            if (planList.isEmpty()) {
+                                navController.navigate("planner_initial") {
+                                    popUpTo("planner") { inclusive = true }
+                                }
+                            } else {
+                                navController.navigate("planList") {
+                                    popUpTo("planner") { inclusive = true }
+                                }
+                            }
                         }
                     }
-                } catch (e: SecurityException) {
-                    Log.e("Location", "Location permission not granted: ${e.message}")
+                    
+                    // plans가 null일 때(로딩 중) 로딩 인디케이터 표시
+                    if (plans == null) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
                 }
-            }
-
-            if (x != null && y != null) {
-                SearchDestinationScreen(
-                    viewModel = viewModel,
-                    x = x!!,
-                    y = y!!,
-                    onBackClick = { navController.popBackStack() }
-                )
-            } else {
-                // 위치 가져오는 중일 때 로딩 표시
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+                
+                // 플랜이 없을 때 보여주는 초기 화면 (하단바 보임)
+                composable("planner_initial") {
+                    PlannerScreen(
+                        onCreatePlanClick = {
+                            navController.navigate("calendar")
+                        }
+                    )
+                }
+                
+                // 플랜 목록 화면 (하단바 숨김)
+                composable(
+                    // 'planList' 뒤에 쿼리 파라미터 형식으로 선택적 인자를 정의합니다.
+                    route = "planList?start={start}&end={end}",
+                    arguments = listOf(
+                        navArgument("start") {
+                            type = NavType.StringType
+                            nullable = true // start 인자는 필수가 아님
+                        },
+                        navArgument("end") {
+                            type = NavType.StringType
+                            nullable = true // end 인자는 필수가 아님
+                        }
+                    )
+                ) { backStackEntry ->
+                    // 인자를 추출합니다. 값이 전달되지 않으면 null이 됩니다.
+                    val start = backStackEntry.arguments?.getString("start")
+                    val end = backStackEntry.arguments?.getString("end")
+                    
+                    PlanListScreen(
+                        viewModel = plannerViewModel,
+                        navController = navController,
+                        selectedStart = start, // 추출한 값을 PlanListScreen에 전달
+                        selectedEnd = end,     // 추출한 값을 PlanListScreen에 전달
+                        onBackClick = { /* 추후 수정 */ },
+                        onCreatePlanClick = { navController.navigate("calendar") },
+                        onPlanClick = { plan ->
+                            navController.navigate("editPlan/${plan.id}")
+                        }
+                    )
+                }
+                
+                // 여행 날짜 선택 화면 (하단바 숨김)
+                composable("calendar") {
+                    CalendarScreen(
+                        viewModel = plannerViewModel,
+                        navController = navController,
+                        onNextClick = {
+                            navController.navigate("editPlan/new")
+                        }
+                    )
+                }
+                
+                // 여행 일정 편집 화면 (하단바 숨김)
+                composable(
+                    route = "editPlan/{planId}",
+                    arguments = listOf(navArgument("planId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val planId = backStackEntry.arguments?.getString("planId")
+                    EditPlanScreen(
+                        viewModel = plannerViewModel,
+                        planId = if (planId == "new") null else planId,
+                        navController = navController,
+                        onBackClick = { navController.popBackStack() },
+                        onEditDateClick = { navController.navigate("calendar") },
+                        onAddDestinationClick = { navController.navigate("searchDestination") }
+                    )
+                }
+                
+                // 여행지 검색 화면 (하단바 숨김)
+                composable("searchDestination") {
+                    var x by remember { mutableStateOf<Double?>(null) }
+                    var y by remember { mutableStateOf<Double?>(null) }
+                    
+                    LaunchedEffect(Unit) {
+                        try {
+                            fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                                location?.let {
+                                    x = it.longitude
+                                    y = it.latitude
+                                }
+                            }
+                        } catch (e: SecurityException) {
+                            Log.e("Location", "Location permission not granted: ${e.message}")
+                        }
+                    }
+                    
+                    if (x != null && y != null) {
+                        SearchDestinationScreen(
+                            viewModel = plannerViewModel,
+                            x = x!!,
+                            y = y!!,
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    } else {
+                        // 위치 가져오는 중일 때 로딩 표시
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
                 }
             }
         }

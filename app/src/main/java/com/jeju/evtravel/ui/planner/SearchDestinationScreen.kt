@@ -1,17 +1,33 @@
 package com.jeju.evtravel.ui.planner
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import com.jeju.evtravel.data.model.PlaceDto
+import androidx.compose.ui.res.painterResource
+import com.jeju.evtravel.R
+import com.jeju.evtravel.data.model.ChargerDto
 
 /**
  * 목적지 검색 화면을 구현하는 Composable 함수
@@ -27,75 +43,279 @@ fun SearchDestinationScreen(
     // 검색어 상태 관리
     var query by remember { mutableStateOf(TextFieldValue("")) }
     val searchResults by viewModel.searchResults.collectAsState()
-
-    Column(
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+    var selectedPlace by remember { mutableStateOf<PlaceDto?>(null) }
+    
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp)
+            .background(Color.White)
     ) {
-        // 상단 헤더: 뒤로 가기 버튼과 타이틀 표시
-        Row(
-            verticalAlignment = Alignment.CenterVertically
+        // 상단 헤더 (뒤로가기 버튼 + 검색 상자)
+        Box(
+            modifier = Modifier
+                .padding(start = 24.dp, top = 84.dp)
+                .size(22.dp)
+                .clickable { onBackClick() },
+            contentAlignment = Alignment.Center
         ) {
-            // 뒤로 가기 버튼
-            IconButton(onClick = onBackClick) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로가기")
-            }
-            // 플래너 타이틀
-            Text("플래너", style = MaterialTheme.typography.headlineSmall)
+            Icon(
+                painter = painterResource(id = R.drawable.ic_back),
+                contentDescription = "뒤로가기",
+                tint = Color.Unspecified,
+                modifier = Modifier.fillMaxSize()
+            )
         }
-
-        // 헤더와 검색창 사이 여백
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // 검색 입력창: 사용자가 목적지를 입력할 수 있는 텍스트 필드
-        OutlinedTextField(
-            value = query,
-            onValueChange = {
-                query = it
-                viewModel.searchPlaces(it.text,x,y)
-            },
-            placeholder = { Text("장소를 입력해주세요") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
+        
+        // 검색 상자: 뒤로가기 버튼 옆에 별도로 위치 지정
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 62.dp, end = 24.dp) // 뒤로가기 버튼 크기와 간격을 고려해 padding 조정
+                .offset(y = 75.dp) // 뒤로가기 버튼과 세로 정렬 맞추기 위해 offset 조정
+                .shadow(
+                    elevation = 6.dp,
+                    spotColor = Color(0xA09A9A9A),
+                    ambientColor = Color(0xA09A9A9A),
+                    shape = RoundedCornerShape(size = 10.dp)
+                )
+                .height(51.dp)
+                .background(
+                    color = Color(0xFFFFFFFF),
+                    shape = RoundedCornerShape(size = 10.dp)
+                )
+                .padding(start = 13.dp, top = 13.dp, end = 13.dp, bottom = 11.dp)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Image(
+                    painter = painterResource(
+                        id = if (isFocused || query.text.isNotEmpty())
+                            R.drawable.ic_search_on
+                        else
+                            R.drawable.ic_search_off
+                    ),
+                    contentDescription = "search icon",
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.size(17.dp)
+                )
+                
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    BasicTextField(
+                        value = query,
+                        onValueChange = {
+                            query = it
+                            viewModel.searchPlaces(it.text, x, y)
+                        },
+                        textStyle = TextStyle(
+                            fontSize = 15.sp,
+                            fontFamily = FontFamily(Font(R.font.roboto)),
+                            fontWeight = FontWeight(400),
+                            color = Color.Black
+                        ),
+                        singleLine = true,
+                        interactionSource = interactionSource,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    if (query.text.isEmpty()) {
+                        Text(
+                            text = "장소를 입력해주세요",
+                            style = TextStyle(
+                                fontSize = 15.sp,
+                                lineHeight = 26.53.sp,
+                                fontFamily = FontFamily(Font(R.font.roboto)),
+                                fontWeight = FontWeight(400),
+                                color = Color(0xFF949494),
+                            )
+                        )
+                    }
+                }
+            }
+        }
+        
         // 검색 결과 표시
-        Spacer(modifier = Modifier.height(16.dp))
-
-        LazyColumn {
-            items(searchResults) { place ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .offset(y = 155.dp) // 상단 검색 영역 전체 높이를 고려하여 offset 조정
+        ) {
+            items(searchResults) { uiPlace ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text(place.name, style = MaterialTheme.typography.bodyLarge)
-                    }
-                    Button(onClick = {
-                        val date = viewModel.selectedDate.value
-                        if (date != null) {
-                            // Place를 PlaceDto로 변환
-                            val placeDto = PlaceDto(
-                                id = place.id,
-                                name = place.name,
-                                roadAddressName = place.roadAddress ?: "",
+                        .padding(vertical = 12.dp)
+                        .clickable {
+                            val placeChargers = uiPlace.chargers?.map {
+                                ChargerDto(
+                                    name = it.name,
+                                    address = it.address,
+                                    latitude = it.latitude,
+                                    longitude = it.longitude
+                                )
+                            } ?: emptyList()
+                            
+                            selectedPlace = PlaceDto(
+                                id = uiPlace.place.id,
+                                name = uiPlace.place.name,
+                                roadAddressName = uiPlace.place.roadAddress ?: "",
                                 categoryGroupCode = "",
-                                x = place.longitude,
-                                y = place.latitude
+                                x = uiPlace.place.longitude,
+                                y = uiPlace.place.latitude,
+                                chargers = placeChargers
                             )
-                            viewModel.addPlaceToDate(date, placeDto)
-
-                            // 검색어 초기화
-                            query = TextFieldValue("")
-                            viewModel.searchPlaces("",x,y)
-
-                            onBackClick() // 추가 후 돌아가기
-                        }
-                    }) {
-                        Text("추가")
+                        },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // 검색 아이콘
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_search_off),
+                        contentDescription = "search icon",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.size(17.dp)
+                    )
+                    
+                    // 장소명
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = uiPlace.place.name,
+                            style = TextStyle(
+                                fontSize = 16.sp,
+                                lineHeight = 24.sp,
+                                fontFamily = FontFamily(Font(R.font.roboto)),
+                                fontWeight = FontWeight(400),
+                                color = Color(0xFF000000),
+                            )
+                        )
                     }
+                    
+                    // 충전소 아이콘
+                    Image(
+                        painter = painterResource(
+                            id = if (uiPlace.isExpanded)
+                                R.drawable.ic_charger_on
+                            else
+                                R.drawable.ic_charger_off
+                        ),
+                        contentDescription = "battery charge",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .size(26.dp)
+                            .clickable {
+                                viewModel.toggleChargerSection(uiPlace.place.id)
+                            }
+                    )
+                    
+                    // 선택 아이콘
+                    Image(
+                        painter = painterResource(
+                            id = if (selectedPlace?.id == uiPlace.place.id)
+                                R.drawable.ic_plus_on
+                            else
+                                R.drawable.ic_plus_off
+                        ),
+                        contentDescription = "select",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                
+                // 충전소 목록 (확장시)
+                if (uiPlace.isExpanded && uiPlace.chargers != null) {
+                    Column(
+                        modifier = Modifier
+                            .padding(start = 8.dp, end = 8.dp, top = 8.dp)
+                            .shadow(
+                                elevation = 4.dp,
+                                spotColor = Color(0x409A9A9A),
+                                ambientColor = Color(0x409A9A9A),
+                                shape = RoundedCornerShape(size = 10.dp)
+                            )
+                            .fillMaxWidth()
+                            .background(
+                                color = Color(0xFFFFFFFF),
+                                shape = RoundedCornerShape(size = 10.dp)
+                            )
+                            .padding(horizontal = 16.dp, vertical = 16.dp)
+                    ) {
+                        uiPlace.chargers.forEachIndexed { index, charger ->
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = charger.name,
+                                    style = TextStyle(
+                                        fontSize = 14.sp,
+                                        fontFamily = FontFamily(Font(R.font.roboto)),
+                                        fontWeight = FontWeight(400),
+                                        color = Color(0xFF000000),
+                                    ),
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                )
+                            }
+                            
+                            // 마지막 아이템이 아닌 경우에만 구분선 추가
+                            if (index < uiPlace.chargers.size - 1) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(0.5.dp)
+                                        .background(Color(0xFFDBDBDB))
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 하단 "다음" 버튼 (장소 선택시에만 표시)
+        if (selectedPlace != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp)
+                    .height(59.dp)
+                    .background(
+                        color = Color(0xFF007BFF),
+                        shape = RoundedCornerShape(size = 10.dp)
+                    )
+                    .align(Alignment.BottomCenter)
+                    .clickable {
+                        val date = viewModel.selectedDate.value
+                        if (date != null && selectedPlace != null) {
+                            viewModel.addPlaceToDate(date, selectedPlace!!)
+                            query = TextFieldValue("")
+                            viewModel.searchPlaces("", x, y)
+                            selectedPlace = null
+                            onBackClick()
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_planner_next),
+                        contentDescription = "next",
+                        contentScale = ContentScale.Fit
+                    )
                 }
             }
         }
