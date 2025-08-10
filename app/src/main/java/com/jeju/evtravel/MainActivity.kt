@@ -75,10 +75,11 @@ fun MainScreen(
     val currentRoute = navBackStackEntry?.destination?.route
     
     // 하단 네비게이션 바를 보여줄 라우트 목록에 'planner' 추가
-    val bottomBarRoutes = setOf("map", "planner", "planner_initial", "my")
+    val bottomBarRoutes = setOf("map", "planner", "planner_initial", "my", "planList")
     
-    // 현재 라우트가 하단 네비게이션 바를 보여줘야 하는지 여부
-    val shouldShowBottomBar = currentRoute in bottomBarRoutes
+    val shouldShowBottomBar = bottomBarRoutes.any { routePrefix ->
+        currentRoute?.startsWith(routePrefix) == true
+    }
     
     // 앱 시작 시 딱 한번만 플랜 목록을 로드합니다.
     LaunchedEffect(Unit) {
@@ -95,7 +96,7 @@ fun MainScreen(
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding)) {
             NavHost(navController = navController, startDestination = "map") {
-            // 홈 탭: 지도 화면
+                // 홈 탭: 지도 화면
                 composable("map") {
                     KakaoMapScreen(
                         fusedLocationClient = fusedLocationClient,

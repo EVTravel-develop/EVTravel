@@ -79,9 +79,12 @@ fun BottomNavigationBar(navController: NavController) {
             contentColor = Color.Transparent
         ) {
             items.forEach { item ->
-                // 'planner' 또는 'planner_initial'일 때 '플래너' 탭이 선택되도록 수정
-                val isSelected = when (currentRoute) {
-                    "planner_initial" -> item.route == "planner"
+                val isSelected = when {
+                    // 현재 아이템이 '플래너' 탭일 경우
+                    item.route == "planner" -> {
+                        // 현재 경로가 'planner' 또는 'planList'로 시작하면 선택된 것으로 간주
+                        currentRoute?.startsWith("planner") == true || currentRoute?.startsWith("planList") == true
+                    }
                     else -> currentRoute == item.route
                 }
                 NavigationBarItem(
