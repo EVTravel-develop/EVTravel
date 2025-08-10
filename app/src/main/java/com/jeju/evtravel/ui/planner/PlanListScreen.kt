@@ -516,8 +516,8 @@ fun PlanItem(
     Row(
         modifier = Modifier
             .shadow(elevation = 4.dp, spotColor = Color(0xA09A9A9A), ambientColor = Color(0xA09A9A9A))
-            .width(382.dp)
-            .height(60.dp)
+            .fillMaxWidth() // .width(382.dp) 대신 사용
+            .heightIn(min = 60.dp) // .height(60.dp) 대신 사용
             .background(color = Color(0xFFFFFFFF), shape = RoundedCornerShape(size = 10.dp))
             .padding(start = 17.dp, top = 18.dp, end = 9.dp, bottom = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
