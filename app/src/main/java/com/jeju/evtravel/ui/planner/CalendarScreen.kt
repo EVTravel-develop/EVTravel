@@ -11,7 +11,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -23,7 +22,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.jeju.evtravel.R
-import com.jeju.evtravel.ui.planner.PlannerViewModel
 import java.time.LocalDate
 
 /**
@@ -76,11 +74,15 @@ fun CalendarScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 136.dp, start = 24.dp, end = 24.dp),
+                .padding(top = 136.dp), // 좌우 패딩은 화면 전체 Column에서 제거
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // 화면 헤더 텍스트
-            Column(modifier = Modifier.fillMaxWidth()) { //왼쪽 정렬
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp) // 헤더 텍스트에만 좌우 패딩 적용
+            ) {
                 Text(
                     text = "여행 기간을 선택해주세요",
                     fontSize = 20.sp,
@@ -101,15 +103,21 @@ fun CalendarScreen(
             }
             Spacer(modifier = Modifier.height(24.dp))
             
+            Spacer(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(7.dp)
+                    .background(color = Color(0xFFF7F7F7))
+            )
+            
             // 월별 달력 영역
             Column(
                 modifier = Modifier
-                    .shadow(elevation = 4.dp, spotColor = Color(0x40797979), ambientColor = Color(0x40797979))
                     .fillMaxWidth()
-                    .weight(1f) // 남은 공간을 모두 차지하도록
-                    .background(color = Color(0xFFFFFFFF), shape = RoundedCornerShape(size = 5.dp))
-                    .padding(horizontal = 20.dp, vertical = 24.dp)
+                    .weight(1f)
+                    .padding(horizontal = 24.dp) // 캘린더 영역에 다시 패딩 적용
             ) {
+                Spacer(modifier = Modifier.height(24.dp))
                 // 요일 헤더
                 Row(modifier = Modifier.fillMaxWidth()) {
                     listOf("일", "월", "화", "수", "목", "금", "토").forEach { dayOfWeek ->
@@ -263,7 +271,7 @@ fun MonthView(
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .aspectRatio(1f)
+                            .height(60.dp)
                             .background(
                                 color = if (isInRange) Color(0x1A0173FF) else Color.Transparent,
                             )
