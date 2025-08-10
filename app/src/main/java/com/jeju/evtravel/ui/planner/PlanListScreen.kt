@@ -69,8 +69,18 @@ fun PlanListScreen(
     
     
     LaunchedEffect(plans) {
-        if (plans != null && plans!!.isEmpty()) {
-            navController.navigate("planner")
+        val currentPlans = plans
+        
+        if (currentPlans != null && currentPlans.isEmpty()) {
+            val currentRoute = navController.currentBackStackEntry?.destination?.route
+            if (currentRoute != "planner") {
+                navController.navigate("planner") {
+                    popUpTo("planner") {
+                        inclusive = true
+                    }
+                    launchSingleTop = true
+                }
+            }
         }
     }
     
