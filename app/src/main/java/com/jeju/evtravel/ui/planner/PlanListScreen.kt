@@ -610,7 +610,8 @@ fun YearMonthPickerBottomSheet(
     val Grayscale300 = Color(0xFFC4C4C4)
     val GrayscaleBlack = Color(0xFF000000)
     
-    val years = (2020..2030).map { it.toString() }
+    val currentYear = YearMonth.now().year
+    val years = ((currentYear - 5)..(currentYear + 10)).map { it.toString() }
     val months = (1..12).map { it.toString() }
     
     val initialYearIndex = years.indexOf(currentDate.year.toString()).coerceAtLeast(0)
