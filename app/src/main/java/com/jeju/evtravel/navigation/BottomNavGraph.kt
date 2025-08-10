@@ -38,7 +38,7 @@ val items = listOf(
     ),
     BottomNavItem(
         name = "플래너",
-        route = "planner_initial",
+        route = "planner",
         iconRes = R.drawable.ic_plan,
         iconSelectedRes = R.drawable.ic_plan_on
     ),
@@ -79,7 +79,11 @@ fun BottomNavigationBar(navController: NavController) {
             contentColor = Color.Transparent
         ) {
             items.forEach { item ->
-                val isSelected = currentRoute == item.route
+                // 'planner' 또는 'planner_initial'일 때 '플래너' 탭이 선택되도록 수정
+                val isSelected = when (currentRoute) {
+                    "planner_initial" -> item.route == "planner"
+                    else -> currentRoute == item.route
+                }
                 NavigationBarItem(
                     icon = {
                         Icon(

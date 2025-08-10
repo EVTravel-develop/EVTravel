@@ -25,27 +25,27 @@ class PlannerViewModel : ViewModel() {
     // 의존성 주입 (실제 앱에서는 Hilt 등을 사용하여 주입)
     private val repository = PlanRepositoryImpl()
     private val savePlanUseCase = SavePlanUseCase(repository)
-
+    
     // 날짜별 DayPlan 상태
     private val _dayPlans = MutableStateFlow<List<DayPlan>>(emptyList())
     val dayPlans: StateFlow<List<DayPlan>> = _dayPlans
-
+    
     // 현재 선택된 날짜 (편집할 날짜)
     private val _selectedDate = MutableStateFlow<String?>(null)
     val selectedDate: StateFlow<String?> = _selectedDate
-
+    
     // 여행 시작일 상태
     private val _startDate = MutableStateFlow<LocalDate?>(null)
     val startDate: StateFlow<LocalDate?> = _startDate
-
+    
     // 여행 종료일 상태
     private val _endDate = MutableStateFlow<LocalDate?>(null)
     val endDate: StateFlow<LocalDate?> = _endDate
-
-    // 플랜 목록 상태
-    private val _plans = MutableStateFlow<List<PlanDto>>(emptyList())
-    val plans: StateFlow<List<PlanDto>> = _plans
-
+    
+    // 플랜 목록 상태: null은 로딩 중, 빈 리스트는 플랜 없음, 리스트가 있으면 플랜 있음
+    private val _plans = MutableStateFlow<List<PlanDto>?>(null)
+    val plans: StateFlow<List<PlanDto>?> = _plans
+    
     // 장소 검색을 위한 UseCase와 상태
     private val searchPlaceUseCase = SearchPlaceUseCase(
         PlaceRepositoryImpl(
@@ -53,18 +53,19 @@ class PlannerViewModel : ViewModel() {
             restApiKey = BuildConfig.KAKAO_REST_API_KEY
         )
     )
-
+    
     // 충전소 검색을 위한 ChargerRepository
     private val chargerRepository = ChargerRepositoryImpl(
         api = RetrofitInstance.kakaoLocalApi,
         restApiKey = BuildConfig.KAKAO_REST_API_KEY
     )
-
+    
     // 장소 검색 결과 상태
     private val _searchResults = MutableStateFlow<List<UiPlace>>(emptyList())
+    
     // 검색 결과를 UI에서 사용할 수 있도록 UiPlace로 변환하여 저장
     val searchResults: StateFlow<List<UiPlace>> = _searchResults
-
+    
     /**
      * 여행 기간을 설정하는 메서드
      *
@@ -75,7 +76,7 @@ class PlannerViewModel : ViewModel() {
         _startDate.value = start
         _endDate.value = end
     }
-
+    
     /**
      * 장소 검색 메서드
      * @param query 검색어
@@ -90,13 +91,17 @@ class PlannerViewModel : ViewModel() {
             }
         }
     }
-
+    
     /**
      * 현재 플랜을 저장합니다.
      * @param start 여행 시작일 (yyyy-MM-dd 형식)
      * @param end 여행 종료일 (yyyy-MM-dd 형식)
      */
-    fun saveCurrentPlan(start: String, end: String) {
+    fun saveCurrentPlan(
+        start: String,
+        end: String,
+        onSaveComplete: () -> Unit
+    ) { // onSaveComplete 콜백 추가
         viewModelScope.launch {
             val plan = PlanDto(
                 startDate = start,
@@ -104,12 +109,20 @@ class PlannerViewModel : ViewModel() {
                 days = _dayPlans.value,  // 날짜별 DayPlan 객체들 그대로 저장
                 userId = "somi"      // 실제 로그인 사용자 ID로 대체
             )
+            
             savePlanUseCase(plan,
-                onSuccess = { loadPlans("somi") }   // 저장 후 목록 갱신
+                onSuccess = {
+                    // 저장이 성공하면, 플랜 목록을 다시 불러옵니다.
+                    viewModelScope.launch {
+                        _plans.value = repository.getPlans("somi")
+                        // 목록 로드까지 완료되면, 파라미터로 받은 콜백(화면 전환)을 실행
+                        onSaveComplete()
+                    }
+                }
             )
         }
     }
-
+    
     /**
      * 날짜를 선택합니다.
      * @param date 선택할 날짜 (yyyy-MM-dd 형식)
@@ -117,7 +130,7 @@ class PlannerViewModel : ViewModel() {
     fun setSelectedDate(date: String) {
         _selectedDate.value = date
     }
-
+    
     /**
      * CalendarScreen에서 날짜 범위를 선택하면 DayPlan 리스트 초기화
      * @param start 여행 시작일
@@ -130,7 +143,7 @@ class PlannerViewModel : ViewModel() {
         }.map { DayPlan(date = it.toString()) }.toList()
         _dayPlans.value = days
     }
-
+    
     /**
      * 특정 날짜에 장소를 추가합니다.
      * @param date 날짜 (yyyy-MM-dd 형식)
@@ -143,7 +156,7 @@ class PlannerViewModel : ViewModel() {
             } else dayPlan
         }
     }
-
+    
     /**
      * 특정 날짜에서 장소를 제거합니다.
      * @param date 날짜 (yyyy-MM-dd 형식)
@@ -156,7 +169,7 @@ class PlannerViewModel : ViewModel() {
             } else dayPlan
         }
     }
-
+    
     /**
      * 특정 날짜의 장소를 재정렬합니다.
      * @param date 날짜 (yyyy-MM-dd 형식)
@@ -173,7 +186,7 @@ class PlannerViewModel : ViewModel() {
             } else dayPlan
         }
     }
-
+    
     /**
      * Firestore에서 플랜 목록을 불러옵니다.
      * @param userId 사용자 ID
@@ -183,7 +196,7 @@ class PlannerViewModel : ViewModel() {
             _plans.value = repository.getPlans(userId)
         }
     }
-
+    
     /**
      * 특정 플랜을 삭제합니다.
      * @param planId 삭제할 플랜의 ID
@@ -198,7 +211,7 @@ class PlannerViewModel : ViewModel() {
             }
         }
     }
-
+    
     /**
      * 기존 PlanDto 객체를 받아 ViewModel의 상태를 설정합니다.
      * (플랜 조회 또는 수정 시 사용)
@@ -209,7 +222,7 @@ class PlannerViewModel : ViewModel() {
         _endDate.value = LocalDate.parse(plan.endDate)
         _dayPlans.value = plan.days
     }
-
+    
     /**
      * ViewModel의 상태를 초기화합니다.
      * (새로운 플랜 생성 시작 시 사용)
@@ -221,7 +234,7 @@ class PlannerViewModel : ViewModel() {
         _selectedDate.value = null
         _searchResults.value = emptyList()
     }
-
+    
     fun toggleChargerSection(placeId: String) {
         viewModelScope.launch {
             _searchResults.value = _searchResults.value.map { item ->
@@ -233,7 +246,7 @@ class PlannerViewModel : ViewModel() {
                             lon = item.place.longitude
                         ).take(5)
                     } else null
-
+                    
                     item.copy(
                         isExpanded = expanded,
                         chargers = chargers

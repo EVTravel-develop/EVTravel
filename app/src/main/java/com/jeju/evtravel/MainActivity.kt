@@ -74,8 +74,8 @@ fun MainScreen(
     
     val currentRoute = navBackStackEntry?.destination?.route
     
-    // 하단 네비게이션 바를 보여줄 라우트 목록
-    val bottomBarRoutes = setOf("map", "planner_initial", "my")
+    // 하단 네비게이션 바를 보여줄 라우트 목록에 'planner' 추가
+    val bottomBarRoutes = setOf("map", "planner", "planner_initial", "my")
     
     // 현재 라우트가 하단 네비게이션 바를 보여줘야 하는지 여부
     val shouldShowBottomBar = currentRoute in bottomBarRoutes
@@ -95,7 +95,7 @@ fun MainScreen(
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding)) {
             NavHost(navController = navController, startDestination = "map") {
-                // 홈 탭: 지도 화면
+            // 홈 탭: 지도 화면
                 composable("map") {
                     KakaoMapScreen(
                         fusedLocationClient = fusedLocationClient,
@@ -120,20 +120,30 @@ fun MainScreen(
                 // 플래너 탭의 분기점 역할. UI 없음.
                 composable("planner") {
                     val plans by plannerViewModel.plans.collectAsState()
-                    // 데이터 로드가 완료되었는지 확인하여 한 번만 실행되도록 함
-                    // (ViewModel에 isloading 같은 상태 추가를 권장합니다.)
-                    // 여기서는 plans가 초기 상태(null 또는 empty list)가 아닌 경우를 로드 완료로 간주합니다.
                     
-                    // LaunchedEffect를 사용하여 컴포지션이 완료된 후 navigate를 실행합니다.
+                    // plans 상태가 변경될 때마다 실행
                     LaunchedEffect(plans) {
-                        if (plans.isEmpty()) {
-                            navController.navigate("planner_initial") {
-                                popUpTo("planner") { inclusive = true }
+                        // plans가 null이 아닐 때(로딩 완료)만 네비게이션 실행
+                        plans?.let { planList ->
+                            if (planList.isEmpty()) {
+                                navController.navigate("planner_initial") {
+                                    popUpTo("planner") { inclusive = true }
+                                }
+                            } else {
+                                navController.navigate("planList") {
+                                    popUpTo("planner") { inclusive = true }
+                                }
                             }
-                        } else {
-                            navController.navigate("planList") {
-                                popUpTo("planner") { inclusive = true }
-                            }
+                        }
+                    }
+                    
+                    // plans가 null일 때(로딩 중) 로딩 인디케이터 표시
+                    if (plans == null) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
                         }
                     }
                 }
@@ -168,6 +178,7 @@ fun MainScreen(
                     
                     PlanListScreen(
                         viewModel = plannerViewModel,
+                        navController = navController,
                         selectedStart = start, // 추출한 값을 PlanListScreen에 전달
                         selectedEnd = end,     // 추출한 값을 PlanListScreen에 전달
                         onBackClick = { /* 추후 수정 */ },

@@ -89,7 +89,8 @@ fun EditPlanScreen(
     // 화면 진입 시 플랜 ID가 있다면 해당 플랜을 로드합니다.
     LaunchedEffect(planId) {
         if (planId != null) {
-            val planToLoad = viewModel.plans.value.find { it.id == planId }
+            // ?. 를 추가하여 plans.value가 null이 아닐 때만 find를 실행합니다.
+            val planToLoad = viewModel.plans.value?.find { it.id == planId }
             if (planToLoad != null) {
                 viewModel.loadPlanDetails(planToLoad)
             }
@@ -472,11 +473,21 @@ fun EditPlanScreen(
                         )
                         .clickable {
                             if (startDate != null && endDate != null) {
-                                viewModel.saveCurrentPlan(startDate.toString(), endDate.toString())
-                                navController.navigate("planList?start=${startDate}&end=${endDate}") {
-                                    popUpTo("planList") { inclusive = true }
-                                    launchSingleTop = true
+                                
+                                // 1. 화면 전환 로직을 onSaveComplete 라는 이름의 람다로 정의
+                                val onSaveComplete = {
+                                    navController.navigate("planList?start=${startDate}&end=${endDate}") {
+                                        popUpTo("planList") { inclusive = true }
+                                        launchSingleTop = true
+                                    }
                                 }
+                                
+                                // 2. ViewModel 함수를 호출하며 위에서 정의한 람다를 전달
+                                viewModel.saveCurrentPlan(
+                                    start = startDate.toString(),
+                                    end = endDate.toString(),
+                                    onSaveComplete = onSaveComplete
+                                )
                             }
                         },
                     contentAlignment = Alignment.Center
