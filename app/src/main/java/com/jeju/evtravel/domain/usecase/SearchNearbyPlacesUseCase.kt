@@ -10,9 +10,8 @@ class SearchNearbyPlacesUseCase(
         query: String,
         x: Double,
         y: Double,
-        radius: Int? = 500, // 500m 기본
-        page: Int = 1,
-        size: Int = 15,
-        sort: String = "distance"
-    ): List<Place> = repository.searchNearbyPlaces(query, x, y, radius, page, size, sort)
+        radius: Int? = 2000, // 2000m 기본
+        page: Int? = 1,
+        size: Int? = 15
+    ): List<Place> = repository.searchNearbyPlaces(query, x, y, radius, page, size)
 }

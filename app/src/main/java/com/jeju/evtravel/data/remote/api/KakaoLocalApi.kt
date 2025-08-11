@@ -14,8 +14,8 @@ interface KakaoLocalApi {
         @Query("x") x: Double,  // longitude
         @Query("y") y: Double,  // latitude
         @Query("radius") radius: Int? = null, // 0~20000
-        @Query("page") page: Int = 1,
-        @Query("size") size: Int = 15,
+        @Query("page") page: Int? = 1,
+        @Query("size") size: Int? = 15,
         @Query("sort") sort: String = "distance"   // distance | accuracy
     ): PlaceSearchResponseDto
 }

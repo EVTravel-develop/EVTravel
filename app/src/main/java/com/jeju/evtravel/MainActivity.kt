@@ -36,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.setValue
+import com.jeju.evtravel.ui.search.SearchScreen
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -86,6 +87,14 @@ fun MainScreen(
                 // 홈 탭: 지도 화면
                 composable(route = "map") {
                     KakaoMapScreen(
+                        fusedLocationClient = fusedLocationClient,
+                        navController = navController
+                    )
+                }
+
+                // 검색 탭: 지도 화면 검색바 -> 검색 화면
+                composable(route = "search") {
+                    SearchScreen(
                         fusedLocationClient = fusedLocationClient,
                         navController = navController
                     )

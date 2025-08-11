@@ -4,6 +4,9 @@ import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -11,14 +14,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.jeju.evtravel.R
 import com.jeju.evtravel.domain.model.Place
+import com.jeju.evtravel.ui.search.ClickableSearchBar
 import com.kakao.vectormap.KakaoMap
 import com.kakao.vectormap.LatLng
 import com.kakao.vectormap.camera.CameraUpdateFactory
@@ -71,6 +77,8 @@ fun KakaoMapScreen(
             getCurrentLocation(context, fusedLocationClient) { location: LatLng? ->
                 location?.let { loc ->
                     currentLatLng = loc
+                    viewModel.lastUserLocation = loc
+                    viewModel.lastCenter = loc
 
                     viewModel.searchNearby(
                         query = "전기차 충전소",
@@ -79,6 +87,15 @@ fun KakaoMapScreen(
                         radius = 500
                     )
                 }
+            }
+        }
+    }
+
+    // 카메라 이동 종료 시 중심 저장
+    LaunchedEffect(kakaoMap) {
+        kakaoMap?.let { map ->
+            map.setOnCameraMoveEndListener { _, cameraPosition, _ ->
+                viewModel.lastCenter = cameraPosition.position
             }
         }
     }
@@ -179,11 +196,39 @@ fun KakaoMapScreen(
         }
     }
 
+    // 카메라 이동 종료 후 '현재 위치로 재검색' 버튼 활성
+    LaunchedEffect(kakaoMap) {
+        kakaoMap?.setOnCameraMoveEndListener { _, _, _ -> viewModel.isMapRestored = false }
+    }
+
+
     // 기본 화면 구성
     Box(
         modifier = Modifier
             .fillMaxSize()
     ) {
         KakaoMapView(onMapReady = { kakaoMap = it })
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            ClickableSearchBar(
+                placeholder = "주변 장소 및 충전소를 검색해주세요.",
+                onClick = { navController.navigate("search") }
+            )
+        }
+
+//        FloatingActionButton(
+//            onClick = { viewModel.searchAroundCenter() },
+//            modifier = Modifier
+//                .align(Alignment.BottomEnd)
+//                .padding(16.dp)
+//        ) {
+//            Icon(Icons.Default.Search, contentDescription = "현재 지도 위치로 재검색")
+//        }
     }
 }

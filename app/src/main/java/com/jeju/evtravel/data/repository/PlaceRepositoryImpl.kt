@@ -24,9 +24,8 @@ class PlaceRepositoryImpl(
         x: Double,
         y: Double,
         radius: Int?,
-        page: Int,
-        size: Int,
-        sort: String
+        page: Int?,
+        size: Int?
     ): List<Place> {
         val dto = api.searchKeyword(
             authorization = "KakaoAK $restApiKey",
@@ -35,8 +34,7 @@ class PlaceRepositoryImpl(
             y = y,
             radius = radius,
             page = page,
-            size = size,
-            sort = sort
+            size = size
         )
         return dto.documents.map { it.toDomain() }
     }

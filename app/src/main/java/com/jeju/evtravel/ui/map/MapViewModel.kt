@@ -22,10 +22,11 @@ class MapViewModel @Inject constructor(
     var lastCenter: LatLng? = null
     var lastZoomLevel: Int? = null
     var lastSelectedPlaceId: String? = null
+    var lastUserLocation: LatLng? = null
     // 복원 여부
     var isMapRestored = false
 
-    fun searchNearby(query: String, longitude: Double, latitude: Double, radius: Int = 1000) {
+    fun searchNearby(query: String, longitude: Double, latitude: Double, radius: Int) {
         viewModelScope.launch {
             _uiState.value = MapUiState.Loading
             runCatching {
@@ -41,5 +42,16 @@ class MapViewModel @Inject constructor(
                 _uiState.value = MapUiState.Error(e.message ?: "unknown error")
             }
         }
+    }
+
+    // 지도에서 쓰는 재검색 함수(중심 기준)
+    fun searchAroundCenter(radius: Int = 1500) {
+        val center = lastCenter ?: return
+        searchNearby(
+            query = "전기차 충전소", // 혹은 타입에 따라 바꾸려면 파라미터로 받기
+            longitude = center.longitude,
+            latitude = center.latitude,
+            radius = radius
+        )
     }
 }
