@@ -30,13 +30,15 @@ import com.jeju.evtravel.ui.planner.*
 import com.kakao.vectormap.KakaoMapSdk
 import com.kakao.vectormap.utils.MapUtils
 import dagger.hilt.android.AndroidEntryPoint
-import com.jeju.evtravel.ui.detail.PlaceDetailScreen
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.setValue
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.jeju.evtravel.ui.map.MapViewModel
 import com.jeju.evtravel.ui.search.SearchScreen
+import com.jeju.evtravel.ui.search.SearchViewModel
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -62,7 +64,8 @@ class MainActivity : ComponentActivity() {
                 ) {
                     MainScreen(
                         fusedLocationClient = fusedLocationClient,
-                        plannerViewModel = plannerViewModel
+                        plannerViewModel = plannerViewModel,
+                        searchViewModel = hiltViewModel()
                     )
                 }
             }
@@ -73,9 +76,11 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainScreen(
     fusedLocationClient: FusedLocationProviderClient,
-    plannerViewModel: PlannerViewModel
+    plannerViewModel: PlannerViewModel,
+    searchViewModel: SearchViewModel
 ) {
     val navController = rememberNavController()
+    val mapViewModel: MapViewModel = hiltViewModel()
 
     Scaffold(
         bottomBar = {
@@ -88,6 +93,7 @@ fun MainScreen(
                 composable(route = "map") {
                     KakaoMapScreen(
                         fusedLocationClient = fusedLocationClient,
+                        viewModel = mapViewModel,
                         navController = navController
                     )
                 }
@@ -96,7 +102,9 @@ fun MainScreen(
                 composable(route = "search") {
                     SearchScreen(
                         fusedLocationClient = fusedLocationClient,
-                        navController = navController
+                        navController = navController,
+                        mapViewModel = mapViewModel,
+                        viewModel = searchViewModel,
                     )
                 }
 
@@ -111,12 +119,6 @@ fun MainScreen(
                 // 마이 탭
                 composable("my") {
                     Text(text = "마이 페이지")
-                }
-
-                composable("place_detail/{placeId}") { backStackEntry ->
-                    val placeId =
-                        backStackEntry.arguments?.getString("placeId") ?: return@composable
-                    PlaceDetailScreen(placeId)
                 }
             }
         }

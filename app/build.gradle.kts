@@ -29,6 +29,9 @@ val kakaoNativeKey = secretProperties.getProperty("KAKAO_NATIVE_APP_KEY")
 val kakaoRestKey = secretProperties.getProperty("KAKAO_REST_API_KEY")
     ?: throw GradleException("KAKAO_REST_API_KEY is missing in local.properties")
 
+val evChargerKey = secretProperties.getProperty("EV_CHARGER_API_KEY")
+    ?: throw GradleException("EV_CHARGER_API_KEY is missing in local.properties")
+
 android {
     namespace = "com.jeju.evtravel"
     compileSdk = 35
@@ -44,6 +47,7 @@ android {
 
         buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"${kakaoNativeKey}\"")
         buildConfigField("String", "KAKAO_REST_API_KEY", "\"${kakaoRestKey}\"")
+        buildConfigField("String", "EV_CHARGER_API_KEY", "\"${evChargerKey}\"")
 
         manifestPlaceholders["KAKAO_MAP_KEY"] = kakaoNativeKey
     }

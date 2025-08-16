@@ -71,8 +71,8 @@ import kotlinx.coroutines.launch
 fun SearchScreen(
     fusedLocationClient: FusedLocationProviderClient,
     navController: NavController,
-    mapViewModel: MapVM = hiltViewModel(),
-    viewModel: SearchViewModel = hiltViewModel(),
+    mapViewModel: MapVM,
+    viewModel: SearchViewModel,
 ) {
     //권한 “상태만” 확인(요청은 안 함)
     val permissionState: MultiplePermissionsState = rememberMultiplePermissionsState(
@@ -189,7 +189,9 @@ fun SearchScreen(
                 ) {
                     items(s.items, key = { it.id }) { place ->
                         PlaceRow(place = place) {
-                            navController.navigate("place_detail/${place.id}")
+                            mapViewModel.selectPlace(place) {
+                                navController.navigate("place_detail")
+                            }
                         }
                     }
                 }

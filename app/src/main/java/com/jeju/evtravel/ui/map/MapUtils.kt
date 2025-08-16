@@ -22,7 +22,7 @@ fun KakaoMap.addMarkers(
     places: List<Place>,
     zoom: Int = 15
 ) {
-    val layer = labelManager?.layer ?: return
+    val layer = this.labelManager?.layer ?: return
     layer.removeAll() // 전체 삭제
 
     // 현재 위치 마커 추가
