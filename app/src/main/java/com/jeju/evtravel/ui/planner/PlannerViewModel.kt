@@ -2,20 +2,20 @@ package com.jeju.evtravel.ui.planner
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jeju.evtravel.BuildConfig
 import com.jeju.evtravel.data.model.DayPlan
-import com.jeju.evtravel.data.model.PlanDto
 import com.jeju.evtravel.data.model.PlaceDto
+import com.jeju.evtravel.data.model.PlanDto
+import com.jeju.evtravel.data.remote.RetrofitInstance
+import com.jeju.evtravel.data.repository.ChargerRepositoryImpl
+import com.jeju.evtravel.data.repository.PlaceRepositoryImpl
 import com.jeju.evtravel.data.repository.PlanRepositoryImpl
 import com.jeju.evtravel.domain.usecase.SavePlanUseCase
+import com.jeju.evtravel.domain.usecase.SearchPlaceUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import com.jeju.evtravel.domain.usecase.SearchPlaceUseCase
-import com.jeju.evtravel.data.repository.PlaceRepositoryImpl
-import com.jeju.evtravel.data.remote.RetrofitInstance
-import com.jeju.evtravel.BuildConfig
-import com.jeju.evtravel.data.repository.ChargerRepositoryImpl
 
 /**
  * PlannerViewModel은 여행 계획을 관리하는 ViewModel입니다.
@@ -25,6 +25,9 @@ class PlannerViewModel : ViewModel() {
     // 의존성 주입 (실제 앱에서는 Hilt 등을 사용하여 주입)
     private val repository = PlanRepositoryImpl()
     private val savePlanUseCase = SavePlanUseCase(repository)
+    
+    // 현재 로그인된 사용자의 ID를 저장할 변수
+    private var currentUserId: String? = null
     
     // 날짜별 DayPlan 상태
     private val _dayPlans = MutableStateFlow<List<DayPlan>>(emptyList())
@@ -101,20 +104,23 @@ class PlannerViewModel : ViewModel() {
         start: String,
         end: String,
         onSaveComplete: () -> Unit
-    ) { // onSaveComplete 콜백 추가
+    ) {
+        // 저장된 userId를 사용, 없으면 함수 종료
+        val userId = currentUserId ?: return
+        
         viewModelScope.launch {
             val plan = PlanDto(
                 startDate = start,
                 endDate = end,
                 days = _dayPlans.value,  // 날짜별 DayPlan 객체들 그대로 저장
-                userId = "somi"      // 실제 로그인 사용자 ID로 대체
+                userId = userId
             )
             
             savePlanUseCase(plan,
                 onSuccess = {
                     // 저장이 성공하면, 플랜 목록을 다시 불러옵니다.
                     viewModelScope.launch {
-                        _plans.value = repository.getPlans("somi")
+                        _plans.value = repository.getPlans(userId)
                         // 목록 로드까지 완료되면, 파라미터로 받은 콜백(화면 전환)을 실행
                         onSaveComplete()
                     }
@@ -192,6 +198,8 @@ class PlannerViewModel : ViewModel() {
      * @param userId 사용자 ID
      */
     fun loadPlans(userId: String) {
+        // ViewModel에 현재 사용자 ID 저장
+        this.currentUserId = userId
         viewModelScope.launch {
             _plans.value = repository.getPlans(userId)
         }
@@ -202,10 +210,12 @@ class PlannerViewModel : ViewModel() {
      * @param planId 삭제할 플랜의 ID
      */
     fun deletePlan(planId: String) {
+        // 저장된 userId를 사용, 없으면 함수 종료
+        val userId = currentUserId ?: return
         viewModelScope.launch {
             try {
                 repository.deletePlan(planId)
-                loadPlans("somi") // 삭제 후 플랜 목록 갱신
+                loadPlans(userId) // 삭제 후 플랜 목록 갱신
             } catch (e: Exception) {
                 println("플랜 삭제 중 오류 발생: ${e.message}")
             }
