@@ -4,16 +4,16 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.plugin.compose)
-    //id("org.jetbrains.kotlin.plugin.compose") version "2.0.0"
 
-    //Firebase Google Services Plugin
+    // Firebase Google Services
     id("com.google.gms.google-services")
 
-    // dagger
+    // Hilt
     id("com.google.dagger.hilt.android")
-    // kotlin kapt
+    // Kapt (Kotlin DSL에선 이 ID 그대로 사용 가능)
     id("kotlin-kapt")
 }
+
 val secretProperties = Properties().apply {
     val secretFile = rootProject.file("local.properties")
     if (secretFile.exists()) {
@@ -42,10 +42,14 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"${kakaoNativeKey}\"")
-        buildConfigField("String", "KAKAO_REST_API_KEY", "\"${kakaoRestKey}\"")
+        // BuildConfig 로 노출 (네트워크 전송/로그에 찍지 않도록 주의)
+        buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"$kakaoNativeKey\"")
+        buildConfigField("String", "KAKAO_REST_API_KEY", "\"$kakaoRestKey\"")
 
+        // Kakao Map meta-data placeholder (Manifest에서 참조)
         manifestPlaceholders["KAKAO_MAP_KEY"] = kakaoNativeKey
+        manifestPlaceholders["KAKAO_NATIVE_APP_KEY"] = kakaoNativeKey
+
     }
 
     buildFeatures {
@@ -61,7 +65,11 @@ android {
                 "proguard-rules.pro"
             )
         }
+        debug {
+            // 필요하면 debug 전용 설정 추가
+        }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -72,74 +80,63 @@ android {
 }
 
 dependencies {
-
+    // --- Android / Compose ---
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
-    implementation(libs.material)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-
+    implementation(libs.material) // Material 2 (아이콘 확장은 아래)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.material)
+    implementation(libs.androidx.compose.material) // 필요 시 유지
     implementation(libs.androidx.compose.ui.tooling.preview)
-
-    implementation(libs.androidx.core)
     implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
+    implementation("androidx.compose.foundation:foundation:1.6.1") // Pager 등
+    implementation("androidx.compose.material3:material3:1.2.1")
+    implementation("androidx.compose.material:material-icons-extended:1.5.0")
 
-    implementation(libs.androidx.core)
-    implementation(libs.androidx.lifecycle.runtime.compose)
-
-    // 위치 서비스
+    // --- Permissions / Location ---
     implementation("com.google.accompanist:accompanist-permissions:0.34.0")
     implementation("com.google.android.gms:play-services-location:21.0.1")
 
-    // Kakao Map SDK
+    // --- Kakao SDKs ---
+    // 카카오 로그인
+    implementation("com.kakao.sdk:v2-user:2.20.6")
+    // 카카오 맵
     implementation("com.kakao.maps.open:android:2.12.8")
 
-    // Retrofit Core
-    implementation("com.squareup.retrofit2:retrofit:2.9.0")
-    // Json 파싱 (Gson 사용 시)
-    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    // --- Networking (Retrofit + Moshi + OkHttp) ---
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-moshi:2.11.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
-    // Hilt
+    // --- Hilt ---
     implementation("com.google.dagger:hilt-android:2.48")
     kapt("com.google.dagger:hilt-compiler:2.48")
-    // compose에서 Hlit ViewModel 사용
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 
-    //Firebase BoM
+    // --- Firebase ---
     implementation(platform("com.google.firebase:firebase-bom:33.15.0"))
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-database-ktx")
+    implementation("com.google.firebase:firebase-analytics-ktx")
+    implementation("com.google.firebase:firebase-functions-ktx")
 
-    //Firebase Analytics 예시
-    implementation("com.google.firebase:firebase-analytics")
-    implementation("com.google.firebase:firebase-firestore-ktx") // Firestore
-    implementation ("com.google.firebase:firebase-database-ktx:20.0.4")
-
-    implementation("androidx.compose.material3:material3:1.2.1")
-
-    implementation ("com.maxkeppeler.sheets-compose-dialogs:core:1.0.2")
-    implementation ("com.maxkeppeler.sheets-compose-dialogs:calendar:1.0.2")
-    implementation("androidx.navigation:navigation-compose:2.7.7")
+    // --- 기타 ---
+    implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation("com.maxkeppeler.sheets-compose-dialogs:core:1.0.2")
+    implementation("com.maxkeppeler.sheets-compose-dialogs:calendar:1.0.2")
     implementation("org.burnoutcrew.composereorderable:reorderable:0.9.6")
-    implementation("androidx.compose.material:material-icons-extended:1.5.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
-    implementation ("com.google.firebase:firebase-database-ktx:20.0.4")
 
-    implementation("androidx.compose.material3:material3:1.2.1")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
-
-    implementation ("com.maxkeppeler.sheets-compose-dialogs:core:1.0.2")
-    implementation ("com.maxkeppeler.sheets-compose-dialogs:calendar:1.0.2")
+    // --- Navigation ---
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
-    implementation("androidx.compose.material3:material3")
-
-    implementation("androidx.compose.material:material-icons-extended")
-
+    // --- Test ---
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-
-    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
 }
