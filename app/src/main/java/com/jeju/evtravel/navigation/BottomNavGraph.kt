@@ -1,3 +1,4 @@
+// com.jeju.evtravel.navigation.BottomNavGraph.kt
 package com.jeju.evtravel.navigation
 
 import androidx.compose.foundation.background
@@ -20,7 +21,6 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.jeju.evtravel.R
 
-// 탭 정보 데이터 클래스
 data class BottomNavItem(
     val name: String,
     val route: String,
@@ -28,7 +28,6 @@ data class BottomNavItem(
     val iconSelectedRes: Int
 )
 
-// 탭 리스트
 val items = listOf(
     BottomNavItem(
         name = "홈",
@@ -50,19 +49,13 @@ val items = listOf(
     )
 )
 
-// BottomNavigationBar 컴포저블 함수
 @Composable
 fun BottomNavigationBar(navController: NavController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    
-    val roundedShape = RoundedCornerShape(
-        topStart = 20.dp,
-        topEnd = 20.dp,
-        bottomStart = 0.dp,
-        bottomEnd = 0.dp
-    )
-    
+
+    val roundedShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+
     Box(
         modifier = Modifier
             .shadow(
@@ -72,7 +65,7 @@ fun BottomNavigationBar(navController: NavController) {
                 shape = roundedShape
             )
             .clip(roundedShape)
-            .background(color = Color(0xFFFFFFFF))
+            .background(color = Color.White)
     ) {
         NavigationBar(
             containerColor = Color.Transparent,
@@ -80,11 +73,9 @@ fun BottomNavigationBar(navController: NavController) {
         ) {
             items.forEach { item ->
                 val isSelected = when {
-                    // 현재 아이템이 '플래너' 탭일 경우
-                    item.route == "planner" -> {
-                        // 현재 경로가 'planner' 또는 'planList'로 시작하면 선택된 것으로 간주
+                    item.route == "planner" ->
                         currentRoute?.startsWith("planner") == true || currentRoute?.startsWith("planList") == true
-                    }
+                    item.route == "my" -> currentRoute == "my"
                     else -> currentRoute == item.route
                 }
                 NavigationBarItem(
@@ -94,16 +85,14 @@ fun BottomNavigationBar(navController: NavController) {
                                 id = if (isSelected) item.iconSelectedRes else item.iconRes
                             ),
                             contentDescription = item.name,
-                            tint = Color.Unspecified // 아이콘 색상 변경 방지
+                            tint = Color.Unspecified
                         )
                     },
                     label = { Text(item.name) },
                     selected = isSelected,
                     onClick = {
                         navController.navigate(item.route) {
-                            popUpTo(navController.graph.startDestinationId) {
-                                saveState = true
-                            }
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
                             launchSingleTop = true
                             restoreState = true
                         }
@@ -113,7 +102,7 @@ fun BottomNavigationBar(navController: NavController) {
                         unselectedIconColor = Color.Unspecified,
                         selectedTextColor = Color.Black,
                         unselectedTextColor = Color.Gray,
-                        indicatorColor = Color.Transparent // 선택 시 배경 제거
+                        indicatorColor = Color.Transparent
                     )
                 )
             }

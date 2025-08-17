@@ -1,3 +1,4 @@
+// com/jeju/evtravel/MainActivity.kt
 package com.jeju.evtravel
 
 import android.os.Bundle
@@ -12,23 +13,23 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
+import com.google.firebase.auth.FirebaseAuth
+import com.jeju.evtravel.data.service.GuestLoginService
 import com.jeju.evtravel.navigation.BottomNavigationBar
 import com.jeju.evtravel.ui.detail.PlaceDetailScreen
 import com.jeju.evtravel.ui.map.KakaoMapScreen
+import com.jeju.evtravel.ui.mypage.*
+import com.jeju.evtravel.ui.onboarding.OnboardingScreen
 import com.jeju.evtravel.ui.planner.*
-import com.kakao.vectormap.KakaoMapSdk
+import com.jeju.evtravel.ui.splash.SplashScreen
 import com.kakao.vectormap.utils.MapUtils
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -36,16 +37,12 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private val plannerViewModel by viewModels<PlannerViewModel>()
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
-        // 카카오 키 해시 출력
         Log.d("KeyHash", MapUtils.getHashKey(this))
-        // Kakao SDK 초기화
-        KakaoMapSdk.init(this, BuildConfig.KAKAO_NATIVE_APP_KEY)
-        
+
         super.onCreate(savedInstanceState)
-        
-        // 현재 위치 정보를 가져 오기 위한 fusedLocationClient 초기화
+
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         setContent {
             MaterialTheme {
@@ -69,59 +66,107 @@ fun MainScreen(
     plannerViewModel: PlannerViewModel
 ) {
     val navController = rememberNavController()
-    
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    
     val currentRoute = navBackStackEntry?.destination?.route
-    
-    // 하단 네비게이션 바를 보여줄 라우트 목록에 'planner' 추가
+
     val bottomBarRoutes = setOf("map", "planner", "planner_initial", "my", "planList")
-    
+
     val shouldShowBottomBar = bottomBarRoutes.any { routePrefix ->
         currentRoute?.startsWith(routePrefix) == true
     }
-    
-    // 앱 시작 시 딱 한번만 플랜 목록을 로드합니다.
+
+    // ✅ FirebaseAuth 상태 감지
+    val auth = FirebaseAuth.getInstance()
+    var userId by remember { mutableStateOf<String?>(null) }
+    var userName by remember { mutableStateOf("게스트") }
+    var profileImageUrl by remember { mutableStateOf<String?>(null) }
+
+    // Auth Listener
     LaunchedEffect(Unit) {
-        plannerViewModel.loadPlans("somi") // 사용자 ID는 실제 값으로 변경 예정
+        auth.addAuthStateListener { firebaseAuth ->
+            val user = firebaseAuth.currentUser
+            userId = user?.uid
+            userName = user?.displayName ?: "게스트"
+            profileImageUrl = user?.photoUrl?.toString()
+        }
     }
-    
+
+
+    // 앱 시작 시 플랜 목록 로드 (로그인 된 경우만)
+    LaunchedEffect(userId) {
+        userId?.let { plannerViewModel.loadPlans(it) }
+    }
+
     Scaffold(
         bottomBar = {
-            // 조건에 따라 하단 네비게이션 바를 표시하거나 숨깁니다.
             if (shouldShowBottomBar) {
                 BottomNavigationBar(navController = navController)
             }
         }
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding)) {
-            NavHost(navController = navController, startDestination = "map") {
-                // 홈 탭: 지도 화면
+            NavHost(navController = navController, startDestination = "SplashScreen") {
+
+                // ✅ 스플래시
+                composable("SplashScreen") {
+                    SplashScreen(navController = navController)
+                }
+
+                // ✅ 온보딩
+                composable("onboarding") {
+                    OnboardingScreen(
+                        onGuestClick = { success ->
+                            if (success) {
+                                navController.navigate("map") {
+                                    popUpTo("onboarding") { inclusive = true }
+                                }
+                            }
+                        },
+                        onKakaoClick = { success ->
+                            if (success) {
+                                navController.navigate("map") {
+                                    popUpTo("onboarding") { inclusive = true }
+                                }
+                            }
+                        }
+                    )
+                }
+
+
+                // 지도
                 composable("map") {
                     KakaoMapScreen(
                         fusedLocationClient = fusedLocationClient,
                         navController = navController
                     )
                 }
-                
-                // 마이 탭
+
+                // 마이페이지
                 composable("my") {
-                    Text(text = "마이 페이지")
+                    MyPageScreen(
+                        onEditProfileClick = {
+                            navController.navigate("profileEdit")
+                        }
+                    )
                 }
-                
+
+                composable("profileEdit") {
+                    ProfileEditScreen(navController = navController)
+                }
+
                 // 장소 상세 화면
                 composable("place_detail/{placeId}") { backStackEntry ->
                     val placeId =
                         backStackEntry.arguments?.getString("placeId") ?: return@composable
                     PlaceDetailScreen(placeId)
                 }
-                
+
                 // --- 플래너 관련 화면들 ---
-                
+
                 // 플래너 탭의 분기점 역할. UI 없음.
                 composable("planner") {
                     val plans by plannerViewModel.plans.collectAsState()
-                    
+
                     // plans 상태가 변경될 때마다 실행
                     LaunchedEffect(plans) {
                         // plans가 null이 아닐 때(로딩 완료)만 네비게이션 실행
@@ -137,7 +182,7 @@ fun MainScreen(
                             }
                         }
                     }
-                    
+
                     // plans가 null일 때(로딩 중) 로딩 인디케이터 표시
                     if (plans == null) {
                         Box(
@@ -148,7 +193,7 @@ fun MainScreen(
                         }
                     }
                 }
-                
+
                 // 플랜이 없을 때 보여주는 초기 화면 (하단바 보임)
                 composable("planner_initial") {
                     PlannerScreen(
@@ -157,7 +202,7 @@ fun MainScreen(
                         }
                     )
                 }
-                
+
                 // 플랜 목록 화면 (하단바 숨김)
                 composable(
                     // 'planList' 뒤에 쿼리 파라미터 형식으로 선택적 인자를 정의합니다.
@@ -176,7 +221,7 @@ fun MainScreen(
                     // 인자를 추출합니다. 값이 전달되지 않으면 null이 됩니다.
                     val start = backStackEntry.arguments?.getString("start")
                     val end = backStackEntry.arguments?.getString("end")
-                    
+
                     PlanListScreen(
                         viewModel = plannerViewModel,
                         navController = navController,
@@ -189,7 +234,7 @@ fun MainScreen(
                         }
                     )
                 }
-                
+
                 // 여행 날짜 선택 화면 (하단바 숨김)
                 composable("calendar") {
                     CalendarScreen(
@@ -200,7 +245,7 @@ fun MainScreen(
                         }
                     )
                 }
-                
+
                 // 여행 일정 편집 화면 (하단바 숨김)
                 composable(
                     route = "editPlan/{planId}",
@@ -216,12 +261,12 @@ fun MainScreen(
                         onAddDestinationClick = { navController.navigate("searchDestination") }
                     )
                 }
-                
+
                 // 여행지 검색 화면 (하단바 숨김)
                 composable("searchDestination") {
                     var x by remember { mutableStateOf<Double?>(null) }
                     var y by remember { mutableStateOf<Double?>(null) }
-                    
+
                     LaunchedEffect(Unit) {
                         try {
                             fusedLocationClient.lastLocation.addOnSuccessListener { location ->
@@ -234,7 +279,7 @@ fun MainScreen(
                             Log.e("Location", "Location permission not granted: ${e.message}")
                         }
                     }
-                    
+
                     if (x != null && y != null) {
                         SearchDestinationScreen(
                             viewModel = plannerViewModel,
