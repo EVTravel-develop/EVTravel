@@ -439,24 +439,22 @@ fun EditPlanScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(59.dp)
-                        .shadow(
-                            elevation = 4.dp,
-                            shape = RoundedCornerShape(10.dp),
-                            ambientColor = Color(0x40A7A7A7),
-                            spotColor = Color(0x40A7A7A7)
-                        )
                         .background(
-                            color = Color.White,
+                            color = Color(0xFFE9E9E9),
                             shape = RoundedCornerShape(size = 10.dp)
                         )
                         .clickable { onAddDestinationClick() },
                     contentAlignment = Alignment.Center
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_add_plan_spot),
-                        contentDescription = "여행지 추가",
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier.fillMaxSize() // Box에 맞춰 아이콘 크기를 조정
+                    Text(
+                        text = " + 여행지 추가하기",
+                        style = TextStyle(
+                            fontSize = 15.sp,
+                            lineHeight = 24.sp,
+                            fontFamily = FontFamily(Font(R.font.roboto)),
+                            fontWeight = FontWeight(700),
+                            color = Color(0xFF9D9D9D),
+                        )
                     )
                 }
                 
@@ -468,7 +466,7 @@ fun EditPlanScreen(
                         .fillMaxWidth()
                         .height(59.dp)
                         .background(
-                            color = Color(0xFF007BFF),
+                            color = Color(0xFF0173FF),
                             shape = RoundedCornerShape(size = 10.dp)
                         )
                         .clickable {
@@ -492,11 +490,16 @@ fun EditPlanScreen(
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_planner_next),
-                        contentDescription = "다음",
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier.fillMaxSize() // Box에 맞춰 아이콘 크기를 조정
+                    Text(
+                        text = "다음",
+                        style = TextStyle(
+                            fontSize = 17.sp,
+                            lineHeight = 24.sp,
+                            fontFamily = FontFamily(Font(R.font.roboto)),
+                            fontWeight = FontWeight(600),
+                            color = Color(0xFFFFFFFF),
+                            letterSpacing = 0.21.sp,
+                        )
                     )
                 }
             }
