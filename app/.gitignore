@@ -1,1 +1,7 @@
 /build
+
+# Baseline Profiles
+*.dm
+
+# Gradle output metadata
+output-metadata.json
