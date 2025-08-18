@@ -36,6 +36,7 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+                <data android:scheme="kakao${KAKAO_NATIVE_APP_KEY}" android:host="oauth"/>
             </intent-filter>
         </activity>
     </application>

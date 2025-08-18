@@ -15,5 +15,6 @@ data class PlaceDto(
     val categoryGroupCode: String = "",
     val roadAddressName: String = "",
     val x: Double = 0.0,  // 경도
-    val y: Double = 0.0   // 위도
+    val y: Double = 0.0,   // 위도
+    val chargers: List<ChargerDto>? = null
 )
