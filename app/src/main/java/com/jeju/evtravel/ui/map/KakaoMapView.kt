@@ -29,11 +29,11 @@ fun KakaoMapView(
                     },
                     object : KakaoMapReadyCallback() {
                         override fun onMapReady(map: KakaoMap) {
-                            map.moveCamera(
-                                CameraUpdateFactory.newCenterPosition(
-                                    LatLng.from(37.5665, 126.9780), 15
-                                )
-                            )
+//                            map.moveCamera(
+//                                CameraUpdateFactory.newCenterPosition(
+//                                    LatLng.from(33.4995, 126.5311), 15
+//                                )
+//                            )
                             onMapReady(map)
                         }
                     }

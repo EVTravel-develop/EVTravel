@@ -8,6 +8,7 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -16,7 +17,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -26,19 +32,18 @@ import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.jeju.evtravel.navigation.BottomNavigationBar
 import com.jeju.evtravel.ui.map.KakaoMapScreen
-import com.jeju.evtravel.ui.planner.*
+import com.jeju.evtravel.ui.map.MapViewModel
+import com.jeju.evtravel.ui.planner.CalendarScreen
+import com.jeju.evtravel.ui.planner.EditPlanScreen
+import com.jeju.evtravel.ui.planner.PlanListScreen
+import com.jeju.evtravel.ui.planner.PlannerScreen
+import com.jeju.evtravel.ui.planner.PlannerViewModel
+import com.jeju.evtravel.ui.planner.SearchDestinationScreen
+import com.jeju.evtravel.ui.search.SearchScreen
+import com.jeju.evtravel.ui.search.SearchViewModel
 import com.kakao.vectormap.KakaoMapSdk
 import com.kakao.vectormap.utils.MapUtils
 import dagger.hilt.android.AndroidEntryPoint
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.runtime.setValue
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.jeju.evtravel.ui.map.MapViewModel
-import com.jeju.evtravel.ui.search.SearchScreen
-import com.jeju.evtravel.ui.search.SearchViewModel
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {

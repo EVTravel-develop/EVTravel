@@ -14,23 +14,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -38,33 +30,24 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.MultiplePermissionsState
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.android.gms.location.FusedLocationProviderClient
-import com.jeju.evtravel.R
+import com.jeju.evtravel.ui.detail.PlaceChargerDetailScreen
 import com.jeju.evtravel.ui.map.getCurrentLocation
-import com.jeju.evtravel.ui.search.comp.PlaceRow
 import com.jeju.evtravel.ui.search.SearchViewModel.SearchType
 import com.jeju.evtravel.ui.search.SearchViewModel.SearchUiState
+import com.jeju.evtravel.ui.search.comp.PlaceRow
 import com.kakao.vectormap.LatLng
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 import com.jeju.evtravel.ui.map.MapViewModel as MapVM
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -162,10 +145,10 @@ fun SearchScreen(
             Spacer(Modifier.width(8.dp))
             FilterChip(
                 selected = type == SearchType.CHARGER,
-            onClick = { viewModel.setType(SearchType.CHARGER) },
-            label = { Text("충전소") },
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier.height(34.dp)
+                onClick = { viewModel.setType(SearchType.CHARGER) },
+                label = { Text("충전소") },
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.height(34.dp)
             )
         }
 
@@ -179,9 +162,11 @@ fun SearchScreen(
                     CircularProgressIndicator(Modifier.padding(top = 24.dp))
                 }
             }
+
             is SearchUiState.Error -> {
                 Text(s.message, modifier = Modifier.padding(16.dp))
             }
+
             is SearchUiState.Success -> {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -189,9 +174,8 @@ fun SearchScreen(
                 ) {
                     items(s.items, key = { it.id }) { place ->
                         PlaceRow(place = place) {
-                            mapViewModel.selectPlace(place) {
-                                navController.navigate("place_detail")
-                            }
+                            mapViewModel.focusAndSelect(place)
+                            navController.popBackStack()
                         }
                     }
                 }

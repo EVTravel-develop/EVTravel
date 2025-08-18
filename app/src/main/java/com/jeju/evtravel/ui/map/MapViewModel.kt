@@ -41,6 +41,13 @@ class MapViewModel @Inject constructor(
     private val _selectedPlace = MutableStateFlow<Place?>(null)
     val selectedPlace: StateFlow<Place?> = _selectedPlace
 
+    // 상세 패널용 로딩/에러 상태 보관
+    private val _isSelectedPlaceLoading = MutableStateFlow(false)
+    val isSelectedPlaceLoading: StateFlow<Boolean> = _isSelectedPlaceLoading
+
+    private val _selectedPlaceError = MutableStateFlow<String?>(null)
+    val selectedPlaceError: StateFlow<String?> = _selectedPlaceError
+
     // 지도 상태 저장 변수
     var lastCenter: LatLng? = null
     var lastZoomLevel: Int? = null
@@ -51,14 +58,16 @@ class MapViewModel @Inject constructor(
 
     fun clearSelection() { _selectedPlace.value = null }
 
-    // 캐시
+    /** 최근 검색 결과/선택 결과를 빠르게 찾기 위한 캐시 */
     private val chargerCache = mutableMapOf<Pair<String, String>, List<ChargerInfo>>()
+    private var placeIndex = mutableMapOf<String, Place>()  // id -> Place
+    private var currentPlaces: List<Place> = emptyList()    // 리스트 보관 (디버그/순회용
 
     // selectPlace 동시 호출 안정화
     private var selectJob: Job? = null
 
     /** 주변 검색 */
-    fun searchNearby(query: String, longitude: Double, latitude: Double, radius: Int) {
+    fun searchNearby(query: String, longitude: Double, latitude: Double, radius: Int = 2000) {
         viewModelScope.launch {
             _uiState.value = MapUiState.Loading
             runCatching {
@@ -69,6 +78,10 @@ class MapViewModel @Inject constructor(
                     radius = radius
                 )
             }.onSuccess { places ->
+                currentPlaces = places
+                placeIndex.clear()
+                places.forEach { placeIndex[it.id] = it }
+
                 _uiState.value = MapUiState.Success(places)
                 Log.d("M_V_M", "근처 검색 성공: ${places.size} places")
             }.onFailure { e ->
@@ -78,10 +91,12 @@ class MapViewModel @Inject constructor(
         }
     }
 
+    /** 상새 중전소 검색 */
     fun selectPlace(place: Place, onComplete: () -> Unit = {}) {
         selectJob?.cancel()
         selectJob = viewModelScope.launch {
             try {
+                _selectedPlaceError.value = null
                 Log.d(
                     "MVM_selectPlace",
                     "장소 이름 + 좌표 호출: ${place.name} (${place.latitude}, ${place.longitude})"
@@ -93,14 +108,17 @@ class MapViewModel @Inject constructor(
                     _selectedPlace.value = place
                 }
 
+                _isSelectedPlaceLoading.value = true // 로딩 시작 상태
+
+                // 지역 코드 추출
                 val x = place.longitude
                 val y = place.latitude
 
                 val regionCode = regionCodeRepository.getRegionCodeFromCoord(x, y)
-                if (regionCode == null) {
-                    Log.w("MVM_selectPlace", "Error - 지역 코드 추출 실패 x=$x, y=$y")
-                    return@launch
-                }
+                    ?: run {
+                        _selectedPlaceError.value = "지역 코드를 찾지 못했습니다."
+                        return@launch
+                    }
 
                 Log.d(
                     "MVM_selectPlace",
@@ -115,6 +133,7 @@ class MapViewModel @Inject constructor(
                             zscode = regionCode.zscode
                         )
                     }.onFailure { e ->
+                        _selectedPlaceError.value = "충전소 정보를 불러오지 못했습니다."
                         Log.e("MVM_selectPlace", "충전소 API 호출 실패", e)
                     }.getOrElse { emptyList() }
                 }
@@ -127,12 +146,8 @@ class MapViewModel @Inject constructor(
                 // 도로명 정규화
                 val normalizedRoad = normalizeRoadAddress(place.roadAddress.orEmpty())
                 val kakaoKey = extractRoadKey(normalizedRoad)
-
                 // 같은 장소(도로명 주소 + lat/lng 일치)인 충전기만 필터링
-                val matched = chargers.filter { charger ->
-                    val key = extractRoadKey(charger.address)
-                    key.isNotEmpty() && key == kakaoKey
-                }
+                val matched = chargers.filter { extractRoadKey(it.address).let { k -> k.isNotEmpty() && k == kakaoKey } }
 
                 Log.d("MVM_selectPlace", "매칭된 충전기: ${matched.size}개")
 
@@ -143,10 +158,9 @@ class MapViewModel @Inject constructor(
                     place
                 }
 
-                // 사용자가 다른 마커로 바꿨는지 확인
+                // 사용자가 다른 마커로 바꿨다면 폐기
                 val curr1 = _selectedPlace.value
                 if (curr1 != null && curr1.id != place.id) {
-                    // 사용자가 다른 장소로 바꿨을 때만 폐기
                     Log.d("MVM_selectPlace", "선택 변경 감지: ${curr1.id} != ${place.id}, 업데이트 폐기")
                     return@launch
                 }
@@ -154,15 +168,29 @@ class MapViewModel @Inject constructor(
                 // 동일 값이면 불필요한 리컴포지션 방지
                 if (curr1 != updated) {
                     _selectedPlace.value = updated
+                    placeIndex[updated.id] = updated
                 }
 
             } catch (ce: CancellationException) {
                 throw ce
             } catch (e: Exception) {
+                _selectedPlaceError.value = "알 수 없는 오류가 발생했습니다."
                 Log.e("MVM_selectPlace", "selectPlace error", e)
             } finally {
+                _isSelectedPlaceLoading.value = false   // 로딩 완료 -> 종료
                 runCatching { onComplete() }
             }
+        }
+    }
+
+    /** 상새 중전소 검색 다시시도 */
+    fun fetchCharger(placeId: String) {
+        // 마지막 검색/선택 캐시에서 place 찾아서 재요청
+        val place = placeIndex[placeId] ?: _selectedPlace.value?.takeIf { it.id == placeId }
+        if (place != null) {
+            selectPlace(place)
+        } else {
+            Log.w("MapVM", "fetchCharger: place not found for id=$placeId")
         }
     }
 
@@ -212,5 +240,29 @@ class MapViewModel @Inject constructor(
         val raw = ROAD_KEY_RE.find(address)?.value ?: return ""
         val compact = raw.replace(CLEAN_RE, "")
         return compact.lowercase()
+    }
+
+    var skipAutoCenterOnce: Boolean = false
+
+    fun focusAndSelect(place: Place, radius: Int = 2000, defaultZoom: Int = 15) {
+        // 1) 카메라/선택 복원 상태 세팅
+        lastCenter = LatLng.from(place.latitude, place.longitude)
+        lastZoomLevel = defaultZoom
+        lastSelectedPlaceId = place.id
+        isMapRestored = false
+
+        // 2) 상세(충전기) 로딩
+        selectPlace(place)
+
+        // 3) 주변 재검색
+        searchNearby(
+            query = "전기차 충전소",
+            longitude = place.longitude,
+            latitude = place.latitude,
+            radius = radius
+        )
+
+        // 4) 다음 진입 시 현재위치 자동 세팅을 1회 건너뛰기
+        skipAutoCenterOnce = true
     }
 }
