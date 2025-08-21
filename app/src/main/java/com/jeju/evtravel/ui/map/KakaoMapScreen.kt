@@ -19,16 +19,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SheetValue
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberStandardBottomSheetState
@@ -45,8 +41,10 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -343,11 +341,11 @@ fun KakaoMapScreen(
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
         sheetShape = RoundedCornerShape(topStart = corner, topEnd = corner),
-        sheetContainerColor = MaterialTheme.colorScheme.surface,
+        sheetContainerColor = Color.White,
         sheetTonalElevation = if (isFullScreen) 0.dp else BottomSheetDefaults.Elevation,
         sheetShadowElevation = if (isFullScreen) 0.dp else BottomSheetDefaults.Elevation,
         sheetDragHandle = { if (!isFullScreen) TinyHandle() },
-        sheetPeekHeight = if (selectedPlace != null) 200.dp else 0.dp,
+        sheetPeekHeight = if (selectedPlace != null) 200.dp else 8.dp,
         sheetSwipeEnabled = selectedPlace != null,
         sheetContent = {
             if (selectedPlace != null) {
@@ -365,7 +363,7 @@ fun KakaoMapScreen(
                         isFullScreen = isFullScreen,
                         isLoading = isDetailLoading,
                         onRetry = { selectedPlace?.id?.let(viewModel::fetchCharger) },
-                        onNavigateClick = { /* 길찾기 */ }
+                        onNavigateClick = { coroutineScope.launch { sheetState.hide() } }
                     )
 
                     detailError?.let { msg ->
@@ -381,7 +379,7 @@ fun KakaoMapScreen(
             }
         }
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        Surface(modifier = Modifier.fillMaxSize()) {
             /** 지도 준비: 레이어 생성 + ArrowController 연결 */
             KakaoMapView(onMapReady = { map ->
                 kakaoMap = map
@@ -419,16 +417,16 @@ fun KakaoMapScreen(
             }
 
             /** 하단 FAB: 현재 지도 중심으로 재검색 트리거 */
-            if (!viewModel.isMapRestored) {
-                FloatingActionButton(
-                    onClick = { viewModel.searchAroundCenter() },
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(16.dp)
-                ) {
-                    Icon(Icons.Default.Search, contentDescription = "현재 지도 위치로 재검색")
-                }
-            }
+//            if (!viewModel.isMapRestored) {
+//                FloatingActionButton(
+//                    onClick = { viewModel.searchAroundCenter() },
+//                    modifier = Modifier
+//                        .align(Alignment.BottomEnd)
+//                        .padding(16.dp)
+//                ) {
+//                    Icon(Icons.Default.Search, contentDescription = "현재 지도 위치로 재검색")
+//                }
+//            }
         }
     }
 }
@@ -437,19 +435,26 @@ fun KakaoMapScreen(
  * 하단 시트 Drag Handle(얇은 바) 컴포저블
  */
 @Composable
-private fun TinyHandle() {
+private fun TinyHandle(
+    thickness: Dp = 4.dp,         // 바 두께
+    length: Dp = 36.dp,           // 바 길이
+    topPadding: Dp = 10.dp,       // 바와 시트 상단 간격
+    cornerRadius: Dp = 2.dp,
+    color: Color = Color.Gray // 배경과 대비되는 색
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 16.dp, bottom = 0.dp),
+            .background(color = Color.White)
+            .padding(top = topPadding, bottom = 0.dp),
         contentAlignment = Alignment.Center
     ) {
         Box(
             modifier = Modifier
-                .height(4.dp)
-                .width(36.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                .height(thickness)
+                .width(length)
+                .clip(RoundedCornerShape(cornerRadius))
+                .background(color)
         )
     }
 }

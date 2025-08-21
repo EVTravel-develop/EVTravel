@@ -1,5 +1,11 @@
 package com.jeju.evtravel.ui.search
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -8,38 +14,52 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.MultiplePermissionsState
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.android.gms.location.FusedLocationProviderClient
-import com.jeju.evtravel.ui.detail.PlaceChargerDetailScreen
+import com.jeju.evtravel.R
 import com.jeju.evtravel.ui.map.getCurrentLocation
 import com.jeju.evtravel.ui.search.SearchViewModel.SearchType
 import com.jeju.evtravel.ui.search.SearchViewModel.SearchUiState
@@ -68,12 +88,12 @@ fun SearchScreen(
     val uiState by viewModel.uiState.collectAsState()
     val query by viewModel.query.collectAsState()
     val type by viewModel.type.collectAsState()
+    val interactionSource = remember { MutableInteractionSource() }
 
     val DEFAULT = LatLng.from(37.5665, 126.9780)
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
-    val coroutineScope = rememberCoroutineScope()
 
     // 최초 진입/권한 변경 시 위치 세팅 → 파이프라인 자동 검색
     LaunchedEffect(permissionState.allPermissionsGranted) {
@@ -95,40 +115,130 @@ fun SearchScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 8.dp)
+            .background(Color.White)
             .statusBarsPadding()
     ) {
         // 상단 바
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
+        Box (
             modifier = Modifier
-                .padding(top = 8.dp)
                 .fillMaxWidth()
+                .padding(bottom = 20.dp)
         ) {
-            IconButton(onClick = { navController.navigateUp() }) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "뒤로")
+            // 뒤로가기 버튼
+            Box(
+                modifier = Modifier
+                    .padding(start = 24.dp, top = 22.dp)
+                    .size(22.dp)
+                    .clickable { navController.navigateUp() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_back),
+                    contentDescription = "뒤로가기",
+                    tint = Color.Unspecified,
+                    modifier = Modifier.fillMaxSize()
+                )
             }
 
-            RoundedSearchTextField(
-                value = query,
-                onValueChange = { text ->
-                    viewModel.updateQuery(text)
-                    if (text.isBlank()) {
-                        // 검색어를 모두 지우면 즉시 현재 위치 기준으로 재검색
-                        viewModel.forceSearch()
-                    }
-                },
+            // 검색 박스
+            Box(
                 modifier = Modifier
-                    .weight(1f)
-                    .height(RoundedBarDefaults.Height),
-                placeholder = "장소 및 충전소 검색.",
-                onSearch = {
-                    focusManager.clearFocus()
-                    keyboard?.hide()
-                    viewModel.forceSearch()
-                },
-                trailingClear = true
-            )
+                    .fillMaxWidth()
+                    .padding(start = 62.dp, end = 24.dp) // 뒤로가기 여백 고려
+                    .offset(y = 7.dp)                  // 수직 정렬 맞춤
+                    .shadow(
+                        elevation = 6.dp,
+                        spotColor = Color(0xA09A9A9A),
+                        ambientColor = Color(0xA09A9A9A),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    .height(51.dp)
+                    .background(
+                        color = Color(0xFFFFFFFF),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    .padding(start = 13.dp, top = 13.dp, end = 13.dp, bottom = 11.dp)
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    // 검색 아이콘 (포커스/입력 유무에 따라 on/off)
+                    val isFocused = interactionSource.collectIsFocusedAsState().value
+                    Image(
+                        painter = painterResource(
+                            id = if (isFocused || query.isNotEmpty())
+                                R.drawable.ic_search_on
+                            else
+                                R.drawable.ic_search_off
+                        ),
+                        contentDescription = "search icon",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.size(17.dp)
+                    )
+
+                    // 입력 영역
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        BasicTextField(
+                            value = query,
+                            onValueChange = { text ->
+                                viewModel.updateQuery(text)
+                                if (text.isBlank()) {
+                                    // 기존 동작 유지: 모두 지우면 즉시 현재 위치 기준 재검색
+                                    viewModel.forceSearch()
+                                }
+                            },
+                            singleLine = true,
+                            textStyle = TextStyle(
+                                fontSize = 15.sp,
+                                fontFamily = FontFamily(Font(R.font.roboto)),
+                                fontWeight = FontWeight.W400,
+                                color = Color.Black
+                            ),
+                            interactionSource = interactionSource,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                            keyboardActions = KeyboardActions(
+                                onSearch = {
+                                    focusManager.clearFocus()
+                                    keyboard?.hide()
+                                    viewModel.forceSearch()
+                                }
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        if (query.isEmpty()) {
+                            Text(
+                                text = "장소 및 충전소 검색.",
+                                style = TextStyle(
+                                    fontSize = 15.sp,
+                                    lineHeight = 26.53.sp,
+                                    fontFamily = FontFamily(Font(R.font.roboto)),
+                                    fontWeight = FontWeight.W400,
+                                    color = Color(0xFF949494),
+                                )
+                            )
+                        }
+                    }
+                     if (query.isNotEmpty()) {
+                         Icon(
+                             imageVector = Icons.Default.Clear,
+                             contentDescription = "지우기",
+                             tint = Color(0xFF949494),
+                             modifier = Modifier
+                                 .size(20.dp)
+                                 .clickable {
+                                     viewModel.updateQuery("")
+                                     viewModel.forceSearch() // 지울 때 즉시 재검색 원하면 유지
+                                 }
+                         )
+                     }
+                }
+            }
         }
 
         Spacer(Modifier.height(10.dp))

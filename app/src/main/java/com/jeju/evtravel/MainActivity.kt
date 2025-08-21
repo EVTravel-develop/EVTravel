@@ -27,9 +27,12 @@ import com.google.firebase.auth.FirebaseAuth
 import com.jeju.evtravel.data.service.GuestLoginService
 import com.jeju.evtravel.navigation.BottomNavigationBar
 import com.jeju.evtravel.ui.map.KakaoMapScreen
+import com.jeju.evtravel.ui.map.MapViewModel
 import com.jeju.evtravel.ui.mypage.*
 import com.jeju.evtravel.ui.onboarding.OnboardingScreen
 import com.jeju.evtravel.ui.planner.*
+import com.jeju.evtravel.ui.search.SearchScreen
+import com.jeju.evtravel.ui.search.SearchViewModel
 import com.jeju.evtravel.ui.splash.SplashScreen
 import com.kakao.vectormap.utils.MapUtils
 import dagger.hilt.android.AndroidEntryPoint
@@ -153,14 +156,6 @@ fun MainScreen(
                         navController = navController,
                         mapViewModel = mapViewModel,
                         viewModel = searchViewModel,
-                    )
-                }
-
-                // 플래너 탭: EVTravelApp (플래너 관련 NavHost)
-                composable("plannerTab") {
-                    EVTravelApp(
-                        viewModel = plannerViewModel,
-                        fusedLocationClient = fusedLocationClient
                     )
                 }
 
