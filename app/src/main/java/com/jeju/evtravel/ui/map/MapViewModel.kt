@@ -56,6 +56,9 @@ class MapViewModel @Inject constructor(
     // 복원 여부
     var isMapRestored = false
 
+    var lastSearchCenter: LatLng? = null
+    var lastSearchZoomLevel: Int? = null
+
     fun clearSelection() { _selectedPlace.value = null }
 
     /** 최근 검색 결과/선택 결과를 빠르게 찾기 위한 캐시 */
@@ -194,15 +197,16 @@ class MapViewModel @Inject constructor(
         }
     }
 
-/** 지도에서 쓰는 재검색 (중심 기준) */
-    fun searchAroundCenter(radius: Int = 2000) {
-        val center = lastCenter ?: return
-        searchNearby(
-            query = "전기차 충전소",
-            longitude = center.longitude,
-            latitude = center.latitude,
-            radius = radius
-        )
+    fun markSearched(center: LatLng, zoom: Int?) {
+        lastSearchCenter = center
+        lastSearchZoomLevel = zoom
+    }
+
+    /** 지도에서 쓰는 재검색 (중심 기준) */
+    fun searchAroundCenter(center: LatLng, zoom: Int?) {
+        lastCenter = center
+        lastZoomLevel = zoom
+        markSearched(center, zoom)
     }
 
     private fun normalizeRoadAddress(address: String): String {

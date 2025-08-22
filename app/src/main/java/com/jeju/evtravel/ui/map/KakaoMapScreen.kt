@@ -64,8 +64,25 @@ import com.kakao.vectormap.label.LabelStyle
 import com.kakao.vectormap.label.LabelStyles
 import com.kakao.vectormap.label.LabelTextBuilder
 import com.kakao.vectormap.label.LabelTextStyle
+import com.kakao.vectormap.GestureType
 import kotlinx.coroutines.launch
+import android.content.Intent
+import android.location.LocationManager
+import android.provider.Settings
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import com.jeju.evtravel.ui.theme.Variables
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.material.icons.outlined.Refresh
+import kotlin.math.*
 
+private const val REQUERY_DISTANCE_M = 250.0
 /**
  * 카카오 지도 화면을 구성하는 컴포저블.
  *
@@ -97,6 +114,7 @@ fun KakaoMapScreen(
     var kakaoMap by remember { mutableStateOf<KakaoMap?>(null) }
     var currentLatLng by remember { mutableStateOf<LatLng?>(null) }
     val restoredOnce = remember(kakaoMap) { mutableStateOf(false) }
+    var isGestureMove by remember { mutableStateOf(false) }
 
     val headingFlow = remember { headingFlow(context) }
     val headingDeg by headingFlow.collectAsState(initial = 0f)
@@ -119,6 +137,10 @@ fun KakaoMapScreen(
         targetValue = if (isFullScreen) 0.dp else 16.dp,
         label = "sheetCorner"
     )
+    /** GPS 오류 상태 */
+    var gpsErrorMessage by remember { mutableStateOf<String?>(null) }
+    /** 재 검색 버튼 상태 */
+    var showRequery by remember { mutableStateOf(false) }
 
     /** 권한 요청 거부 시 메시지 출력 */
     HandlePermissionRequest(
@@ -145,7 +167,8 @@ fun KakaoMapScreen(
             // 이전 선택 라벨 기본 스타일로 복원
             selectedLabel?.let { prev ->
                 val defaultTextStyle = LabelTextStyle.from(28, 0xFF000000.toInt())
-                val defaultStyle = LabelStyle.from(R.drawable.ev_marker).setTextStyles(defaultTextStyle)
+                val defaultStyle =
+                    LabelStyle.from(R.drawable.ev_marker).setTextStyles(defaultTextStyle)
                 val emptyText = LabelTextBuilder().setTexts("")
                 try {
                     prev.changeStylesAndText(LabelStyles.from(defaultStyle), emptyText)
@@ -157,7 +180,8 @@ fun KakaoMapScreen(
             // 새 선택 라벨 강조 + 텍스트 적용 + 카메라 이동 + 상태 저장
             place?.let {
                 val textStyle = LabelTextStyle.from(28, 0xFF000000.toInt())
-                val selectedStyle = LabelStyle.from(R.drawable.ev_marker_selected).setTextStyles(textStyle)
+                val selectedStyle =
+                    LabelStyle.from(R.drawable.ev_marker_selected).setTextStyles(textStyle)
                 val textBuilder = LabelTextBuilder().setTexts(it.name)
                 label.changeStylesAndText(LabelStyles.from(selectedStyle), textBuilder)
 
@@ -174,6 +198,7 @@ fun KakaoMapScreen(
 
                 selectedLabel = label
                 viewModel.selectPlace(it)
+                showRequery = false
             }
             true
         }
@@ -202,6 +227,8 @@ fun KakaoMapScreen(
             viewModel.skipAutoCenterOnce = false
             viewModel.lastCenter?.let { c ->
                 viewModel.searchNearby("전기차 충전소", c.longitude, c.latitude, 2000)
+                viewModel.markSearched(c, kakaoMap?.zoomLevel)
+                showRequery = false
             }
             return@LaunchedEffect
         }
@@ -220,6 +247,8 @@ fun KakaoMapScreen(
 
                 // 주변 검색
                 viewModel.searchNearby("전기차 충전소", it.longitude, it.latitude, 2000)
+                viewModel.markSearched(it, kakaoMap?.zoomLevel)
+                showRequery = false
             }
         }
     }
@@ -237,6 +266,8 @@ fun KakaoMapScreen(
 
         // 선택한 지점을 기준으로 주변 검색 실행
         viewModel.searchNearby("전기차 충전소", center.longitude, center.latitude, 2000)
+        viewModel.markSearched(center, kakaoMap?.zoomLevel)
+        showRequery = false
 
         restoredOnce.value = true
     }
@@ -247,11 +278,35 @@ fun KakaoMapScreen(
     }
 
     /** 카메라 이동/회전 종료 시에도 현재 위치 마커 회전을 보정하고 지도 상태를 저장 */
-    LaunchedEffect(kakaoMap) {
-        kakaoMap?.setOnCameraMoveEndListener { _, cameraPos, _ ->
+    LaunchedEffect(kakaoMap, selectedPlace) {
+        // 이동 시작: 제스처 여부 기록
+        kakaoMap?.setOnCameraMoveStartListener { _, gestureType ->
+            // 사용자 드래그/핀치면 true, 코드/애니메이션이면 false
+            isGestureMove = (gestureType != GestureType.Unknown)
+        }
+
+        // 이동 종료: 제스처로 이동한 경우에만 배너 노출 판단
+        kakaoMap?.setOnCameraMoveEndListener { _, cameraPos, gestureType ->
+            // 지도 상태 저장/보정
             viewModel.lastCenter = cameraPos.position
             viewModel.isMapRestored = false
             arrowController?.onHeadingOrCameraChanged()
+
+            val isUserGesture = isGestureMove || (gestureType != GestureType.Unknown)
+            if (isUserGesture) {
+                val last = viewModel.lastSearchCenter
+                val curr = cameraPos.position
+                val movedFar = last == null || distanceMeters(last, curr) > REQUERY_DISTANCE_M
+                val zoomChanged = viewModel.lastSearchZoomLevel?.let { zl ->
+                    (kakaoMap?.zoomLevel ?: zl) != zl
+                } ?: false
+
+                // 상세 시트가 닫혀 있을 때만 표시
+                showRequery = (selectedPlace == null) && (movedFar || zoomChanged)
+            }
+
+            // 다음 이동을 위해 초기화
+            isGestureMove = false
         }
     }
 
@@ -282,7 +337,8 @@ fun KakaoMapScreen(
                 val selLabel = labelByPlaceId[selId]
                 if (selPlace != null && selLabel != null) {
                     val textStyle = LabelTextStyle.from(28, 0xFF000000.toInt())
-                    val selectedStyle = LabelStyle.from(R.drawable.ev_marker_selected).setTextStyles(textStyle)
+                    val selectedStyle =
+                        LabelStyle.from(R.drawable.ev_marker_selected).setTextStyles(textStyle)
                     selLabel.changeStylesAndText(
                         LabelStyles.from(selectedStyle),
                         LabelTextBuilder().setTexts(selPlace.name)
@@ -327,6 +383,7 @@ fun KakaoMapScreen(
                     sheetState.hide()
                     viewModel.clearSelection()
                 }
+
                 else -> viewModel.clearSelection()
             }
         }
@@ -416,17 +473,110 @@ fun KakaoMapScreen(
                 )
             }
 
-            /** 하단 FAB: 현재 지도 중심으로 재검색 트리거 */
-//            if (!viewModel.isMapRestored) {
-//                FloatingActionButton(
-//                    onClick = { viewModel.searchAroundCenter() },
-//                    modifier = Modifier
-//                        .align(Alignment.BottomEnd)
-//                        .padding(16.dp)
-//                ) {
-//                    Icon(Icons.Default.Search, contentDescription = "현재 지도 위치로 재검색")
-//                }
-//            }
+            /** 상단 검색바 밑 재검색 버튼 */
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(top = 58.dp),   // 검색바 바로 아래로 배치 되게 조정
+                contentAlignment = Alignment.TopCenter
+            ) {
+                AnimatedVisibility(visible = showRequery) {
+                    AssistChip(
+                        onClick = {
+                            val center = viewModel.lastCenter ?: return@AssistChip
+                            val zoom = kakaoMap?.zoomLevel
+                            // 현재 지도 중심으로 재검색
+                            viewModel.searchNearby("전기차 충전소", center.longitude, center.latitude, 2000)
+                            // 검색 기준 갱신해 다음부터 배너가 사라지도록
+                            viewModel.markSearched(center, zoom)
+                            showRequery = false
+                        },
+                        label = { Text("이 지역 재검색") },
+                        leadingIcon = { Icon(Icons.Outlined.Refresh, contentDescription = null) }
+                    )
+                }
+            }
+
+            if (gpsErrorMessage != null) {
+                AlertDialog(
+                    onDismissRequest = { gpsErrorMessage = null },
+                    title = { Text("위치 사용 불가") },
+                    text = { Text(gpsErrorMessage!!) },
+                    containerColor = Color.White,
+                    confirmButton = {
+                        TextButton(onClick = {
+                            // 위치 설정 화면 열기
+                            context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                            gpsErrorMessage = null
+                        }) { Text("설정 열기", style = TextStyle(color = Variables.Blue700, fontWeight = FontWeight.SemiBold)) }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { gpsErrorMessage = null
+                        }) { Text("닫기", style = TextStyle(color = Variables.Blue700, fontWeight = FontWeight.SemiBold)) }
+                    }
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .background(color = Color.Transparent)
+                    .fillMaxSize()
+            ) {
+                /** GPS 버튼(현재 위치로 이동) */
+                FloatingActionButton(
+                    onClick = {
+                        // 권한 체크
+                        if (!permissionState.allPermissionsGranted) {
+                            gpsErrorMessage = "정확한 위치 권한이 필요합니다. 설정에서 권한을 허용해 주세요."
+                            return@FloatingActionButton
+                        }
+
+                        // 위치(GPS) 설정 체크
+                        if (!isLocationEnabled(context)) {
+                            gpsErrorMessage = "GPS가 꺼져 있습니다. 설정에서 위치 서비스를 켜주세요."
+                            return@FloatingActionButton
+                        }
+
+                        // 현재 위치 가져와서 지도/마커/검색 갱신
+                        getCurrentLocation(context, fusedLocationClient) { loc ->
+                            if (loc == null) {
+                                gpsErrorMessage = "현재 위치를 가져올 수 없습니다. 잠시 후 다시 시도해 주세요."
+                            } else {
+                                currentLatLng = loc
+                                viewModel.lastUserLocation = loc
+                                viewModel.lastCenter = loc
+                                viewModel.isMapRestored = false
+
+                                coroutineScope.launch { sheetState.hide() }
+
+                                kakaoMap?.moveCamera(
+                                    CameraUpdateFactory.newCenterPosition(
+                                        loc,
+                                        15
+                                    )
+                                )
+                                arrowController?.attachOrMove(loc)
+
+                                // 주변 충전소 재탐색(요구사항: 현재 위치 기준 충전소 검은색 마커들)
+                                viewModel.searchNearby("전기차 충전소", loc.longitude, loc.latitude, 2000)
+                                viewModel.markSearched(loc, kakaoMap?.zoomLevel)
+                                showRequery = false
+                            }
+                        }
+                    },
+                    containerColor = Color.White,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .navigationBarsPadding()
+                        .padding(16.dp),
+                    ) {
+                    Icon(
+                        imageVector = Icons.Filled.MyLocation,
+                        contentDescription = "현재 위치로 이동"
+                    )
+                }
+            }
         }
     }
 }
@@ -457,4 +607,21 @@ private fun TinyHandle(
                 .background(color)
         )
     }
+}
+
+private fun isLocationEnabled(context: android.content.Context): Boolean {
+    val lm = context.getSystemService(android.content.Context.LOCATION_SERVICE) as LocationManager
+    return lm.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+            lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+}
+
+private fun distanceMeters(a: LatLng, b: LatLng): Double {
+    val R = 6371000.0
+    val dLat = Math.toRadians(b.latitude - a.latitude)
+    val dLng = Math.toRadians(b.longitude - a.longitude)
+    val lat1 = Math.toRadians(a.latitude)
+    val lat2 = Math.toRadians(b.latitude)
+    val aa = sin(dLat / 2).pow(2.0) + cos(lat1) * cos(lat2) * sin(dLng / 2).pow(2.0)
+    val c = 2 * atan2(sqrt(aa), sqrt(1 - aa))
+    return R * c
 }
