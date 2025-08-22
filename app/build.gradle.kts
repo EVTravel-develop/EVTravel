@@ -70,10 +70,26 @@ android {
             )
         }
         getByName("debug") {
-            applicationIdSuffix = ".dev"
-            versionNameSuffix = "-dev"
+            // 필요하면 debug 전용 설정 추가
         }
     }
+
+    flavorDimensions += "env"
+    productFlavors {
+        create("dev") {
+            dimension = "env"
+            applicationIdSuffix = ".dev"         // com.jeju.evtravel.dev
+            versionNameSuffix = "-dev"
+
+            // 런처 이름/아이콘 구분
+            resValue("string", "app_name", "EVTravel Dev")
+        }
+        create("prod") {
+            dimension = "env"
+            resValue("string", "app_name", "EVTravel")
+        }
+    }
+
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
