@@ -1,19 +1,54 @@
-package com.jeju.evtravel.ui.mypage
+package com.jeju.evtravel.viewmodel
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.*
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.jeju.evtravel.ui.mypage.SavedItemRow
 
-@OptIn(ExperimentalMaterial3Api::class)
+
+@OptIn(ExperimentalMaterial3Api::class)   // ✅ Experimental API 사용 허용
 @Composable
-fun SavedPlaceScreen(navController: NavController) {
+fun SavedPlaceScreen(
+    navController: NavController,
+    viewModel: SavedPlaceViewModel = hiltViewModel()
+) {
+    val bookmarks = viewModel.bookmarks.collectAsState()
+    val listState = rememberLazyListState()
+
+    // 화면 들어올 때 첫 로드
+    LaunchedEffect(Unit) {
+        viewModel.loadBookmarks()
+    }
+
+    // 스크롤 끝에 도달하면 자동으로 loadMore 실행
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.layoutInfo }
+            .collect { layoutInfo ->
+                val totalItems = layoutInfo.totalItemsCount
+                val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                if (lastVisibleItem >= totalItems - 1) {
+                    viewModel.loadMore()
+                }
+            }
+    }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -27,15 +62,16 @@ fun SavedPlaceScreen(navController: NavController) {
         }
     ) { innerPadding ->
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
         ) {
-            items(2) { // 샘플 데이터 2개
+            items(bookmarks.value) { bookmark ->
                 SavedItemRow(
-                    imageUrl = "https://picsum.photos/200/100",
-                    title = "성산일출봉 산책 코스",
-                    description = "바람부는 길에 아름다운 장소입니다.\n연인끼리 함께 걷는 산책로를 즐기자."
+                    imageUrl = bookmark.image_url ?: "",
+                    title = bookmark.place_name,
+                    description = bookmark.description
                 )
             }
         }
