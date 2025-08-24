@@ -2,9 +2,7 @@ package com.jeju.evtravel.ui.map
 
 import com.jeju.evtravel.R
 import com.jeju.evtravel.domain.model.Place
-import com.kakao.vectormap.KakaoMap
 import com.kakao.vectormap.LatLng
-import com.kakao.vectormap.camera.CameraUpdateFactory
 import com.kakao.vectormap.label.LabelOptions
 import com.kakao.vectormap.label.LabelStyle
 

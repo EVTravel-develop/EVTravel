@@ -7,6 +7,15 @@ import androidx.core.app.ActivityCompat
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.kakao.vectormap.LatLng
 
+/**
+ * 현재 위치를 가져옵니다.
+ *
+ * @param context 앱 컨텍스트
+ * @param fusedLocationClient 위치 클라이언트
+ * @param onLocationResult 위치 결과를 받는 콜백
+ *
+ * @see FusedLocationProviderClient
+ */
 fun getCurrentLocation(
     context: Context,
     fusedLocationClient: FusedLocationProviderClient,

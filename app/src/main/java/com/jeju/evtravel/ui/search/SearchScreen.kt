@@ -69,6 +69,14 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 import com.jeju.evtravel.ui.map.MapViewModel as MapVM
 
+/**
+ * 검색 화면 Composable 함수.
+ *
+ * @param fusedLocationClient 위치 서비스 클라이언트
+ * @param navController 네비게이션 컨트롤러
+ * @param mapViewModel 맵 뷰모델
+ * @param viewModel 검색 뷰모델
+ */
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
