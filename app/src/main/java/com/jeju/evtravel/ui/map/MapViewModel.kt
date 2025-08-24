@@ -3,7 +3,6 @@ package com.jeju.evtravel.ui.map
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jeju.evtravel.data.repository.ChargerRepository
 import com.jeju.evtravel.data.repository.RegionCodeRepository
 import com.jeju.evtravel.domain.model.ChargerInfo
 import com.jeju.evtravel.domain.model.Place
@@ -16,12 +15,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
+import com.jeju.evtravel.data.repository.ChargerRepository as ChargerListRepository
 
 @HiltViewModel
 class MapViewModel @Inject constructor(
     private val searchNearbyPlacesUseCase: SearchNearbyPlacesUseCase,
     private val regionCodeRepository: RegionCodeRepository,
-    private val chargerRepository: ChargerRepository
+    private val chargerListRepository: ChargerListRepository
 ) : ViewModel() {
 
     // 도로명 정규화 표현식
@@ -29,11 +29,16 @@ class MapViewModel @Inject constructor(
         private const val TAG = "MapVM"
         private const val MIN_RADIUS = 0
         private const val MAX_RADIUS = 20_000
-        private val CLEAN_RE = Regex("""[\s\-\(\)\[\]]+""")
-        // val regex = Regex("""[가-힣A-Za-z0-9]+(동|로|길|번길)\s?\d+[가-힣A-Za-z0-9\s]*""")
-        // val regex = Regex("""\b[가-힣A-Za-z0-9]+(동|로|길|번길)\s?\d+[가-힣A-Za-z0-9\s]*\b""")
-        private val ROAD_KEY_RE = Regex("""\b[가-힣A-Za-z0-9]+(동|로|길|번길)\s?\d+[가-힣A-Za-z0-9\s]*\b""")
+
+        private val CHARGE_SUFFIX_RE = Regex("""\s*(전기차\s*충전소)\s*$""")
+
+        private val NAME_PREFIX_REMOVE_RE = Regex("""^(공영|환경부|한전|한국전력|시청|구청)\s*""")
+
+        private val NAME_INLINE_REMOVE_RE = Regex("""아파트|(?i)apt""")
+
+        private val NAME_CLEAN_RE = Regex("""[\s\-\(\)\[\]·∙•・‧]+""")
     }
+
 
     private val _uiState = MutableStateFlow<MapUiState>(MapUiState.Idle)
     val uiState: StateFlow<MapUiState> = _uiState
@@ -129,9 +134,10 @@ class MapViewModel @Inject constructor(
                 )
 
                 val cacheKey = regionCode.zcode to regionCode.zscode
+                val wasCached = chargerCache.containsKey(cacheKey)
                 val chargers = chargerCache.getOrPut(cacheKey) {
                     runCatching {
-                        chargerRepository.fetchChargers(
+                        chargerListRepository.fetchChargers(
                             zcode = regionCode.zcode,
                             zscode = regionCode.zscode
                         )
@@ -143,16 +149,55 @@ class MapViewModel @Inject constructor(
 
                 Log.d(
                     "MVM_selectPlace",
-                    "공공데이터 API 호출 완료 (cached=${cacheKey in chargerCache}): 총 ${chargers.size}개"
+                    "공공데이터 API 호출 완료 (cached=$wasCached): 총 ${chargers.size}개"
                 )
 
-                // 도로명 정규화
-                val normalizedRoad = normalizeRoadAddress(place.roadAddress.orEmpty())
-                val kakaoKey = extractRoadKey(normalizedRoad)
-                // 같은 장소(도로명 주소 + lat/lng 일치)인 충전기만 필터링
-                val matched = chargers.filter { extractRoadKey(it.address).let { k -> k.isNotEmpty() && k == kakaoKey } }
+                val placeNameRaw = place.name.orEmpty()
+                val placeKey = extractNameKey(placeNameRaw)
 
-                Log.d("MVM_selectPlace", "매칭된 충전기: ${matched.size}개")
+                Log.d("MVM_selectPlace", "이름 매칭 준비 → placeName='${placeNameRaw}', placeKey='${placeKey}'")
+
+                // placeKey가 비면 매칭 불가
+                val matched: List<ChargerInfo> =
+                    if (placeKey.isNotEmpty()) {
+                        // 스코어링: 완전동일 > 포함(양방향)
+                        val scored = chargers.mapNotNull { charger ->
+                            val chName = chargerDisplayName(charger)
+                            val chKey = extractNameKey(chName)
+                            if (chKey.isEmpty()) {
+                                null
+                            } else {
+                                val score = when {
+                                    chKey == placeKey -> 3
+                                    chKey.contains(placeKey) || placeKey.contains(chKey) -> 2
+                                    else -> 0
+                                }
+                                if (score > 0) {
+                                    Triple(charger, chName, score)
+                                } else null
+                            }
+                        }.sortedByDescending { it.third }
+
+                        // 진단 로그 (최대 20개)
+                        scored.take(20).forEachIndexed { idx, (c, chName, score) ->
+                            val cid = runCatching { c.chargerId }.getOrNull() ?: "-"
+                            val caddr = runCatching { c.address }.getOrNull() ?: "-"
+                            Log.d(
+                                "MVM_selectPlace",
+                                "matched[$idx]: score=$score | id=$cid | name='$chName' | nameKey='${extractNameKey(chName)}' | addr='$caddr'"
+                            )
+                        }
+                        if (scored.size > 20) {
+                            Log.d("MVM_selectPlace", "matched more: ${scored.size - 20}개 생략")
+                        }
+
+                        scored.map { it.first }
+                    } else {
+                        Log.w("MVM_selectPlace", "place.name이 비어 있어 이름 매칭 불가")
+                        emptyList()
+                    }
+
+                Log.d("MVM_selectPlace", "최종 매칭된 충전기(이름 기반): ${matched.size}개")
 
                 val updated = try {
                     place.copy(chargerList = matched)
@@ -197,16 +242,10 @@ class MapViewModel @Inject constructor(
         }
     }
 
+    /** 지도에서 쓰는 재검색 (중심 기준) */
     fun markSearched(center: LatLng, zoom: Int?) {
         lastSearchCenter = center
         lastSearchZoomLevel = zoom
-    }
-
-    /** 지도에서 쓰는 재검색 (중심 기준) */
-    fun searchAroundCenter(center: LatLng, zoom: Int?) {
-        lastCenter = center
-        lastZoomLevel = zoom
-        markSearched(center, zoom)
     }
 
     private fun normalizeRoadAddress(address: String): String {
@@ -239,26 +278,42 @@ class MapViewModel @Inject constructor(
         return trimmed
     }
 
-    fun extractRoadKey(address: String): String {
-        if (address.isBlank()) return ""
-        val raw = ROAD_KEY_RE.find(address)?.value ?: return ""
-        val compact = raw.replace(CLEAN_RE, "")
-        return compact.lowercase()
+    private fun extractNameKey(raw: String): String {
+        if (raw.isBlank()) return ""
+        var s = raw.trim()
+
+        // 꼬리 "전기차충전소/전기차 충전소" 제거
+        s = CHARGE_SUFFIX_RE.replace(s, "")
+
+        // 접두 "공영/환경부/한전/…" 제거
+        s = NAME_PREFIX_REMOVE_RE.replace(s, "")
+
+        // 본문 토큰 "아파트/APT" 제거
+        s = NAME_INLINE_REMOVE_RE.replace(s, "")
+
+        // 공백/괄호/중점/하이픈 제거
+        s = NAME_CLEAN_RE.replace(s, "")
+
+        return s.lowercase()
+    }
+
+    private fun chargerDisplayName(c: ChargerInfo): String {
+        return c.name
     }
 
     var skipAutoCenterOnce: Boolean = false
 
     fun focusAndSelect(place: Place, radius: Int = 2000, defaultZoom: Int = 15) {
-        // 1) 카메라/선택 복원 상태 세팅
+        // 카메라/선택 복원 상태 세팅
         lastCenter = LatLng.from(place.latitude, place.longitude)
         lastZoomLevel = defaultZoom
         lastSelectedPlaceId = place.id
         isMapRestored = false
 
-        // 2) 상세(충전기) 로딩
+        // 상세(충전기) 로딩
         selectPlace(place)
 
-        // 3) 주변 재검색
+        // 주변 재검색
         searchNearby(
             query = "전기차 충전소",
             longitude = place.longitude,
@@ -266,7 +321,7 @@ class MapViewModel @Inject constructor(
             radius = radius
         )
 
-        // 4) 다음 진입 시 현재위치 자동 세팅을 1회 건너뛰기
+        // 다음 진입 시 현재위치 자동 세팅을 1회 건너뛰기
         skipAutoCenterOnce = true
     }
 }
