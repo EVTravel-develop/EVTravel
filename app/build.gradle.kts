@@ -45,10 +45,6 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // BuildConfig 로 노출 (네트워크 전송/로그에 찍지 않도록 주의)
-        buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"$kakaoNativeKey\"")
-        buildConfigField("String", "KAKAO_REST_API_KEY", "\"$kakaoRestKey\"")
-        buildConfigField("String", "EV_CHARGER_API_KEY", "\"${evChargerKey}\"")
 
         // Kakao Map meta-data placeholder (Manifest에서 참조)
         manifestPlaceholders["KAKAO_MAP_KEY"] = kakaoNativeKey
@@ -83,10 +79,19 @@ android {
 
             // 런처 이름/아이콘 구분
             resValue("string", "app_name", "EVTravel Dev")
+
+            // BuildConfig 로 노출 (네트워크 전송/로그에 찍지 않도록 주의)
+            buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"$kakaoNativeKey\"")
+            buildConfigField("String", "KAKAO_REST_API_KEY", "\"$kakaoRestKey\"")
+            buildConfigField("String", "EV_CHARGER_API_KEY", "\"${evChargerKey}\"")
         }
         create("prod") {
             dimension = "env"
             resValue("string", "app_name", "EVTravel")
+
+            buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"$kakaoNativeKey\"")
+            buildConfigField("String", "KAKAO_REST_API_KEY", "\"$kakaoRestKey\"")
+            buildConfigField("String", "EV_CHARGER_API_KEY", "\"${evChargerKey}\"")
         }
     }
 
