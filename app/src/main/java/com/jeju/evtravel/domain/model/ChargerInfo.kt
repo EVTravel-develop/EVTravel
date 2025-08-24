@@ -13,6 +13,6 @@ data class ChargerInfo(
     val isFreeParking: Boolean,
     val contact: String,
     val status: String,
-    val lat: Double,
-    val lng: Double
+    val lat: Double?,
+    val lng: Double?
 )

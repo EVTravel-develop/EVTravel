@@ -21,8 +21,8 @@ class PlaceRepositoryImpl(
      */
     override suspend fun searchNearbyPlaces(
         query: String,
-        x: Double,
-        y: Double,
+        x: Double?,
+        y: Double?,
         radius: Int?,
         page: Int?,
         size: Int?
