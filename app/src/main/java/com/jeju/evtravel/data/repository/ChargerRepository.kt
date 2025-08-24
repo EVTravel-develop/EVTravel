@@ -4,8 +4,9 @@ import android.util.Log
 import com.jeju.evtravel.data.remote.api.ChargerApi
 import com.jeju.evtravel.data.remote.mapper.toDomain
 import com.jeju.evtravel.domain.model.ChargerInfo
-import kotlinx.coroutines.delay
 import javax.inject.Inject
+import com.jeju.evtravel.BuildConfig
+import okhttp3.ResponseBody
 
 class ChargerRepository @Inject constructor(
     private val api: ChargerApi,
@@ -29,9 +30,12 @@ class ChargerRepository @Inject constructor(
                 pageNo = 1,
                 numOfRows = rowsPerPage
             )
-            val rawString = firstRaw.body()?.string()
-//            Log.d("ChargerFetchRaw", "page=1 응답 원문:\n$rawString")
-            Log.d("...", rawString!!.take(1000))
+
+            if (BuildConfig.DEBUG) {
+                val body: ResponseBody? = firstRaw.body()
+                val raw = body?.string().orEmpty()
+                Log.d("ChargerFetchRaw", "page=1 preview=${raw.take(1000)}")
+            }
 
             // 첫 페이지 호출 → totalCount 확인
             val first = api.getChargerInfo(

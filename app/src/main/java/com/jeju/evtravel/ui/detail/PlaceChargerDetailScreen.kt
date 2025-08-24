@@ -169,7 +169,7 @@ fun PlaceChargerDetailScreen(
             // 로딩
             if (isLoading) {
                 LoadingCard()
-                return
+                return@Column
             }
 
             // 로딩 완료 후 데이터가 비어있는 상태 (0, null, 빈 리스트)
@@ -182,10 +182,10 @@ fun PlaceChargerDetailScreen(
                     secondaryText = "다른 장소 보기",
                     onSecondary = onNavigateClick
                 )
-                return
+                return@Column
             }
 
-            fun isCharging(code: String?) = code == "3" || code.equals("CHARGING", ignoreCase = true)
+            fun isCharging(code: String?) = code == "3" || (code?.equals("CHARGING", ignoreCase = true)==true)
 
             // 속도별 그룹핑
             val slow = chargers.filter { it.output.toDoubleOrNull()?.let { out -> out < 50 } == true }

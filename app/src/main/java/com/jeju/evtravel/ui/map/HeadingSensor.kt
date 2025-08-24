@@ -33,7 +33,13 @@ fun headingFlow(context: Context): Flow<Float> = callbackFlow {
             SensorManager.getRotationMatrixFromVector(R, e.values)
 
             // 화면 회전 보정
-            val rotation = wm.defaultDisplay?.rotation ?: Surface.ROTATION_0
+            val rotation = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                context.display?.rotation ?: Surface.ROTATION_0
+            } else {
+                @Suppress("DEPRECATION")
+                wm.defaultDisplay?.rotation ?: Surface.ROTATION_0
+            }
+
             when (rotation) {
                 Surface.ROTATION_0 -> SensorManager.remapCoordinateSystem(
                     R, SensorManager.AXIS_X, SensorManager.AXIS_Y, Rm

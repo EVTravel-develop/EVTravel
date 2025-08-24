@@ -66,8 +66,9 @@ class SearchViewModel @Inject constructor(
     // --- 자동 검색 파이프라인 ---
     // 입력 변화(타이핑/토글/위치/반경)에 반응, 300ms 디바운스, 최신 요청만 살림(flatMapLatest)
     val uiState: StateFlow<SearchUiState> =
-        combine(type, debouncedQuery, location, radius, trigger) { t, q, loc, r, _ ->
+        combine(type, debouncedQuery, location, radius, trigger) { t, q, loc, r, tick ->
             Params(
+                tick = tick,
                 query = buildQuery(t, q), // PLACE/CHARGER 규칙 반영된 최종 쿼리
                 rawQuery = q.trim(),               // 사용자 원문(빈 문자열 판정용)
                 loc = loc,                         // 현재 위치 (null 가능)
@@ -95,11 +96,12 @@ class SearchViewModel @Inject constructor(
                                 radius = params.radius
                             )
                         } else {
+                            val loc = params.loc
                             searchNearbyPlacesUseCase(
                                 query = params.query,
                                 x = 0.0,
                                 y = 0.0,
-                                radius = params.radius
+                                radius = loc?.let{params.radius}
                             )
                         }
                     }
@@ -115,6 +117,7 @@ class SearchViewModel @Inject constructor(
             )
 
     private data class Params(
+        val tick: Int,
         val query: String,
         val rawQuery: String,
         val loc: Pair<Double, Double>?,

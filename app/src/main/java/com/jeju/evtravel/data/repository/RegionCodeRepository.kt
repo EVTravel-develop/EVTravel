@@ -29,20 +29,14 @@ class RegionCodeRepository @Inject constructor(
                 Log.w("RegionCode", "coord2region empty docs for ($x, $y)")
             }
 
-        val top = normalizeTopName(target.region1)     // 예: "서울시" → "서울특별시"
-        val mid = target.region2.trim()                // 예: "관악구", "성남시"
-
-        val zcode = zcodeMap[top]
-        if (zcode == null) {
-            Log.w("RegionCode", "zcode not found for top=$top (raw=${target.region1})")
+        val code = target.code?.trim()
+        if (code.isNullOrEmpty() || code.length < 5 || code.any { !it.isDigit() }) {
+            android.util.Log.w("RegionCode", "Invalid code: '$code' for ($x, $y)")
             return null
         }
 
-        val zscode = zscodeMap[mid]
-        if (zscode == null) {
-            Log.w("RegionCode", "zscode not found for mid=$mid (top=$top)")
-            return null
-        }
+        val zcode  = code.substring(0, 2) // 예: "11", "26", "36", "50"
+        val zscode = code.substring(0, 5) // 예: "11110", "26110", "36110", "50110"
 
         return RegionCode(zcode = zcode, zscode = zscode)
     }
