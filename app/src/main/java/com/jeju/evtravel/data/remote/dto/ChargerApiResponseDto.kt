@@ -10,5 +10,5 @@ data class ChargerApiResponseDto(
 )
 
 data class ChargerItems(
-    val item: List<ChargerDto>
+    val item: List<ChargerRemoteDto>
 )
