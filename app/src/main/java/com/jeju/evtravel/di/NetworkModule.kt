@@ -4,7 +4,7 @@ import com.jeju.evtravel.BuildConfig
 import com.jeju.evtravel.data.remote.api.ChargerApi
 import com.jeju.evtravel.data.remote.api.KakaoLocalApi
 import com.jeju.evtravel.data.remote.api.KakaoLocalRegionApi
-import com.jeju.evtravel.data.repository.ChargerRepository
+import com.jeju.evtravel.data.repository.ChargerRepository as ChargerListRepository
 import com.jeju.evtravel.data.repository.PlaceRepositoryImpl
 import com.jeju.evtravel.data.repository.RegionCodeRepository
 import com.jeju.evtravel.domain.repository.PlaceRepository
@@ -65,7 +65,7 @@ object NetworkModule {
         client: OkHttpClient
     ): ChargerApi {
         return Retrofit.Builder()
-            .baseUrl("http://apis.data.go.kr") // 공공데이터 API base URL
+            .baseUrl("https://apis.data.go.kr") // 공공데이터 API base URL
             .addConverterFactory(GsonConverterFactory.create())
             .client(client)
             .build()
@@ -114,7 +114,7 @@ object NetworkModule {
     fun provideChargerRepository(
         api: ChargerApi,
         @Named("EV_CHARGER_API_KEY") key: String
-    ): ChargerRepository {
-        return ChargerRepository(api, key)
+    ): ChargerListRepository {
+        return ChargerListRepository(api, key)
     }
 }
