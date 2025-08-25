@@ -30,6 +30,7 @@ import com.jeju.evtravel.ui.mypage.*
 import com.jeju.evtravel.ui.onboarding.OnboardingScreen
 import com.jeju.evtravel.ui.planner.*
 import com.jeju.evtravel.ui.splash.SplashScreen
+import com.jeju.evtravel.viewmodel.SavedPlaceScreen
 import com.kakao.vectormap.utils.MapUtils
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -144,14 +145,23 @@ fun MainScreen(
                 // 마이페이지
                 composable("my") {
                     MyPageScreen(
-                        onEditProfileClick = {
-                            navController.navigate("profileEdit")
-                        }
+                        onEditProfileClick = { navController.navigate("profileEdit") },
+                        onSavedPlaceClick = { navController.navigate("saved_places") },   // ✅ 버튼 클릭 시
+                        onSavedCourseClick = { navController.navigate("saved_courses") }  // ✅ 버튼 클릭 시
                     )
                 }
 
                 composable("profileEdit") {
                     ProfileEditScreen(navController = navController)
+                }
+                // 저장된 장소
+                composable("saved_places") {
+                    SavedPlaceScreen(navController = navController)
+                }
+
+                // 저장된 코스
+                composable("saved_courses") {
+                    SavedCourseScreen(navController = navController)
                 }
 
                 // 장소 상세 화면
@@ -160,8 +170,6 @@ fun MainScreen(
                         backStackEntry.arguments?.getString("placeId") ?: return@composable
                     PlaceDetailScreen(placeId)
                 }
-
-                // --- 플래너 관련 화면들 ---
 
                 // 플래너 탭의 분기점 역할. UI 없음.
                 composable("planner") {

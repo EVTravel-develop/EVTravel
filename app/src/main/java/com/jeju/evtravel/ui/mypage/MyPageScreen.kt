@@ -29,8 +29,8 @@ import com.jeju.evtravel.service.auth.FirestoreUserService
 @Composable
 fun MyPageScreen(
     onEditProfileClick: () -> Unit = {},
-    onSavedCourseClick: (String) -> Unit = {},
-    onSavedPlaceClick: (String) -> Unit = {}
+    onSavedCourseClick: () -> Unit = {},
+    onSavedPlaceClick: () -> Unit = {}
 ) {
     var user by remember { mutableStateOf<User?>(null) }
 
@@ -112,8 +112,8 @@ fun MyPageScreen(
                 icon = Icons.Default.Star,
                 text = "저장된 코스",
                 onClick = {
-                    Log.d("MyPageScreen", "저장된 코스 클릭: uid=${user?.uid}")
-                    user?.uid?.let { onSavedCourseClick(it) }
+                    Log.d("MyPageScreen", "저장된 코스 클릭")
+                    onSavedCourseClick()   // ✅ uid 넘길 필요 없음
                 }
             )
 
@@ -121,10 +121,11 @@ fun MyPageScreen(
                 icon = Icons.Default.Place,
                 text = "저장된 장소",
                 onClick = {
-                    Log.d("MyPageScreen", "저장된 장소 클릭: uid=${user?.uid}")
-                    user?.uid?.let { onSavedPlaceClick(it) }
+                    Log.d("MyPageScreen", "저장된 장소 클릭")
+                    onSavedPlaceClick()    // ✅ uid 넘길 필요 없음
                 }
             )
         }
     }
 }
+

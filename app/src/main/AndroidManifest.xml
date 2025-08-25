@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="com.jeju.evtravel">
+    xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- 인터넷 사용 등 권한 -->
+    <!-- 인터넷 사용 권한 -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -22,12 +21,32 @@
         android:theme="@style/Theme.EVTravel"
         tools:targetApi="31">
 
-        <!-- Kakao Map SDK AppKey -->
+        <!-- ✅ Kakao 로그인 SDK (네이티브 앱 키) -->
         <meta-data
             android:name="com.kakao.sdk.AppKey"
+            android:value="${KAKAO_NATIVE_APP_KEY}" />
+
+        <!-- ✅ Kakao 지도 SDK (지도용 키) -->
+        <meta-data
+            android:name="com.kakao.vectormap.AppKey"
             android:value="${KAKAO_MAP_KEY}" />
 
-        <!-- MainActivity 등록 -->
+        <!-- Kakao 로그인 Redirect 핸들러 -->
+        <activity
+            android:name="com.kakao.sdk.auth.AuthCodeHandlerActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@style/TransparentCompat"
+            tools:replace="android:theme">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="kakao${KAKAO_NATIVE_APP_KEY}" android:host="oauth"/>
+            </intent-filter>
+        </activity>
+
+        <!-- 메인 액티비티 -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -38,7 +57,7 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
+          
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
