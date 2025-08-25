@@ -201,7 +201,7 @@ fun CalendarScreen(
                     .height(60.dp),
                 enabled = true,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF1B6BF3),
+                    containerColor = Color(0xFF0173FF),
                     disabledContainerColor = Color(0xFFE5E5E5)
                 ),
                 shape = RoundedCornerShape(size = 10.dp)

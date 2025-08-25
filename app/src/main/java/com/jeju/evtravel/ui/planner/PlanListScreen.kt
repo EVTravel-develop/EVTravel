@@ -92,10 +92,6 @@ fun PlanListScreen(
         }
     }
     
-    LaunchedEffect(Unit) {
-        viewModel.loadPlans("somi") // 실제 사용자 ID로 변경 필요
-    }
-    
     Scaffold(
         topBar = {
             TopAppBar(
