@@ -40,15 +40,30 @@ val kakaoRestKeyDev    = getSecret("KAKAO_REST_API_KEY_DEV").ifBlank { kakaoRest
 val kakaoRestKeyProd   = getSecret("KAKAO_REST_API_KEY_PROD").ifBlank { kakaoRestKey }
 val evChargerKeyDev    = getSecret("EV_CHARGER_API_KEY_DEV").ifBlank { evChargerKey }
 val evChargerKeyProd   = getSecret("EV_CHARGER_API_KEY_PROD").ifBlank { evChargerKey }
+
 val missing = mutableListOf<String>()
-if (kakaoNativeKeyDev.isBlank() && kakaoNativeKeyProd.isBlank())
-    missing += "KAKAO_NATIVE_APP_KEY_DEV/PROD (or KAKAO_NATIVE_APP_KEY)"
-if (kakaoRestKeyDev.isBlank() && kakaoRestKeyProd.isBlank())
-    missing += "KAKAO_REST_API_KEY_DEV/PROD (or KAKAO_REST_API_KEY)"
-if (evChargerKeyDev.isBlank() && evChargerKeyProd.isBlank())
-    missing += "EV_CHARGER_API_KEY_DEV/PROD (or EV_CHARGER_API_KEY)"
+// 플래버별 키 유효성 검사
+fun effective(vararg candidates: String) = candidates.firstOrNull { it.isNotBlank() }.orEmpty()
+
+// Dev 플래버에 주입될 키
+val devNative  = effective(kakaoNativeKeyDev, kakaoNativeKey)
+val devRest    = effective(kakaoRestKeyDev,   kakaoRestKey)
+val devCharger = effective(evChargerKeyDev,   evChargerKey)
+
+// Prod 플래버에 주입될 키
+val prodNative  = effective(kakaoNativeKeyProd, kakaoNativeKey)
+val prodRest    = effective(kakaoRestKeyProd,   kakaoRestKey)
+val prodCharger = effective(evChargerKeyProd,   evChargerKey)
+
+if (devNative.isBlank())  missing += "dev: KAKAO_NATIVE_APP_KEY"
+if (devRest.isBlank())    missing += "dev: KAKAO_REST_API_KEY"
+if (devCharger.isBlank()) missing += "dev: EV_CHARGER_API_KEY"
+if (prodNative.isBlank())  missing += "prod: KAKAO_NATIVE_APP_KEY"
+if (prodRest.isBlank())    missing += "prod: KAKAO_REST_API_KEY"
+if (prodCharger.isBlank()) missing += "prod: EV_CHARGER_API_KEY"
+
 if (missing.isNotEmpty())
-throw GradleException("Missing secrets: ${missing.joinToString()}")
+    throw GradleException("Missing secrets per flavor: ${missing.joinToString()}")
 
 android {
     namespace = "com.jeju.evtravel"

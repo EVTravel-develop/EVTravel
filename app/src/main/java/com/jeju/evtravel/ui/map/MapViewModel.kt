@@ -9,10 +9,12 @@ import com.jeju.evtravel.domain.model.Place
 import com.jeju.evtravel.domain.usecase.SearchNearbyPlacesUseCase
 import com.kakao.vectormap.LatLng
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
 import com.jeju.evtravel.data.repository.ChargerRepository as ChargerListRepository
@@ -143,7 +145,7 @@ class MapViewModel @Inject constructor(
                         )
                     }.onFailure { e ->
                         _selectedPlaceError.value = "충전소 정보를 불러오지 못했습니다."
-                        Log.e("MVM_selectPlace", "충전소 API 호출 실패: ${e}", e)
+                        Log.e("MVM_selectPlace", "충전소 API 호출 실패", e)
                     }.getOrElse { emptyList() }
                 }
 
@@ -160,23 +162,23 @@ class MapViewModel @Inject constructor(
                 // placeKey가 비면 매칭 불가
                 val matched: List<ChargerInfo> =
                     if (placeKey.isNotEmpty()) {
-                        // 스코어링: 완전동일 > 포함(양방향)
-                        val scored = chargers.mapNotNull { charger ->
-                            val chName = chargerDisplayName(charger)
-                            val chKey = extractNameKey(chName)
-                            if (chKey.isEmpty()) {
-                                null
-                            } else {
-                                val score = when {
-                                    chKey == placeKey -> 3
-                                    chKey.contains(placeKey) || placeKey.contains(chKey) -> 2
-                                    else -> 0
-                                }
-                                if (score > 0) {
-                                    Triple(charger, chName, score)
-                                } else null
+                        // 스코어링: 완전동일 > 포함(양방향) — 오프로딩
+                        val scored = withContext(Dispatchers.Default) {
+                            chargers.mapNotNull { charger ->
+                                val chName = chargerDisplayName(charger)
+                                val chKey = extractNameKey(chName)
+                                if (chKey.isEmpty()) {
+                                    null
+                                    } else {
+                                    val score = when {
+                                        chKey == placeKey -> 3
+                                        chKey.contains(placeKey) || placeKey.contains(chKey) -> 2
+                                        else -> 0
+                                        }
+                                    if (score > 0) Triple(charger, chName, score) else null
+                                    }
+                                }.sortedByDescending { it.third }
                             }
-                        }.sortedByDescending { it.third }
 
                         // 진단 로그 (최대 20개)
                         scored.take(20).forEachIndexed { idx, (c, chName, score) ->
@@ -201,6 +203,8 @@ class MapViewModel @Inject constructor(
 
                 val updated = try {
                     place.copy(chargerList = matched)
+                } catch (ce: CancellationException) {
+                    throw ce
                 } catch (_: Throwable) {
                     place.chargerList = matched
                     place
@@ -223,7 +227,7 @@ class MapViewModel @Inject constructor(
                 throw ce
             } catch (e: Exception) {
                 _selectedPlaceError.value = "알 수 없는 오류가 발생했습니다."
-                Log.e("MVM_selectPlace", "selectPlace error ${e}", e)
+                Log.e("MVM_selectPlace", "selectPlace error", e)
             } finally {
                 _isSelectedPlaceLoading.value = false   // 로딩 완료 -> 종료
                 runCatching { onComplete() }
@@ -246,6 +250,36 @@ class MapViewModel @Inject constructor(
     fun markSearched(center: LatLng, zoom: Int?) {
         lastSearchCenter = center
         lastSearchZoomLevel = zoom
+    }
+
+    private fun normalizeRoadAddress(address: String): String {
+        if (address.isBlank()) return address
+        val trimmed = address.trim()
+        val replacements = mapOf(
+            "서울 " to "서울특별시 ",
+            "서울시 " to "서울특별시 ",
+            "부산 " to "부산광역시 ",
+            "부산시 " to "부산광역시 ",
+            "대구 " to "대구광역시 ",
+            "대구시 " to "대구광역시 ",
+            "인천 " to "인천광역시 ",
+            "인천시 " to "인천광역시 ",
+            "광주 " to "광주광역시 ",
+            "광주시 " to "광주광역시 ",
+            "대전 " to "대전광역시 ",
+            "대전시 " to "대전광역시 ",
+            "울산 " to "울산광역시 ",
+            "울산시 " to "울산광역시 ",
+            "세종 " to "세종특별자치시 ",
+            "제주 " to "제주특별자치도 ",
+            "제주시 " to "제주특별자치도 "
+        )
+        for ((k, v) in replacements) {
+            if (trimmed.startsWith(k)) {
+                return trimmed.replaceFirst(k, v)
+            }
+        }
+        return trimmed
     }
 
     private fun extractNameKey(raw: String): String {
