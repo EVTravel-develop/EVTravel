@@ -90,9 +90,6 @@ android {
             manifestPlaceholders["KAKAO_NATIVE_APP_KEY"] = kakaoNativeKeyDev
 
             // BuildConfig 로 노출 (dev)
-            buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"$kakaoNativeKey\"")
-            buildConfigField("String", "KAKAO_REST_API_KEY", "\"$kakaoRestKey\"")
-            buildConfigField("String", "EV_CHARGER_API_KEY", "\"${evChargerKey}\"")
             buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"$kakaoNativeKeyDev\"")
             buildConfigField("String", "KAKAO_REST_API_KEY", "\"$kakaoRestKeyDev\"")
             buildConfigField("String", "EV_CHARGER_API_KEY", "\"${evChargerKeyDev}\"")
@@ -105,9 +102,6 @@ android {
             manifestPlaceholders["KAKAO_NATIVE_APP_KEY"] = kakaoNativeKeyProd
 
             // BuildConfig 로 노출 (prod)
-            buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"$kakaoNativeKey\"")
-            buildConfigField("String", "KAKAO_REST_API_KEY", "\"$kakaoRestKey\"")
-            buildConfigField("String", "EV_CHARGER_API_KEY", "\"${evChargerKey}\"")
             buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"$kakaoNativeKeyProd\"")
             buildConfigField("String", "KAKAO_REST_API_KEY", "\"$kakaoRestKeyProd\"")
             buildConfigField("String", "EV_CHARGER_API_KEY", "\"${evChargerKeyProd}\"")
