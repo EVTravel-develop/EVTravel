@@ -23,12 +23,8 @@ val secretProperties = Properties().apply {
     }
 }
 
-val kakaoNativeKey = secretProperties.getProperty("KAKAO_NATIVE_APP_KEY")
-    ?: throw GradleException("KAKAO_NATIVE_APP_KEY is missing in local.properties")
-
-val kakaoRestKey = secretProperties.getProperty("KAKAO_REST_API_KEY")
-    ?: throw GradleException("KAKAO_REST_API_KEY is missing in local.properties")
-
+val kakaoNativeKey = secretProperties.getProperty("KAKAO_NATIVE_APP_KEY") ?: ""
+val kakaoRestKey   = secretProperties.getProperty("KAKAO_REST_API_KEY")  ?: ""
 val evChargerKey = secretProperties.getProperty("EV_CHARGER_API_KEY") ?: ""
 
 val kakaoNativeKeyDev  = secretProperties.getProperty("KAKAO_NATIVE_APP_KEY_DEV")  ?: kakaoNativeKey
@@ -37,6 +33,13 @@ val kakaoRestKeyDev    = secretProperties.getProperty("KAKAO_REST_API_KEY_DEV") 
 val kakaoRestKeyProd   = secretProperties.getProperty("KAKAO_REST_API_KEY_PROD")  ?: kakaoRestKey
 val evChargerKeyDev    = secretProperties.getProperty("EV_CHARGER_API_KEY_DEV")   ?: evChargerKey
 val evChargerKeyProd   = secretProperties.getProperty("EV_CHARGER_API_KEY_PROD")  ?: evChargerKey
+
+if (kakaoNativeKeyDev.isBlank() && kakaoNativeKeyProd.isBlank()) {
+    throw GradleException("Kakao Native app keys are missing. Set KAKAO_NATIVE_APP_KEY_DEV/PROD (or KAKAO_NATIVE_APP_KEY as a fallback).")
+}
+if (kakaoRestKeyDev.isBlank() && kakaoRestKeyProd.isBlank()) {
+    throw GradleException("Kakao REST API keys are missing. Set KAKAO_REST_API_KEY_DEV/PROD (or KAKAO_REST_API_KEY as a fallback).")
+}
 if (evChargerKeyDev.isBlank() && evChargerKeyProd.isBlank()) {
     throw GradleException("EV Charger API keys are missing. Set EV_CHARGER_API_KEY_DEV/PROD (or EV_CHARGER_API_KEY as a fallback).")
 }
@@ -67,7 +70,8 @@ android {
 
     buildTypes {
         getByName("release") {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
