@@ -23,26 +23,32 @@ val secretProperties = Properties().apply {
     }
 }
 
-val kakaoNativeKey = secretProperties.getProperty("KAKAO_NATIVE_APP_KEY") ?: ""
-val kakaoRestKey   = secretProperties.getProperty("KAKAO_REST_API_KEY")  ?: ""
-val evChargerKey = secretProperties.getProperty("EV_CHARGER_API_KEY") ?: ""
+fun getSecret(key: String): String =
+    providers.gradleProperty(key).orNull
+        ?: System.getenv(key)
+        ?: secretProperties.getProperty(key)
+        ?: ""
 
-val kakaoNativeKeyDev  = secretProperties.getProperty("KAKAO_NATIVE_APP_KEY_DEV")  ?: kakaoNativeKey
-val kakaoNativeKeyProd = secretProperties.getProperty("KAKAO_NATIVE_APP_KEY_PROD") ?: kakaoNativeKey
-val kakaoRestKeyDev    = secretProperties.getProperty("KAKAO_REST_API_KEY_DEV")   ?: kakaoRestKey
-val kakaoRestKeyProd   = secretProperties.getProperty("KAKAO_REST_API_KEY_PROD")  ?: kakaoRestKey
-val evChargerKeyDev    = secretProperties.getProperty("EV_CHARGER_API_KEY_DEV")   ?: evChargerKey
-val evChargerKeyProd   = secretProperties.getProperty("EV_CHARGER_API_KEY_PROD")  ?: evChargerKey
 
-if (kakaoNativeKeyDev.isBlank() && kakaoNativeKeyProd.isBlank()) {
-    throw GradleException("Kakao Native app keys are missing. Set KAKAO_NATIVE_APP_KEY_DEV/PROD (or KAKAO_NATIVE_APP_KEY as a fallback).")
-}
-if (kakaoRestKeyDev.isBlank() && kakaoRestKeyProd.isBlank()) {
-    throw GradleException("Kakao REST API keys are missing. Set KAKAO_REST_API_KEY_DEV/PROD (or KAKAO_REST_API_KEY as a fallback).")
-}
-if (evChargerKeyDev.isBlank() && evChargerKeyProd.isBlank()) {
-    throw GradleException("EV Charger API keys are missing. Set EV_CHARGER_API_KEY_DEV/PROD (or EV_CHARGER_API_KEY as a fallback).")
-}
+val kakaoNativeKey = getSecret("KAKAO_NATIVE_APP_KEY")
+val kakaoRestKey   = getSecret("KAKAO_REST_API_KEY")
+val evChargerKey = getSecret("EV_CHARGER_API_KEY") ?: ""
+
+val kakaoNativeKeyDev  = getSecret("KAKAO_NATIVE_APP_KEY_DEV").ifBlank { kakaoNativeKey }
+val kakaoNativeKeyProd = getSecret("KAKAO_NATIVE_APP_KEY_PROD").ifBlank { kakaoNativeKey }
+val kakaoRestKeyDev    = getSecret("KAKAO_REST_API_KEY_DEV").ifBlank { kakaoRestKey }
+val kakaoRestKeyProd   = getSecret("KAKAO_REST_API_KEY_PROD").ifBlank { kakaoRestKey }
+val evChargerKeyDev    = getSecret("EV_CHARGER_API_KEY_DEV").ifBlank { evChargerKey }
+val evChargerKeyProd   = getSecret("EV_CHARGER_API_KEY_PROD").ifBlank { evChargerKey }
+val missing = mutableListOf<String>()
+if (kakaoNativeKeyDev.isBlank() && kakaoNativeKeyProd.isBlank())
+    missing += "KAKAO_NATIVE_APP_KEY_DEV/PROD (or KAKAO_NATIVE_APP_KEY)"
+if (kakaoRestKeyDev.isBlank() && kakaoRestKeyProd.isBlank())
+    missing += "KAKAO_REST_API_KEY_DEV/PROD (or KAKAO_REST_API_KEY)"
+if (evChargerKeyDev.isBlank() && evChargerKeyProd.isBlank())
+    missing += "EV_CHARGER_API_KEY_DEV/PROD (or EV_CHARGER_API_KEY)"
+if (missing.isNotEmpty())
+throw GradleException("Missing secrets: ${missing.joinToString()}")
 
 android {
     namespace = "com.jeju.evtravel"
@@ -100,7 +106,6 @@ android {
         }
         create("prod") {
             dimension = "env"
-            resValue("string", "app_name", "EVTravel")
             // Manifest placeholder override (prod)
             manifestPlaceholders["KAKAO_MAP_KEY"] = kakaoNativeKeyProd
             manifestPlaceholders["KAKAO_NATIVE_APP_KEY"] = kakaoNativeKeyProd
