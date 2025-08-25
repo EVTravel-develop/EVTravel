@@ -24,7 +24,7 @@
 
         <!-- Kakao Map SDK AppKey -->
         <meta-data
-            android:name="com.kakao.sdk.AppKey"
+            android:name="KAKAO_NATIVE_APP_KEY"
             android:value="${KAKAO_NATIVE_APP_KEY}" />
 
         <!-- MainActivity 등록 -->
