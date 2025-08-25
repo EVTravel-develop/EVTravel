@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit
 object NetworkModule {
 
     // kakao 공통 Retrofit
-    private const val BASE_URL = "https://dapi.kakao.com"
+    private const val BASE_URL = "https://dapi.kakao.com/"
 
     // 공통 OkHttpClient
     @Provides
@@ -65,7 +65,7 @@ object NetworkModule {
         client: OkHttpClient
     ): ChargerApi {
         return Retrofit.Builder()
-            .baseUrl("https://apis.data.go.kr") // 공공데이터 API base URL
+            .baseUrl("https://apis.data.go.kr/") // 공공데이터 API base URL
             .addConverterFactory(GsonConverterFactory.create())
             .client(client)
             .build()
