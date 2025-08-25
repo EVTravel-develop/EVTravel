@@ -32,6 +32,13 @@ val kakaoRestKey = secretProperties.getProperty("KAKAO_REST_API_KEY")
 val evChargerKey = secretProperties.getProperty("EV_CHARGER_API_KEY")
     ?: throw GradleException("EV_CHARGER_API_KEY is missing in local.properties")
 
+val kakaoNativeKeyDev  = secretProperties.getProperty("KAKAO_NATIVE_APP_KEY_DEV")  ?: kakaoNativeKey
+val kakaoNativeKeyProd = secretProperties.getProperty("KAKAO_NATIVE_APP_KEY_PROD") ?: kakaoNativeKey
+val kakaoRestKeyDev    = secretProperties.getProperty("KAKAO_REST_API_KEY_DEV")   ?: kakaoRestKey
+val kakaoRestKeyProd   = secretProperties.getProperty("KAKAO_REST_API_KEY_PROD")  ?: kakaoRestKey
+val evChargerKeyDev    = secretProperties.getProperty("EV_CHARGER_API_KEY_DEV")   ?: evChargerKey
+val evChargerKeyProd   = secretProperties.getProperty("EV_CHARGER_API_KEY_PROD")  ?: evChargerKey
+
 android {
     namespace = "com.jeju.evtravel"
     compileSdk = 35
@@ -49,7 +56,8 @@ android {
         // Kakao Map meta-data placeholder (Manifest에서 참조)
         manifestPlaceholders["KAKAO_MAP_KEY"] = kakaoNativeKey
         manifestPlaceholders["KAKAO_NATIVE_APP_KEY"] = kakaoNativeKey
-
+        manifestPlaceholders["KAKAO_MAP_KEY"] = kakaoNativeKey
+        manifestPlaceholders["KAKAO_NATIVE_APP_KEY"] = kakaoNativeKey
     }
 
     buildFeatures {
@@ -74,26 +82,38 @@ android {
     productFlavors {
         create("dev") {
             dimension = "env"
-            applicationIdSuffix = ".dev"         // com.jeju.evtravel.dev
+            applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
-
-            // 런처 이름/아이콘 구분
             resValue("string", "app_name", "EVTravel Dev")
+            // Manifest placeholder override (dev)
+            manifestPlaceholders["KAKAO_MAP_KEY"] = kakaoNativeKeyDev
+            manifestPlaceholders["KAKAO_NATIVE_APP_KEY"] = kakaoNativeKeyDev
 
-            // BuildConfig 로 노출 (네트워크 전송/로그에 찍지 않도록 주의)
+            // BuildConfig 로 노출 (dev)
             buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"$kakaoNativeKey\"")
             buildConfigField("String", "KAKAO_REST_API_KEY", "\"$kakaoRestKey\"")
             buildConfigField("String", "EV_CHARGER_API_KEY", "\"${evChargerKey}\"")
+            buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"$kakaoNativeKeyDev\"")
+            buildConfigField("String", "KAKAO_REST_API_KEY", "\"$kakaoRestKeyDev\"")
+            buildConfigField("String", "EV_CHARGER_API_KEY", "\"${evChargerKeyDev}\"")
         }
         create("prod") {
             dimension = "env"
             resValue("string", "app_name", "EVTravel")
+            // Manifest placeholder override (prod)
+            manifestPlaceholders["KAKAO_MAP_KEY"] = kakaoNativeKeyProd
+            manifestPlaceholders["KAKAO_NATIVE_APP_KEY"] = kakaoNativeKeyProd
 
+            // BuildConfig 로 노출 (prod)
             buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"$kakaoNativeKey\"")
             buildConfigField("String", "KAKAO_REST_API_KEY", "\"$kakaoRestKey\"")
             buildConfigField("String", "EV_CHARGER_API_KEY", "\"${evChargerKey}\"")
+            buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"$kakaoNativeKeyProd\"")
+            buildConfigField("String", "KAKAO_REST_API_KEY", "\"$kakaoRestKeyProd\"")
+            buildConfigField("String", "EV_CHARGER_API_KEY", "\"${evChargerKeyProd}\"")
         }
     }
+
 
 
     compileOptions {
