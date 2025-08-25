@@ -8,7 +8,7 @@ fun ChargerRemoteDto.toDomain(): ChargerInfo {
         statId = statId ?: "",
         chargerId = chgerId ?: "",
         name = statNm ?: "",
-        address = addr ?: "",
+        address = addr ?: "주소 정보 없음",
         usageTime = useTime ?: "",
         provider = busiNm ?: "",
         output = output ?: "",
@@ -17,7 +17,7 @@ fun ChargerRemoteDto.toDomain(): ChargerInfo {
         isFreeParking = parkingFree == "Y",
         contact = busiCall ?: "",
         status = stat ?: "",
-        lat = lat?.toDoubleOrNull() ?: 0.0,
-        lng = lng?.toDoubleOrNull() ?: 0.0
+        lat = lat?.toDoubleOrNull() ?: throw IllegalArgumentException("위도 변환 실패"),
+        lng = lng?.toDoubleOrNull() ?: throw IllegalArgumentException("경도 변환 실패")
     )
 }
