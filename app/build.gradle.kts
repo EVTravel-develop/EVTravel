@@ -32,7 +32,7 @@ fun getSecret(key: String): String =
 
 val kakaoNativeKey = getSecret("KAKAO_NATIVE_APP_KEY")
 val kakaoRestKey   = getSecret("KAKAO_REST_API_KEY")
-val evChargerKey = getSecret("EV_CHARGER_API_KEY") ?: ""
+val evChargerKey = getSecret("EV_CHARGER_API_KEY")
 
 val kakaoNativeKeyDev  = getSecret("KAKAO_NATIVE_APP_KEY_DEV").ifBlank { kakaoNativeKey }
 val kakaoNativeKeyProd = getSecret("KAKAO_NATIVE_APP_KEY_PROD").ifBlank { kakaoNativeKey }
@@ -65,7 +65,6 @@ android {
 
 
         // Kakao Map meta-data placeholder (Manifest에서 참조)
-        manifestPlaceholders["KAKAO_MAP_KEY"] = kakaoNativeKey
         manifestPlaceholders["KAKAO_NATIVE_APP_KEY"] = kakaoNativeKey
     }
 
@@ -96,7 +95,6 @@ android {
             versionNameSuffix = "-dev"
             resValue("string", "app_name", "EVTravel Dev")
             // Manifest placeholder override (dev)
-            manifestPlaceholders["KAKAO_MAP_KEY"] = kakaoNativeKeyDev
             manifestPlaceholders["KAKAO_NATIVE_APP_KEY"] = kakaoNativeKeyDev
 
             // BuildConfig 로 노출 (dev)
@@ -107,7 +105,6 @@ android {
         create("prod") {
             dimension = "env"
             // Manifest placeholder override (prod)
-            manifestPlaceholders["KAKAO_MAP_KEY"] = kakaoNativeKeyProd
             manifestPlaceholders["KAKAO_NATIVE_APP_KEY"] = kakaoNativeKeyProd
 
             // BuildConfig 로 노출 (prod)

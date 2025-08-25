@@ -26,14 +26,15 @@ object NetworkModule {
 
     // kakao 공통 Retrofit
     private const val BASE_URL = "https://dapi.kakao.com/"
+    private const val DATA_URL = "https://apis.data.go.kr/"
 
     // 공통 OkHttpClient
     @Provides
     @Singleton
     fun provideOkHttpClient(): OkHttpClient = OkHttpClient.Builder()
-        .connectTimeout(60, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
-        .writeTimeout(60, TimeUnit.SECONDS)
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
     @Provides
@@ -65,7 +66,7 @@ object NetworkModule {
         client: OkHttpClient
     ): ChargerApi {
         return Retrofit.Builder()
-            .baseUrl("https://apis.data.go.kr/") // 공공데이터 API base URL
+            .baseUrl(DATA_URL) // 공공데이터 API base URL
             .addConverterFactory(GsonConverterFactory.create())
             .client(client)
             .build()

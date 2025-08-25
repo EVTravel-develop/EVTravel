@@ -282,7 +282,7 @@ fun SearchScreen(
             }
 
             is SearchUiState.Error -> {
-                Text(s.message, modifier = Modifier.padding(16.dp))
+                Text("알 수 없는 오류가 발생했습니다. 잠시 후 다시 시도하세요.", modifier = Modifier.padding(16.dp))
             }
 
             is SearchUiState.Success -> {

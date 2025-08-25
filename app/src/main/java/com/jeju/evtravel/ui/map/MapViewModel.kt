@@ -94,7 +94,7 @@ class MapViewModel @Inject constructor(
                 Log.d("M_V_M", "근처 검색 성공: ${places.size} places")
             }.onFailure { e ->
                 _uiState.value = MapUiState.Error(e.message ?: "unknown error")
-                Log.e("M_V_M", "searchNearby error", e)
+                Log.e("M_V_M", "searchNearby error: ${e}", e)
             }
         }
     }
@@ -143,7 +143,7 @@ class MapViewModel @Inject constructor(
                         )
                     }.onFailure { e ->
                         _selectedPlaceError.value = "충전소 정보를 불러오지 못했습니다."
-                        Log.e("MVM_selectPlace", "충전소 API 호출 실패", e)
+                        Log.e("MVM_selectPlace", "충전소 API 호출 실패: ${e}", e)
                     }.getOrElse { emptyList() }
                 }
 
@@ -223,7 +223,7 @@ class MapViewModel @Inject constructor(
                 throw ce
             } catch (e: Exception) {
                 _selectedPlaceError.value = "알 수 없는 오류가 발생했습니다."
-                Log.e("MVM_selectPlace", "selectPlace error", e)
+                Log.e("MVM_selectPlace", "selectPlace error ${e}", e)
             } finally {
                 _isSelectedPlaceLoading.value = false   // 로딩 완료 -> 종료
                 runCatching { onComplete() }
@@ -246,36 +246,6 @@ class MapViewModel @Inject constructor(
     fun markSearched(center: LatLng, zoom: Int?) {
         lastSearchCenter = center
         lastSearchZoomLevel = zoom
-    }
-
-    private fun normalizeRoadAddress(address: String): String {
-        if (address.isBlank()) return address
-        val trimmed = address.trim()
-        val replacements = mapOf(
-            "서울 " to "서울특별시 ",
-            "서울시 " to "서울특별시 ",
-            "부산 " to "부산광역시 ",
-            "부산시 " to "부산광역시 ",
-            "대구 " to "대구광역시 ",
-            "대구시 " to "대구광역시 ",
-            "인천 " to "인천광역시 ",
-            "인천시 " to "인천광역시 ",
-            "광주 " to "광주광역시 ",
-            "광주시 " to "광주광역시 ",
-            "대전 " to "대전광역시 ",
-            "대전시 " to "대전광역시 ",
-            "울산 " to "울산광역시 ",
-            "울산시 " to "울산광역시 ",
-            "세종 " to "세종특별자치시 ",
-            "제주 " to "제주특별자치도 ",
-            "제주시 " to "제주특별자치도 "
-        )
-        for ((k, v) in replacements) {
-            if (trimmed.startsWith(k)) {
-                return trimmed.replaceFirst(k, v)
-            }
-        }
-        return trimmed
     }
 
     private fun extractNameKey(raw: String): String {
