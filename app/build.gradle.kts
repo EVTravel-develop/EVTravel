@@ -17,9 +17,7 @@ plugins {
 val secretProperties = Properties().apply {
     val secretFile = rootProject.file("local.properties")
     if (secretFile.exists()) {
-        load(secretFile.inputStream())
-    } else {
-        throw GradleException("local.properties file not found")
+        secretFile.inputStream().use { load(it) }
     }
 }
 
