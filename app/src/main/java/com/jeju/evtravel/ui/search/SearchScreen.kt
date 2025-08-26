@@ -98,7 +98,7 @@ fun SearchScreen(
     val type by viewModel.type.collectAsState()
     val interactionSource = remember { MutableInteractionSource() }
 
-    val DEFAULT = LatLng.from(37.5665, 126.9780)
+    val DEFAULT_LOCATION = LatLng.from(33.4996, 126.5312)
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
@@ -109,14 +109,14 @@ fun SearchScreen(
             // 현재 위치 1회 취득
             suspend fun fetch(): LatLng = suspendCoroutine { cont ->
                 getCurrentLocation(context, fusedLocationClient) { loc ->
-                    cont.resume(loc ?: DEFAULT)
+                    cont.resume(loc ?: DEFAULT_LOCATION)
                 }
             }
             val origin = fetch()
             viewModel.setLocation(origin.longitude, origin.latitude)
         } else {
             // 권한 없으면 폴백 좌표로라도 세팅(검색 가능하게)
-            viewModel.setLocation(DEFAULT.longitude, DEFAULT.latitude)
+            viewModel.setLocation(DEFAULT_LOCATION.longitude, DEFAULT_LOCATION.latitude)
         }
     }
 
@@ -232,19 +232,19 @@ fun SearchScreen(
                             )
                         }
                     }
-                     if (query.isNotEmpty()) {
-                         Icon(
-                             imageVector = Icons.Default.Clear,
-                             contentDescription = "지우기",
-                             tint = Color(0xFF949494),
-                             modifier = Modifier
-                                 .size(20.dp)
-                                 .clickable {
-                                     viewModel.updateQuery("")
-                                     viewModel.forceSearch() // 지울 때 즉시 재검색 원하면 유지
-                                 }
-                         )
-                     }
+                    if (query.isNotEmpty()) {
+                        Icon(
+                            imageVector = Icons.Default.Clear,
+                            contentDescription = "지우기",
+                            tint = Color(0xFF949494),
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clickable {
+                                    viewModel.updateQuery("")
+                                    viewModel.forceSearch() // 지울 때 즉시 재검색 원하면 유지
+                                }
+                        )
+                    }
                 }
             }
         }
