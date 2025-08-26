@@ -325,10 +325,14 @@ fun SearchScreen(
                     contentPadding = PaddingValues(vertical = 8.dp)
                 ) {
                     items(s.items, key = { it.id }) { place ->
-                        PlaceRow(place = place, query = query) {
-                            mapViewModel.focusAndSelect(place)
-                            navController.popBackStack()
-                        }
+                        PlaceRow(
+                            place = place,
+                            query = query,
+                            onClick = {
+                                mapViewModel.focusAndSelect(place)
+                                navController.popBackStack()
+                            }
+                        )
                     }
                 }
             }
