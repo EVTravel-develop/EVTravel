@@ -67,7 +67,7 @@ import com.jeju.evtravel.ui.search.comp.PlaceRow
 import com.kakao.vectormap.LatLng
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
-import com.jeju.evtravel.ui.map.MapViewModel as MapVM
+import com.jeju.evtravel.ui.map.MapViewModel
 
 /**
  * 검색 화면 Composable 함수.
@@ -82,7 +82,7 @@ import com.jeju.evtravel.ui.map.MapViewModel as MapVM
 fun SearchScreen(
     fusedLocationClient: FusedLocationProviderClient,
     navController: NavController,
-    mapViewModel: MapVM,
+    mapViewModel: MapViewModel,
     viewModel: SearchViewModel,
 ) {
     //권한 “상태만” 확인(요청은 안 함)
