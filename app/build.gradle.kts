@@ -22,10 +22,10 @@ val secretProperties = Properties().apply {
 }
 
 fun getSecret(key: String): String =
-    providers.gradleProperty(key).orNull
+    (providers.gradleProperty(key).orNull
         ?: System.getenv(key)
         ?: secretProperties.getProperty(key)
-        ?: ""
+        ?: "").trim()
 
 
 val kakaoNativeKey = getSecret("KAKAO_NATIVE_APP_KEY")
@@ -53,15 +53,28 @@ val prodNative  = effective(kakaoNativeKeyProd, kakaoNativeKey)
 val prodRest    = effective(kakaoRestKeyProd,   kakaoRestKey)
 val prodCharger = effective(evChargerKeyProd,   evChargerKey)
 
-if (devNative.isBlank())  missing += "dev: KAKAO_NATIVE_APP_KEY"
-if (devRest.isBlank())    missing += "dev: KAKAO_REST_API_KEY"
-if (devCharger.isBlank()) missing += "dev: EV_CHARGER_API_KEY"
-if (prodNative.isBlank())  missing += "prod: KAKAO_NATIVE_APP_KEY"
-if (prodRest.isBlank())    missing += "prod: KAKAO_REST_API_KEY"
-if (prodCharger.isBlank()) missing += "prod: EV_CHARGER_API_KEY"
+// 어떤 플래버를 빌드 중인지 간단 추론 (IDE Sync/구성 단계에선 비강제)
+val tasksJoined = gradle.startParameter.taskNames.joinToString(" ").lowercase()
+val buildingDev = tasksJoined.contains("dev")
+val buildingProd = tasksJoined.contains("prod")
 
-if (missing.isNotEmpty())
-    throw GradleException("Missing secrets per flavor: ${missing.joinToString()}")
+if (buildingDev) {
+    if (devNative.isBlank())  missing += "dev: KAKAO_NATIVE_APP_KEY"
+    if (devRest.isBlank())    missing += "dev: KAKAO_REST_API_KEY"
+    if (devCharger.isBlank()) missing += "dev: EV_CHARGER_API_KEY"
+}
+if (buildingProd) {
+    if (prodNative.isBlank())  missing += "prod: KAKAO_NATIVE_APP_KEY"
+    if (prodRest.isBlank())    missing += "prod: KAKAO_REST_API_KEY"
+    if (prodCharger.isBlank()) missing += "prod: EV_CHARGER_API_KEY"
+}
+
+if (missing.isNotEmpty()) {
+    throw GradleException("Missing secrets for requested flavors: ${missing.joinToString()}")
+}
+if (!buildingDev && !buildingProd) {
+    logger.lifecycle("Note: No specific flavor task detected; skipping strict secret validation.")
+}
 
 android {
     namespace = "com.jeju.evtravel"
@@ -103,6 +116,7 @@ android {
     flavorDimensions += "env"
     productFlavors {
         create("dev") {
+            manifestPlaceholders["USES_CLEARTEXT"] = true
             dimension = "env"
             applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
@@ -116,6 +130,7 @@ android {
             buildConfigField("String", "EV_CHARGER_API_KEY", "\"$devCharger\"")
         }
         create("prod") {
+            manifestPlaceholders["USES_CLEARTEXT"] = false
             dimension = "env"
             // Manifest placeholder override (prod)
             manifestPlaceholders["KAKAO_NATIVE_APP_KEY"] = prodNative
