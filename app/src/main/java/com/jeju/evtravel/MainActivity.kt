@@ -44,7 +44,9 @@ class MainActivity : ComponentActivity() {
     private val plannerViewModel by viewModels<PlannerViewModel>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        Log.d("KeyHash", MapUtils.getHashKey(this))
+        if (BuildConfig.DEBUG) {
+            Log.d("KeyHash", MapUtils.getHashKey(this))
+        }
 
         super.onCreate(savedInstanceState)
 
@@ -57,8 +59,7 @@ class MainActivity : ComponentActivity() {
                 ) {
                     MainScreen(
                         fusedLocationClient = fusedLocationClient,
-                        plannerViewModel = plannerViewModel,
-                        searchViewModel = hiltViewModel()
+                        plannerViewModel = plannerViewModel
                     )
                 }
             }
@@ -69,8 +70,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainScreen(
     fusedLocationClient: FusedLocationProviderClient,
-    plannerViewModel: PlannerViewModel,
-    searchViewModel: SearchViewModel
+    plannerViewModel: PlannerViewModel
 ) {
     val navController = rememberNavController()
     val mapViewModel: MapViewModel = hiltViewModel()
@@ -152,6 +152,7 @@ fun MainScreen(
 
                 // 검색 탭: 지도 화면 검색바 -> 검색 화면
                 composable(route = "search") {
+                    val searchViewModel: SearchViewModel = hiltViewModel()
                     SearchScreen(
                         fusedLocationClient = fusedLocationClient,
                         navController = navController,

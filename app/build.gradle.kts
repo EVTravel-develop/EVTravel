@@ -23,7 +23,7 @@ val secretProperties = Properties().apply {
 
 fun getSecret(key: String): String =
     (providers.gradleProperty(key).orNull
-        ?: System.getenv(key)
+        ?: providers.environmentVariable(key).orNull
         ?: secretProperties.getProperty(key)
         ?: "").trim()
 
@@ -104,7 +104,10 @@ android {
 
 
         // Kakao Map meta-data placeholder (Manifest에서 참조)
+        manifestPlaceholders["KAKAO_MAP_KEY"] = kakaoNativeKey
         manifestPlaceholders["KAKAO_NATIVE_APP_KEY"] = kakaoNativeKey
+        // IDE/툴링 호환을 위한 기본값
+        manifestPlaceholders["USES_CLEARTEXT"] = false
     }
 
     buildFeatures {
@@ -136,6 +139,7 @@ android {
             resValue("string", "app_name", "EVTravel Dev")
             // Manifest placeholder override (dev)
             manifestPlaceholders["KAKAO_NATIVE_APP_KEY"] = devNative
+            manifestPlaceholders["KAKAO_MAP_KEY"]        = devNative
 
             // BuildConfig 로 노출 (dev)
             buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"$devNative\"")
@@ -147,6 +151,7 @@ android {
             dimension = "env"
             // Manifest placeholder override (prod)
             manifestPlaceholders["KAKAO_NATIVE_APP_KEY"] = prodNative
+            manifestPlaceholders["KAKAO_MAP_KEY"]        = prodNative
 
             // BuildConfig 로 노출 (prod)
             buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"$prodNative\"")
