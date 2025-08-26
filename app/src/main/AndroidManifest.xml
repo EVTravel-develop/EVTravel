@@ -22,10 +22,10 @@
         android:theme="@style/Theme.EVTravel"
         tools:targetApi="31">
 
-        <!-- Kakao Map SDK AppKey -->
+        <!-- ✅ Kakao 지도 SDK (지도용 키) -->
         <meta-data
-            android:name="KAKAO_NATIVE_APP_KEY"
-            android:value="${KAKAO_NATIVE_APP_KEY}" />
+            android:name="com.kakao.vectormap.AppKey"
+            android:value="${KAKAO_MAP_KEY}" />
 
         <!-- MainActivity 등록 -->
         <activity

@@ -54,9 +54,22 @@ val prodRest    = effective(kakaoRestKeyProd,   kakaoRestKey)
 val prodCharger = effective(evChargerKeyProd,   evChargerKey)
 
 // 어떤 플래버를 빌드 중인지 간단 추론 (IDE Sync/구성 단계에선 비강제)
-val tasksJoined = gradle.startParameter.taskNames.joinToString(" ").lowercase()
-val buildingDev = tasksJoined.contains("dev")
-val buildingProd = tasksJoined.contains("prod")
+val tasks = gradle.startParameter.taskNames.map { it.lowercase() }
+fun anyTaskMatches(vararg regexes: Regex) =
+    tasks.any { t -> regexes.any { r -> r.containsMatchIn(t) } }
+// assemble/bundle/install/connectedAndroidTest 등 일반적인 작업명의 Dev/Prod 변형만 허용
+val buildingDev = anyTaskMatches(
+    Regex("""(?<![a-z])assembledev(debug|release)"""),
+    Regex("""(?<![a-z])bundledev(debug|release)"""),
+    Regex("""(?<![a-z])installdev(debug|release)"""),
+    Regex("""connecteddevdebugandroidtest""")
+)
+val buildingProd = anyTaskMatches(
+    Regex("""(?<![a-z])assembleprod(debug|release)"""),
+    Regex("""(?<![a-z])bundleprod(debug|release)"""),
+    Regex("""(?<![a-z])installprod(debug|release)"""),
+    Regex("""connectedproddebugandroidtest""")
+)
 
 if (buildingDev) {
     if (devNative.isBlank())  missing += "dev: KAKAO_NATIVE_APP_KEY"
