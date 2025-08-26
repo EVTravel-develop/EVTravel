@@ -17,17 +17,77 @@ plugins {
 val secretProperties = Properties().apply {
     val secretFile = rootProject.file("local.properties")
     if (secretFile.exists()) {
-        load(secretFile.inputStream())
-    } else {
-        throw GradleException("local.properties file not found")
+        secretFile.inputStream().use { load(it) }
     }
 }
 
-val kakaoNativeKey = secretProperties.getProperty("KAKAO_NATIVE_APP_KEY")
-    ?: throw GradleException("KAKAO_NATIVE_APP_KEY is missing in local.properties")
+fun getSecret(key: String): String =
+    (providers.gradleProperty(key).orNull
+        ?: providers.environmentVariable(key).orNull
+        ?: secretProperties.getProperty(key)
+        ?: "").trim()
 
-val kakaoRestKey = secretProperties.getProperty("KAKAO_REST_API_KEY")
-    ?: throw GradleException("KAKAO_REST_API_KEY is missing in local.properties")
+
+val kakaoNativeKey = getSecret("KAKAO_NATIVE_APP_KEY")
+val kakaoRestKey   = getSecret("KAKAO_REST_API_KEY")
+val evChargerKey = getSecret("EV_CHARGER_API_KEY")
+
+val kakaoNativeKeyDev  = getSecret("KAKAO_NATIVE_APP_KEY_DEV").ifBlank { kakaoNativeKey }
+val kakaoNativeKeyProd = getSecret("KAKAO_NATIVE_APP_KEY_PROD").ifBlank { kakaoNativeKey }
+val kakaoRestKeyDev    = getSecret("KAKAO_REST_API_KEY_DEV").ifBlank { kakaoRestKey }
+val kakaoRestKeyProd   = getSecret("KAKAO_REST_API_KEY_PROD").ifBlank { kakaoRestKey }
+val evChargerKeyDev    = getSecret("EV_CHARGER_API_KEY_DEV").ifBlank { evChargerKey }
+val evChargerKeyProd   = getSecret("EV_CHARGER_API_KEY_PROD").ifBlank { evChargerKey }
+
+val missing = mutableListOf<String>()
+// 플래버별 키 유효성 검사
+fun effective(vararg candidates: String) = candidates.firstOrNull { it.isNotBlank() }.orEmpty()
+
+// Dev 플래버에 주입될 키
+val devNative  = effective(kakaoNativeKeyDev, kakaoNativeKey)
+val devRest    = effective(kakaoRestKeyDev,   kakaoRestKey)
+val devCharger = effective(evChargerKeyDev,   evChargerKey)
+
+// Prod 플래버에 주입될 키
+val prodNative  = effective(kakaoNativeKeyProd, kakaoNativeKey)
+val prodRest    = effective(kakaoRestKeyProd,   kakaoRestKey)
+val prodCharger = effective(evChargerKeyProd,   evChargerKey)
+
+// 어떤 플래버를 빌드 중인지 간단 추론 (IDE Sync/구성 단계에선 비강제)
+val tasks = gradle.startParameter.taskNames.map { it.lowercase() }
+fun anyTaskMatches(vararg regexes: Regex) =
+    tasks.any { t -> regexes.any { r -> r.containsMatchIn(t) } }
+// assemble/bundle/install/connectedAndroidTest 등 일반적인 작업명의 Dev/Prod 변형만 허용
+val buildingDev = anyTaskMatches(
+    Regex("""(?<![a-z])assembledev(debug|release)"""),
+    Regex("""(?<![a-z])bundledev(debug|release)"""),
+    Regex("""(?<![a-z])installdev(debug|release)"""),
+    Regex("""connecteddevdebugandroidtest""")
+)
+val buildingProd = anyTaskMatches(
+    Regex("""(?<![a-z])assembleprod(debug|release)"""),
+    Regex("""(?<![a-z])bundleprod(debug|release)"""),
+    Regex("""(?<![a-z])installprod(debug|release)"""),
+    Regex("""connectedproddebugandroidtest""")
+)
+
+if (buildingDev) {
+    if (devNative.isBlank())  missing += "dev: KAKAO_NATIVE_APP_KEY"
+    if (devRest.isBlank())    missing += "dev: KAKAO_REST_API_KEY"
+    if (devCharger.isBlank()) missing += "dev: EV_CHARGER_API_KEY"
+}
+if (buildingProd) {
+    if (prodNative.isBlank())  missing += "prod: KAKAO_NATIVE_APP_KEY"
+    if (prodRest.isBlank())    missing += "prod: KAKAO_REST_API_KEY"
+    if (prodCharger.isBlank()) missing += "prod: EV_CHARGER_API_KEY"
+}
+
+if (missing.isNotEmpty()) {
+    throw GradleException("Missing secrets for requested flavors: ${missing.joinToString()}")
+}
+if (!buildingDev && !buildingProd) {
+    logger.lifecycle("Note: No specific flavor task detected; skipping strict secret validation.")
+}
 
 android {
     namespace = "com.jeju.evtravel"
@@ -42,14 +102,12 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // BuildConfig 로 노출 (네트워크 전송/로그에 찍지 않도록 주의)
-        buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"$kakaoNativeKey\"")
-        buildConfigField("String", "KAKAO_REST_API_KEY", "\"$kakaoRestKey\"")
 
         // Kakao Map meta-data placeholder (Manifest에서 참조)
         manifestPlaceholders["KAKAO_MAP_KEY"] = kakaoNativeKey
         manifestPlaceholders["KAKAO_NATIVE_APP_KEY"] = kakaoNativeKey
-
+        // IDE/툴링 호환을 위한 기본값
+        manifestPlaceholders["USES_CLEARTEXT"] = false
     }
 
     buildFeatures {
@@ -58,17 +116,51 @@ android {
     }
 
     buildTypes {
-        release {
-            isMinifyEnabled = false
+        getByName("release") {
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
-        debug {
+        getByName("debug") {
             // 필요하면 debug 전용 설정 추가
         }
     }
+
+    flavorDimensions += "env"
+    productFlavors {
+        create("dev") {
+            manifestPlaceholders["USES_CLEARTEXT"] = true
+            dimension = "env"
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+            resValue("string", "app_name", "EVTravel Dev")
+            // Manifest placeholder override (dev)
+            manifestPlaceholders["KAKAO_NATIVE_APP_KEY"] = devNative
+            manifestPlaceholders["KAKAO_MAP_KEY"]        = devNative
+
+            // BuildConfig 로 노출 (dev)
+            buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"$devNative\"")
+            buildConfigField("String", "KAKAO_REST_API_KEY", "\"$devRest\"")
+            buildConfigField("String", "EV_CHARGER_API_KEY", "\"$devCharger\"")
+        }
+        create("prod") {
+            manifestPlaceholders["USES_CLEARTEXT"] = false
+            dimension = "env"
+            // Manifest placeholder override (prod)
+            manifestPlaceholders["KAKAO_NATIVE_APP_KEY"] = prodNative
+            manifestPlaceholders["KAKAO_MAP_KEY"]        = prodNative
+
+            // BuildConfig 로 노출 (prod)
+            buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"$prodNative\"")
+            buildConfigField("String", "KAKAO_REST_API_KEY", "\"$prodRest\"")
+            buildConfigField("String", "EV_CHARGER_API_KEY", "\"$prodCharger\"")
+        }
+    }
+
+
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

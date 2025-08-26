@@ -13,9 +13,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
@@ -24,11 +26,13 @@ import com.google.android.gms.location.LocationServices
 import com.google.firebase.auth.FirebaseAuth
 import com.jeju.evtravel.data.service.GuestLoginService
 import com.jeju.evtravel.navigation.BottomNavigationBar
-import com.jeju.evtravel.ui.detail.PlaceDetailScreen
 import com.jeju.evtravel.ui.map.KakaoMapScreen
+import com.jeju.evtravel.ui.map.MapViewModel
 import com.jeju.evtravel.ui.mypage.*
 import com.jeju.evtravel.ui.onboarding.OnboardingScreen
 import com.jeju.evtravel.ui.planner.*
+import com.jeju.evtravel.ui.search.SearchScreen
+import com.jeju.evtravel.ui.search.SearchViewModel
 import com.jeju.evtravel.ui.splash.SplashScreen
 import com.jeju.evtravel.viewmodel.SavedPlaceScreen
 import com.kakao.vectormap.utils.MapUtils
@@ -40,7 +44,9 @@ class MainActivity : ComponentActivity() {
     private val plannerViewModel by viewModels<PlannerViewModel>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        Log.d("KeyHash", MapUtils.getHashKey(this))
+        if (BuildConfig.DEBUG) {
+            Log.d("KeyHash", MapUtils.getHashKey(this))
+        }
 
         super.onCreate(savedInstanceState)
 
@@ -67,6 +73,7 @@ fun MainScreen(
     plannerViewModel: PlannerViewModel
 ) {
     val navController = rememberNavController()
+    val mapViewModel: MapViewModel = hiltViewModel()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
@@ -138,7 +145,19 @@ fun MainScreen(
                 composable("map") {
                     KakaoMapScreen(
                         fusedLocationClient = fusedLocationClient,
+                        viewModel = mapViewModel,
                         navController = navController
+                    )
+                }
+
+                // 검색 탭: 지도 화면 검색바 -> 검색 화면
+                composable(route = "search") {
+                    val searchViewModel: SearchViewModel = hiltViewModel()
+                    SearchScreen(
+                        fusedLocationClient = fusedLocationClient,
+                        navController = navController,
+                        mapViewModel = mapViewModel,
+                        viewModel = searchViewModel,
                     )
                 }
 
@@ -162,13 +181,6 @@ fun MainScreen(
                 // 저장된 코스
                 composable("saved_courses") {
                     SavedCourseScreen(navController = navController)
-                }
-
-                // 장소 상세 화면
-                composable("place_detail/{placeId}") { backStackEntry ->
-                    val placeId =
-                        backStackEntry.arguments?.getString("placeId") ?: return@composable
-                    PlaceDetailScreen(placeId)
                 }
 
                 // 플래너 탭의 분기점 역할. UI 없음.

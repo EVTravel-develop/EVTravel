@@ -21,5 +21,7 @@ data class Place(
     val longitude: Double, // x
     val latitude: Double, // y
     val url: String?, // place_url
-    val distanceMeters: Int? // distance
+    val distanceMeters: Int?, // distance
+
+    var chargerList: List<ChargerInfo> = emptyList()
 )

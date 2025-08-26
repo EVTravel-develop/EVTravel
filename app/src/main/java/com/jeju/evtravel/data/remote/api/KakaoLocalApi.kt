@@ -11,11 +11,11 @@ interface KakaoLocalApi {
     suspend fun searchKeyword(
         @Header("Authorization") authorization: String, // "KakaoAK {REST_API_KEY}"
         @Query("query") query: String,
-        @Query("x") x: Double,  // longitude
-        @Query("y") y: Double,  // latitude
+        @Query("x") x: Double?,  // longitude
+        @Query("y") y: Double?,  // latitude
         @Query("radius") radius: Int? = null, // 0~20000
-        @Query("page") page: Int = 1,
-        @Query("size") size: Int = 15,
+        @Query("page") page: Int? = null,
+        @Query("size") size: Int? = null,
         @Query("sort") sort: String = "distance"   // distance | accuracy
     ): PlaceSearchResponseDto
 
@@ -23,9 +23,9 @@ interface KakaoLocalApi {
     suspend fun searchChargers(
         @Header("Authorization") authorization: String,
         @Query("query") query: String = "전기차 충전소",
-        @Query("x") x: Double,
-        @Query("y") y: Double,
-        @Query("radius") radius: Int = 500,
+        @Query("x") x: Double?,
+        @Query("y") y: Double?,
+        @Query("radius") radius: Int? = 500,
         @Query("sort") sort: String = "distance"
     ): PlaceSearchResponseDto
 }

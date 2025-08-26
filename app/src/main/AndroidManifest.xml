@@ -10,7 +10,7 @@
 
     <application
         android:name=".EvTravelApp"
-        android:usesCleartextTraffic="true"
+        android:usesCleartextTraffic="${USES_CLEARTEXT}"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -20,11 +20,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.EVTravel"
         tools:targetApi="31">
-
-        <!-- ✅ Kakao 로그인 SDK (네이티브 앱 키) -->
-        <meta-data
-            android:name="com.kakao.sdk.AppKey"
-            android:value="${KAKAO_NATIVE_APP_KEY}" />
 
         <!-- ✅ Kakao 지도 SDK (지도용 키) -->
         <meta-data
@@ -50,14 +45,14 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:label="EVTravel"
+            android:label="@string/app_name"
             android:theme="@style/Theme.EVTravel">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-          
+
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />

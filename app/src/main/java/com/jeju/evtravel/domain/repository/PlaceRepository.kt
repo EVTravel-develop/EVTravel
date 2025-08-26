@@ -21,11 +21,10 @@ interface PlaceRepository {
      */
     suspend fun searchNearbyPlaces(
         query: String,
-        x: Double,
-        y: Double,
+        x: Double?,
+        y: Double?,
         radius: Int? = null,
-        page: Int = 1,
-        size: Int = 15,
-        sort: String = "distance"
+        page: Int? = 1,
+        size: Int? = 15
     ): List<Place>
 }
