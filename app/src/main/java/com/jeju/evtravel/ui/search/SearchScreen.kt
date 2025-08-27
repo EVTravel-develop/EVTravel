@@ -29,8 +29,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
+import androidx.compose.material3.DividerDefaults.Thickness
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -68,6 +70,7 @@ import com.kakao.vectormap.LatLng
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 import com.jeju.evtravel.ui.map.MapViewModel
+import com.jeju.evtravel.ui.theme.Variables
 
 /**
  * 검색 화면 Composable 함수.
@@ -135,7 +138,7 @@ fun SearchScreen(
             // 뒤로가기 버튼
             Box(
                 modifier = Modifier
-                    .padding(start = 24.dp, top = 22.dp)
+                    .padding(start = 12.dp, top = 22.dp)
                     .size(22.dp)
                     .clickable { navController.navigateUp() },
                 contentAlignment = Alignment.Center
@@ -152,7 +155,7 @@ fun SearchScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 62.dp, end = 24.dp) // 뒤로가기 여백 고려
+                    .padding(start = 45.dp, end = 24.dp) // 뒤로가기 여백 고려
                     .offset(y = 7.dp)                  // 수직 정렬 맞춤
                     .shadow(
                         elevation = 6.dp,
@@ -238,7 +241,7 @@ fun SearchScreen(
                             contentDescription = "지우기",
                             tint = Color(0xFF949494),
                             modifier = Modifier
-                                .size(20.dp)
+                                .size(17.dp)
                                 .clickable {
                                     viewModel.updateQuery("")
                                     viewModel.forceSearch() // 지울 때 즉시 재검색 원하면 유지
@@ -252,25 +255,56 @@ fun SearchScreen(
         Spacer(Modifier.height(10.dp))
 
         // 장소 / 충전소 토글
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier
+                .padding(horizontal = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             FilterChip(
                 selected = type == SearchType.PLACE,
                 onClick = { viewModel.setType(SearchType.PLACE) },
                 label = { Text("장소") },
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.height(34.dp)
+                shape = RoundedCornerShape(5.dp),
+                modifier = Modifier.height(34.dp),
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = Color(0xFFF1F1F1),
+                    selectedContainerColor = Variables.Blue700,
+                    selectedLabelColor = Color.White,
+                    labelColor = Variables.Grayscale300
+                ),
+                border = FilterChipDefaults.filterChipBorder(
+                    enabled = true,
+                    selected = true,
+                    borderColor = Color.Transparent,
+                    selectedBorderColor = Color.Transparent
+                )
             )
             Spacer(Modifier.width(8.dp))
             FilterChip(
                 selected = type == SearchType.CHARGER,
                 onClick = { viewModel.setType(SearchType.CHARGER) },
                 label = { Text("충전소") },
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.height(34.dp)
+                shape = RoundedCornerShape(5.dp),
+                modifier = Modifier.height(34.dp),
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = Color(0xFFF1F1F1),
+                    selectedContainerColor = Variables.Blue700,
+                    selectedLabelColor = Color.White,
+                    labelColor = Variables.Grayscale300
+                ),
+                border = FilterChipDefaults.filterChipBorder(
+                    enabled = true,
+                    selected = true,
+                    borderColor = Color.Transparent,
+                    selectedBorderColor = Color.Transparent
+                )
             )
         }
 
-        Divider(Modifier.padding(top = 8.dp))
+        Divider(
+            modifier = Modifier.padding(top = 12.dp),
+            color = Color(0xFFD9D9D9)
+        )
 
         // 결과 리스트
         when (val s = uiState) {
@@ -291,10 +325,14 @@ fun SearchScreen(
                     contentPadding = PaddingValues(vertical = 8.dp)
                 ) {
                     items(s.items, key = { it.id }) { place ->
-                        PlaceRow(place = place) {
-                            mapViewModel.focusAndSelect(place)
-                            navController.popBackStack()
-                        }
+                        PlaceRow(
+                            place = place,
+                            query = query,
+                            onClick = {
+                                mapViewModel.focusAndSelect(place)
+                                navController.popBackStack()
+                            }
+                        )
                     }
                 }
             }
