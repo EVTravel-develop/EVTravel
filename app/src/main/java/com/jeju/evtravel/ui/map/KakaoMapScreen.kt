@@ -1,8 +1,16 @@
 package com.jeju.evtravel.ui.map
 
+import android.content.Intent
+import android.location.LocationManager
+import android.net.Uri
+import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,18 +21,27 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
@@ -43,8 +60,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -52,6 +75,8 @@ import com.jeju.evtravel.R
 import com.jeju.evtravel.domain.model.Place
 import com.jeju.evtravel.ui.detail.PlaceChargerDetailScreen
 import com.jeju.evtravel.ui.search.ClickableSearchBar
+import com.jeju.evtravel.ui.theme.Variables
+import com.kakao.vectormap.GestureType
 import com.kakao.vectormap.KakaoMap
 import com.kakao.vectormap.LatLng
 import com.kakao.vectormap.camera.CameraAnimation
@@ -63,36 +88,15 @@ import com.kakao.vectormap.label.LabelStyle
 import com.kakao.vectormap.label.LabelStyles
 import com.kakao.vectormap.label.LabelTextBuilder
 import com.kakao.vectormap.label.LabelTextStyle
-import com.kakao.vectormap.GestureType
 import kotlinx.coroutines.launch
-import android.content.Intent
-import android.location.LocationManager
-import android.net.Uri
-import android.provider.Settings
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MyLocation
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.TextButton
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import com.jeju.evtravel.ui.theme.Variables
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.ui.unit.sp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import kotlin.math.*
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.pow
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 private const val REQUERY_DISTANCE_M = 250.0
-private val DEFAULT_CENTER = LatLng.from(33.4995, 126.5311) // 기본 좌표
+val DEFAULT_LOCATION = LatLng.from(33.4996, 126.5312) // 기본 좌표
 private const val DEFAULT_ZOOM = 15
 
 /**
@@ -771,20 +775,20 @@ private fun fallbackToDefaultCenter(
 
     // 카메라 이동
     kakaoMap?.moveCamera(
-        CameraUpdateFactory.newCenterPosition(DEFAULT_CENTER, DEFAULT_ZOOM)
+        CameraUpdateFactory.newCenterPosition(DEFAULT_LOCATION, DEFAULT_ZOOM)
     )
 
     // 상태 기록
-    viewModel.lastCenter = DEFAULT_CENTER
+    viewModel.lastCenter = DEFAULT_LOCATION
     viewModel.lastZoomLevel = DEFAULT_ZOOM
     viewModel.isMapRestored = false
-    viewModel.markSearched(DEFAULT_CENTER, kakaoMap?.zoomLevel)
+    viewModel.markSearched(DEFAULT_LOCATION, kakaoMap?.zoomLevel)
 
     // 주변 충전소 검색
     viewModel.searchNearby(
         query = "전기차 충전소",
-        longitude = DEFAULT_CENTER.longitude,
-        latitude = DEFAULT_CENTER.latitude,
+        longitude = DEFAULT_LOCATION.longitude,
+        latitude = DEFAULT_LOCATION.latitude,
         radius = searchRadius
     )
 }
