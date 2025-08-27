@@ -48,13 +48,12 @@ fun PlaceRow(
 
     // 🔹 검색어 하이라이트(대소문자 무시, 한글도 그대로 매칭)
     val annotated = buildAnnotatedString {
-        val lowerFull = fullText.lowercase(Locale.getDefault())
-        val lowerQuery = query.lowercase(Locale.getDefault()).trim()
+        val q = query.trim()
 
-        if (lowerQuery.isNotEmpty()) {
+        if (q.isNotEmpty()) {
             var start = 0
             while (start < fullText.length) {
-                val idx = lowerFull.indexOf(lowerQuery, startIndex = start)
+                val idx = fullText.indexOf(q, startIndex = start, ignoreCase = true)
                 if (idx == -1) {
                     append(fullText.substring(start))
                     break
@@ -68,9 +67,9 @@ fun PlaceRow(
                         fontWeight = FontWeight.Medium
                     )
                 ) {
-                    append(fullText.substring(idx, idx + lowerQuery.length))
+                    append(fullText.substring(idx, idx + q.length))
                 }
-                start = idx + lowerQuery.length
+                start = idx + q.length
             }
         } else {
             append(fullText)
