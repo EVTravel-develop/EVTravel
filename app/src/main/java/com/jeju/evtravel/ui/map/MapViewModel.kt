@@ -102,7 +102,7 @@ class MapViewModel @Inject constructor(
     }
 
     /** 상새 중전소 검색 */
-    fun selectPlace(place: Place, onComplete: () -> Unit = {}) {
+    fun selectPlace(place: Place, forceRefresh: Boolean = false, onComplete: () -> Unit = {}) {
         selectJob?.cancel()
         selectJob = viewModelScope.launch {
             try {
@@ -137,7 +137,9 @@ class MapViewModel @Inject constructor(
 
                 val cacheKey = regionCode.zcode to regionCode.zscode
                 val wasCached = chargerCache.containsKey(cacheKey)
-                val chargers = chargerCache.getOrPut(cacheKey) {
+                val chargers = if (forceRefresh) {
+                    // 강제 새로고침: 캐시 지우고 API 호출
+                    chargerCache.remove(cacheKey)
                     runCatching {
                         chargerListRepository.fetchChargers(
                             zcode = regionCode.zcode,
@@ -147,6 +149,20 @@ class MapViewModel @Inject constructor(
                         _selectedPlaceError.value = "충전소 정보를 불러오지 못했습니다."
                         Log.e("MVM_selectPlace", "충전소 API 호출 실패", e)
                     }.getOrElse { emptyList() }
+                        .also { chargerCache[cacheKey] = it } // 최신 데이터로 갱신
+                } else {
+                    // 기본: 캐시 우선
+                    chargerCache.getOrPut(cacheKey) {
+                        runCatching {
+                            chargerListRepository.fetchChargers(
+                                zcode = regionCode.zcode,
+                                zscode = regionCode.zscode
+                            )
+                        }.onFailure { e ->
+                            _selectedPlaceError.value = "충전소 정보를 불러오지 못했습니다."
+                            Log.e("MVM_selectPlace", "충전소 API 호출 실패", e)
+                        }.getOrElse { emptyList() }
+                    }
                 }
 
                 Log.d(
@@ -236,11 +252,13 @@ class MapViewModel @Inject constructor(
     }
 
     /** 상새 중전소 검색 다시시도 */
-    fun fetchCharger(placeId: String) {
+    fun fetchCharger(placeId: String, forceRefresh: Boolean = false) {
+        if (forceRefresh) placeIndex.remove(placeId)
+
         // 마지막 검색/선택 캐시에서 place 찾아서 재요청
         val place = placeIndex[placeId] ?: _selectedPlace.value?.takeIf { it.id == placeId }
         if (place != null) {
-            selectPlace(place)
+            selectPlace(place, forceRefresh = forceRefresh)
         } else {
             Log.w("MapVM", "fetchCharger: place not found for id=$placeId")
         }

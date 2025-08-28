@@ -508,7 +508,7 @@ fun KakaoMapScreen(
                         place = selectedPlace!!,
                         isFullScreen = isFullScreen,
                         isLoading = isDetailLoading,
-                        onRetry = { selectedPlace?.id?.let(viewModel::fetchCharger) },
+                        onRetry = { selectedPlace?.id?.let { viewModel.fetchCharger(it, forceRefresh = true) } },
                         onNavigateClick = { coroutineScope.launch { sheetState.hide() } }
                     )
 
