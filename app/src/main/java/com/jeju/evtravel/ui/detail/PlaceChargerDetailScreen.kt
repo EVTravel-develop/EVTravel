@@ -7,13 +7,16 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,7 +34,10 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,6 +48,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -51,6 +58,9 @@ import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.jeju.evtravel.R
 import com.jeju.evtravel.data.util.mapStatus
 import com.jeju.evtravel.domain.model.Place
@@ -82,11 +92,23 @@ private val RobotoFamily = FontFamily(
     Font(R.font.roboto_bold, FontWeight.Bold)
 )
 
+val BoxTextStyleSmall = TextStyle(
+    fontFamily = RobotoFamily,
+    fontWeight = FontWeight.SemiBold,
+    fontSize = 14.sp,
+    lineHeight = 26.sp,
+    letterSpacing = 0.sp,
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.None
+    )
+)
+
 val BoxTextStyle = TextStyle(
     fontFamily = RobotoFamily,
-    fontWeight = FontWeight.W600,
+    fontWeight = FontWeight.SemiBold,
     fontSize = 16.sp,
-    lineHeight = 26.sp,
+    lineHeight = 24.sp,
     letterSpacing = 0.sp,
     lineHeightStyle = LineHeightStyle(
         alignment = LineHeightStyle.Alignment.Center,
@@ -141,13 +163,22 @@ val UnselectedTabTextStyle = TextStyle(
     )
 )
 
+val CategoryChipTextStyle = TextStyle(
+    fontFamily = RobotoFamily,
+    fontWeight = FontWeight.Normal,
+    fontSize = 13.sp,
+    lineHeight = 24.sp,
+    letterSpacing = 0.0125.em
+)
+
 @Composable
 fun PlaceChargerDetailScreen(
     place: Place,
     isFullScreen: Boolean = false,  // 전체화면
     isLoading: Boolean = false,     // 로딩
-    onRetry: () -> Unit = {},       // 새로고침/다시 시도
-    onNavigateClick: () -> Unit
+    onRetry: () -> Unit,       // 새로고침/다시 시도
+    onNavigateClick: () -> Unit,
+    nearbyVm: NearbyPlaceViewModel = hiltViewModel()
 ) {
     val chargers = place.chargerList ?: emptyList()
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
@@ -185,10 +216,12 @@ fun PlaceChargerDetailScreen(
                 return@Column
             }
 
-            fun isCharging(code: String?) = code == "3" || (code?.equals("CHARGING", ignoreCase = true)==true)
+            fun isCharging(code: String?) =
+                code == "3" || (code?.equals("CHARGING", ignoreCase = true) == true)
 
             // 속도별 그룹핑
-            val slow = chargers.filter { it.output.toDoubleOrNull()?.let { out -> out < 50 } == true }
+            val slow =
+                chargers.filter { it.output.toDoubleOrNull()?.let { out -> out < 50 } == true }
             val rapid = chargers.filter {
                 it.output.toDoubleOrNull()?.let { out -> out in 50.0..199.9 } == true
             }
@@ -255,6 +288,21 @@ fun PlaceChargerDetailScreen(
             // 탭
             var tabIndex by remember { mutableStateOf(0) }
             val tabs = listOf("추천 코스", "장소")
+
+            // ViewModel 상태 구독
+            val uiState = nearbyVm.state.collectAsState().value
+
+            // "장소" 탭에 진입할 때 TourAPI 조회
+            LaunchedEffect(
+                tabIndex,
+                place.longitude,
+                place.latitude
+            ) {
+                if (tabIndex == 1) {
+                    nearbyVm.selectTourPlace(place)
+                }
+            }
+
             TabRow(
                 selectedTabIndex = tabIndex,
                 indicator = { tabPositions ->
@@ -316,25 +364,9 @@ fun PlaceChargerDetailScreen(
                     }
                 } else {
                     // [장소] — 카테고리 칩 + 2열 카드 그리드
-                    var selectedCat by remember { mutableStateOf("자연환경") }
                     val categories = listOf("자연환경", "맛집", "카페", "박물관")
 
                     Spacer(Modifier.height(12.dp))
-
-                    val places = listOf(
-                        PlaceCardData(
-                            title = "제주시청 감성 산책 코스",
-                            subtitle = "코스 포인트",
-                            tags = listOf("사진 촬영", "디저트", "가벼운산책"),
-                            imageRes = R.drawable.jeju_place_sample
-                        ),
-                        PlaceCardData(
-                            title = "제주시청 감성 산책 코스",
-                            subtitle = "코스 포인트",
-                            tags = listOf("사진 촬영", "디저트", "가벼운산책"),
-                            imageRes = R.drawable.jeju_place_sample
-                        ),
-                    )
 
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
@@ -343,25 +375,52 @@ fun PlaceChargerDetailScreen(
                         item {
                             CategoryChips(
                                 categories = categories,
-                                selected = selectedCat,
-                                onSelect = { selectedCat = it }
+                                selected = uiState.selectedCategory,
+                                onSelect = { label -> nearbyVm.selectCategory(label) }
                             )
                         }
 
-                        items(places.chunked(2)) { row ->
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                // 왼쪽 카드
-                                Box(Modifier.weight(1f)) { PlaceGridCard(item = row[0]) }
+                        // 상태별 UI
+                        when {
+                            uiState.loading && uiState.items.isEmpty() -> {
+                                item { LoadingCard() }
+                            }
 
-                                // 오른쪽 카드(있으면)
-                                if (row.size > 1) {
-                                    Box(Modifier.weight(1f)) { PlaceGridCard(item = row[1]) }
-                                } else {
-                                    // 홀수 개일 때 균형 맞춤
-                                    Spacer(Modifier.weight(1f))
+                            uiState.error != null && uiState.items.isEmpty() -> {
+                                item {
+                                    EmptyChargerCard(
+                                        title = "주변 장소를 불러오지 못했어요",
+                                        subtitle = "네트워크 상태를 확인해주세요.",
+                                        primaryText = "다시 시도",
+                                        onPrimary = { nearbyVm.selectTourPlace(place) }
+                                    )
+                                }
+                            }
+
+                            uiState.items.isEmpty() -> {
+                                item {
+                                    EmptyChargerCard(
+                                        title = "반경 내 추천 장소가 없어요",
+                                        subtitle = "반경을 넓히거나 다른 카테고리를 선택해보세요.",
+                                        primaryText = "다시 시도",
+                                        onPrimary = { nearbyVm.selectTourPlace(place) }
+                                    )
+                                }
+                            }
+
+                            else -> {
+                                items(uiState.items.chunked(2)) { row ->
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Box(Modifier.weight(1f)) { PlaceGridCard(item = row[0]) } // UiNearbyPlace 버전
+                                        if (row.size > 1) {
+                                            Box(Modifier.weight(1f)) { PlaceGridCard(item = row[1]) }
+                                        } else {
+                                            Spacer(Modifier.weight(1f))
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -398,6 +457,24 @@ private fun LoadingCard() {
 
 @Composable
 private fun ChargerSummaryCard(blocks: List<Block>) {
+    val rapid = blocks.firstOrNull { it.label == "급속" }
+    val slow = blocks.firstOrNull { it.label == "완속" }
+    val ultra = blocks.firstOrNull { it.label == "초급속" }
+
+    // 존재하는 항목만
+    val present = listOfNotNull(rapid, slow, ultra)
+
+    // 상단 표시 쌍 결정
+    val topPair: List<Block> = when (present.size) {
+        3 -> listOfNotNull(rapid, slow)                   // 세 개면 상단은 급속/완속 고정
+        2 -> orderPairForTwo(present)                     // 두 개면 있는 두 개를 상단에
+        1 -> present                                      // 하나면 단독 중앙
+        else -> emptyList()
+    }
+
+    // 하단(초급속) 표시는 "세 개 모두 있는 경우"에만
+    val showUltraBottom = (present.size == 3 && ultra != null)
+
     Card(
         modifier = Modifier
             .fillMaxWidth(),
@@ -406,28 +483,110 @@ private fun ChargerSummaryCard(blocks: List<Block>) {
         ),
         shape = MaterialTheme.shapes.large
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceEvenly
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            blocks.forEach { b ->
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = b.label,
-                        style = BoxTextStyle,
-                        color = Variables.Grayscale600)
-                    // "충전가능 a / t"
-                    Text(
-                        text = "${mapStatus("2")} ${b.available} / ${b.total}",
-                        style = BoxTextStyle,
-                        color = Variables.Blue700
-                    )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // ───── 상단 영역 ─────
+                when (topPair.size) {
+                    2 -> {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(IntrinsicSize.Min)
+                                .padding(vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            SummaryColumn(topPair[0], Modifier.weight(1f))
+
+                            // 가운데 세로 라인 (세로 중앙 정렬)
+                            VerticalDivider(
+                                modifier = Modifier
+                                    .fillMaxHeight()                  // ← 이제 Row의 “내용 높이”만큼
+                                    .padding(horizontal = 12.dp),
+                                thickness = 0.5.dp,
+                                color = Color(0xFFDBDBDB)
+                            )
+
+                            SummaryColumn(topPair[1], Modifier.weight(1f))
+                        }
+                    }
+
+                    1 -> {
+                        // 단독 중앙
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            SummaryColumn(topPair[0])
+                        }
+                    }
+
+                    else -> { /* nothing */
+                    }
+                }
+
+                // ───── 하단(초급속) 중앙 배치: 세 개 모두 있을 때만 ─────
+                if (showUltraBottom) {
+                    Spacer(Modifier.height(6.dp))
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = ultra!!.label, // "초급속"
+                            style = BoxTextStyle.copy(
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.W500
+                            ),
+                            color = Variables.Grayscale600
+                        )
+                        Text(
+                            text = "${mapStatus("2")} ${ultra.available} / ${ultra.total}",
+                            style = BoxTextStyle.copy(fontSize = 12.sp),
+                            color = Variables.Blue700
+                        )
+                    }
                 }
             }
         }
+    }
+}
+
+/**
+ * 두 개만 있을 때의 상단 좌/우 배치 규칙:
+ * - (급속, 완속) -> [급속, 완속]
+ * - (급속, 초급속) -> [급속, 초급속]   // 초급속은 오른쪽
+ * - (완속, 초급속) -> [완속, 초급속]   // 초급속은 오른쪽
+ */
+private fun orderPairForTwo(present: List<Block>): List<Block> {
+    val names = present.map { it.label }.toSet()
+    val map = present.associateBy { it.label }
+    return when {
+        names.containsAll(setOf("급속", "완속"))   -> listOf(map.getValue("급속"), map.getValue("완속"))
+        names.containsAll(setOf("급속", "초급속")) -> listOf(map.getValue("급속"), map.getValue("초급속"))
+        names.containsAll(setOf("완속", "초급속")) -> listOf(map.getValue("완속"), map.getValue("초급속"))
+        else -> present // 혹시 모를 예외
+    }
+}
+
+@Composable
+private fun SummaryColumn(b: Block, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(text = b.label, style = BoxTextStyle, color = Variables.Grayscale600)
+        Text(
+            text = "${mapStatus("2")} ${b.available} / ${b.total}",
+            style = BoxTextStyle,
+            color = Variables.Blue700
+        )
     }
 }
 
@@ -555,7 +714,7 @@ private fun CategoryChips(
                 label = {
                     Text(
                         c,
-                        style = MaterialTheme.typography.labelMedium
+                        style = CategoryChipTextStyle
                     )
                 },
                 colors = FilterChipDefaults.filterChipColors(
@@ -574,14 +733,20 @@ private fun CategoryChips(
 
 // 장소: 2열 카드
 @Composable
-private fun PlaceGridCard(item: PlaceCardData) {
+private fun PlaceGridCard(item: UiNearbyPlace) {
     Card(
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f))
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
+        )
     ) {
         Column {
-            Image(
-                painter = painterResource(id = item.imageRes),
+            val ctx = LocalContext.current
+            AsyncImage(
+                model = ImageRequest.Builder(ctx)
+                    .data(item.imageUrl)      // URL 또는 null
+                    .crossfade(true)
+                    .build(),
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -591,13 +756,15 @@ private fun PlaceGridCard(item: PlaceCardData) {
             Column(modifier = Modifier.padding(12.dp)) {
                 Text(item.title, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
                 Spacer(Modifier.height(4.dp))
-                Text(item.subtitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(6.dp))
-                Text(
-                    text = item.tags.joinToString(", "),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                if (item.tags.isNotEmpty()) {
+                    Text(
+                        text = item.tags.joinToString(", "),
+                        style = MaterialTheme.typography.labelSmall, // ← 오타 주의!
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
+                    )
+                }
             }
         }
     }

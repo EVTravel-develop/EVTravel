@@ -15,8 +15,7 @@ interface KakaoLocalApi {
         @Query("y") y: Double?,  // latitude
         @Query("radius") radius: Int? = null, // 0~20000
         @Query("page") page: Int? = null,
-        @Query("size") size: Int? = null,
-        @Query("sort") sort: String = "distance"   // distance | accuracy
+        @Query("size") size: Int? = null
     ): PlaceSearchResponseDto
 
     @GET("/v2/local/search/keyword.json")
@@ -25,7 +24,8 @@ interface KakaoLocalApi {
         @Query("query") query: String = "전기차 충전소",
         @Query("x") x: Double?,
         @Query("y") y: Double?,
-        @Query("radius") radius: Int? = 500,
-        @Query("sort") sort: String = "distance"
+        @Query("radius") radius: Int? = null,
+        @Query("page") page: Int? = null,
+        @Query("size") size: Int? = null
     ): PlaceSearchResponseDto
 }
