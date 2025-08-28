@@ -488,70 +488,59 @@ private fun ChargerSummaryCard(blocks: List<Block>) {
                 .fillMaxWidth()
                 .padding(vertical = 14.dp),
             horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // ───── 상단 영역 ─────
-                when (topPair.size) {
-                    2 -> {
-                        Row(
+        ) {// ───── 상단 영역 ─────
+            when (topPair.size) {
+                2 -> {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Min)     // divider가 내용 높이에 맞게
+                            .padding(vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        SummaryColumn(topPair[0], Modifier.weight(1f))
+
+                        // 가운데 세로 라인 (세로 중앙 정렬)
+                        VerticalDivider(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .height(IntrinsicSize.Min)
-                                .padding(vertical = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            SummaryColumn(topPair[0], Modifier.weight(1f))
+                                .fillMaxHeight()                  // Row의 “내용 높이”만큼
+                                .padding(horizontal = 12.dp),
+                            thickness = 0.5.dp,
+                            color = Color(0xFFDBDBDB)
+                        )
 
-                            // 가운데 세로 라인 (세로 중앙 정렬)
-                            VerticalDivider(
-                                modifier = Modifier
-                                    .fillMaxHeight()                  // ← 이제 Row의 “내용 높이”만큼
-                                    .padding(horizontal = 12.dp),
-                                thickness = 0.5.dp,
-                                color = Color(0xFFDBDBDB)
-                            )
-
-                            SummaryColumn(topPair[1], Modifier.weight(1f))
-                        }
-                    }
-
-                    1 -> {
-                        // 단독 중앙
-                        Box(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            SummaryColumn(topPair[0])
-                        }
-                    }
-
-                    else -> { /* nothing */
+                        SummaryColumn(topPair[1], Modifier.weight(1f))
                     }
                 }
-
-                // ───── 하단(초급속) 중앙 배치: 세 개 모두 있을 때만 ─────
-                if (showUltraBottom) {
-                    Spacer(Modifier.height(6.dp))
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = ultra!!.label, // "초급속"
-                            style = BoxTextStyle.copy(
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.W500
-                            ),
-                            color = Variables.Grayscale600
-                        )
-                        Text(
-                            text = "${mapStatus("2")} ${ultra.available} / ${ultra.total}",
-                            style = BoxTextStyle.copy(fontSize = 12.sp),
-                            color = Variables.Blue700
-                        )
+                1 -> {
+                    // 단독 중앙
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        SummaryColumn(topPair[0])
                     }
+                }
+                else -> { /* nothing */ }
+            }
+
+            // ───── 하단(초급속) 중앙 배치: 세 개 모두 있을 때만 ─────
+            if (showUltraBottom) {
+                Spacer(Modifier.height(6.dp))
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = ultra!!.label, // "초급속"
+                        style = BoxTextStyle.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.W500
+                        ),
+                        color = Variables.Grayscale600
+                    )
+                    Text(
+                        text = "${mapStatus("2")} ${ultra.available} / ${ultra.total}",
+                        style = BoxTextStyle.copy(fontSize = 12.sp),
+                        color = Variables.Blue700
+                    )
                 }
             }
         }
