@@ -1,5 +1,6 @@
 package com.jeju.evtravel.ui.planner
 
+import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -51,6 +52,7 @@ fun PlanListScreen(
     onCreatePlanClick: () -> Unit,  // "플랜 생성" 버튼 클릭 시 동작 (CalendarScreen으로 이동)
     onPlanClick: (PlanDto) -> Unit // EditPlanScreen으로 이동하는 콜백
 ) {
+    val TAG = "PlannerDebug"
     val plans by viewModel.plans.collectAsState()
     val plansList = plans ?: emptyList()
     
@@ -218,6 +220,7 @@ fun PlanListScreen(
             PlanItemBottomSheetContent(
                 onEditClick = {
                     selectedPlanForMenu?.let { plan ->
+                        Log.d(TAG, "PlanListScreen: 'Edit' clicked for planId '${plan.id}'. Calling onPlanClick.")
                         onPlanClick(plan)
                     }
                     scope.launch { editDeleteSheetState.hide() }.invokeOnCompletion {
