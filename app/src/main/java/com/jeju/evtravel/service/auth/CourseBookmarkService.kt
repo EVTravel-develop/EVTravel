@@ -19,7 +19,6 @@ class CourseBookmarkService(
             id = docId,
             uid = uid,
             course_id = courseId,
-            createdAt = Timestamp.now()
         )
         return try {
             collection.document(docId).set(bookmark).await()
@@ -58,7 +57,6 @@ class CourseBookmarkService(
     ): Pair<List<CourseBookmark>, DocumentSnapshot?> {
         var query = collection
             .whereEqualTo("uid", uid)
-            .orderBy("createdAt", Query.Direction.DESCENDING)
             .limit(limit)
 
         if (lastSnapshot != null) {
