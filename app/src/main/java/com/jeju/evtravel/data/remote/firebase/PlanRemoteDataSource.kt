@@ -51,6 +51,23 @@ class PlanRemoteDataSource(
             emptyList()
         }
     }
+    
+    /**
+     * 기존 플랜을 Firestore에서 업데이트하는 메서드
+     *
+     * @param plan 업데이트할 플랜 데이터
+     */
+    suspend fun updatePlan(plan: PlanDto) {
+        val planId = plan.id.ifEmpty { throw IllegalArgumentException("업데이트할 Plan의 ID가 없습니다.") }
+        
+        // 수정 시간을 현재 시간으로 설정
+        val planWithTimestamp = plan.copy(updatedAt = Timestamp.now())
+        
+        // Firestore의 'plans' 컬렉션에서 해당 ID의 문서를 찾아 데이터 덮어쓰기
+        db.collection("plans").document(planId)
+            .set(planWithTimestamp)
+            .await()
+    }
 
     /**
      * 특정 플랜을 Firestore에서 삭제하는 메서드

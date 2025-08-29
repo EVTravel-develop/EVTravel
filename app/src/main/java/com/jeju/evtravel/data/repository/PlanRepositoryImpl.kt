@@ -48,4 +48,14 @@ class PlanRepositoryImpl(
     suspend fun deletePlan(planId: String) {
         remote.deletePlan(planId)
     }
+    
+    /**
+     * 플랜을 업데이트하는 메서드
+     * 원격 데이터 소스를 통해 플랜을 업데이트합니다.
+     *
+     * @param plan 업데이트할 플랜 데이터 (PlanDto)
+     */
+    suspend fun updatePlan(plan: PlanDto) {
+        remote.updatePlan(plan)
+    }
 }
