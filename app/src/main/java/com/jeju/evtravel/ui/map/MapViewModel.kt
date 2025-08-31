@@ -337,7 +337,7 @@ class MapViewModel @Inject constructor(
 
         // 주변 재검색
         searchNearby(
-            query = "전기차 충전소",
+            query = "제주 전기차 충전소",
             longitude = place.longitude,
             latitude = place.latitude,
             radius = radius

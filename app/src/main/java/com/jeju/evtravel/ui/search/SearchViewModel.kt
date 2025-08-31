@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jeju.evtravel.domain.model.Place
 import com.jeju.evtravel.domain.usecase.SearchNearbyPlacesUseCase
+import com.jeju.evtravel.ui.map.DEFAULT_CENTER
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -54,8 +55,8 @@ class SearchViewModel @Inject constructor(
         val base = raw.trim().replace("\\s+".toRegex(), " ")
         return when (t) {
             SearchType.PLACE ->
-                if (base.isBlank()) "전기차 충전소" else base
-            SearchType.CHARGER -> listOf(base, "전기차 충전소")
+                if (base.isBlank()) "제주 전기차 충전소" else base
+            SearchType.CHARGER -> listOf(base, "제주 전기차 충전소")
                 .filter { it.isNotBlank() }.joinToString(" ")
         }
     }
@@ -99,8 +100,8 @@ class SearchViewModel @Inject constructor(
                             val loc = params.loc
                             searchNearbyPlacesUseCase(
                                 query = params.query,
-                                x = 0.0,
-                                y = 0.0,
+                                x = DEFAULT_CENTER.longitude,
+                                y = DEFAULT_CENTER.latitude,
                                 radius = loc?.let{params.radius}
                             )
                         }

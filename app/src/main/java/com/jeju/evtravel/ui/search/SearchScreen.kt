@@ -29,7 +29,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
-import androidx.compose.material3.DividerDefaults.Thickness
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -62,15 +61,15 @@ import com.google.accompanist.permissions.MultiplePermissionsState
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.jeju.evtravel.R
+import com.jeju.evtravel.ui.map.MapViewModel
 import com.jeju.evtravel.ui.map.getCurrentLocation
 import com.jeju.evtravel.ui.search.SearchViewModel.SearchType
 import com.jeju.evtravel.ui.search.SearchViewModel.SearchUiState
 import com.jeju.evtravel.ui.search.comp.PlaceRow
+import com.jeju.evtravel.ui.theme.Variables
 import com.kakao.vectormap.LatLng
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
-import com.jeju.evtravel.ui.map.MapViewModel
-import com.jeju.evtravel.ui.theme.Variables
 
 /**
  * 검색 화면 Composable 함수.

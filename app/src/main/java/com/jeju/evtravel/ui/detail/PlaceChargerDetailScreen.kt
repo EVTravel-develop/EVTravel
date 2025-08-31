@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -87,12 +88,7 @@ private data class PlaceCardData(
     val imageRes: Int
 )
 
-private val RobotoFamily = FontFamily(
-    Font(R.font.roboto_regular, FontWeight.Normal),
-    Font(R.font.roboto_bold, FontWeight.Bold)
-)
-
-val BoxTextStyleSmall = TextStyle(
+private val BoxTextStyleSmall = TextStyle(
     fontFamily = RobotoFamily,
     fontWeight = FontWeight.SemiBold,
     fontSize = 14.sp,
@@ -104,7 +100,7 @@ val BoxTextStyleSmall = TextStyle(
     )
 )
 
-val BoxTextStyle = TextStyle(
+private val BoxTextStyle = TextStyle(
     fontFamily = RobotoFamily,
     fontWeight = FontWeight.SemiBold,
     fontSize = 16.sp,
@@ -116,7 +112,7 @@ val BoxTextStyle = TextStyle(
     )
 )
 
-val TitleTextStyle = TextStyle(
+private val TitleTextStyle = TextStyle(
     fontFamily = RobotoFamily,
     fontWeight = FontWeight.Bold,
     fontSize = 18.sp,
@@ -127,7 +123,7 @@ val TitleTextStyle = TextStyle(
         trim = LineHeightStyle.Trim.None
     )
 )
-val SubtitleTextStyle = TextStyle(
+private val SubtitleTextStyle = TextStyle(
     fontFamily = RobotoFamily,
     fontWeight = FontWeight.Medium,
     fontSize = 16.sp,
@@ -139,7 +135,7 @@ val SubtitleTextStyle = TextStyle(
     )
 )
 
-val SelectedTabTextStyle = TextStyle(
+private val SelectedTabTextStyle = TextStyle(
     fontFamily = RobotoFamily,
     fontWeight = FontWeight.Bold,   // 700
     fontSize = 16.sp,
@@ -151,7 +147,7 @@ val SelectedTabTextStyle = TextStyle(
     )
 )
 
-val UnselectedTabTextStyle = TextStyle(
+private val UnselectedTabTextStyle = TextStyle(
     fontFamily = RobotoFamily,
     fontWeight = FontWeight.Normal, // 400
     fontSize = 16.sp,
@@ -163,7 +159,7 @@ val UnselectedTabTextStyle = TextStyle(
     )
 )
 
-val CategoryChipTextStyle = TextStyle(
+private val CategoryChipTextStyle = TextStyle(
     fontFamily = RobotoFamily,
     fontWeight = FontWeight.Normal,
     fontSize = 13.sp,
@@ -178,6 +174,7 @@ fun PlaceChargerDetailScreen(
     isLoading: Boolean = false,     // 로딩
     onRetry: () -> Unit,       // 새로고침/다시 시도
     onNavigateClick: () -> Unit,
+    onPlaceClick: (UiNearbyPlace) -> Unit = {},
     nearbyVm: NearbyPlaceViewModel = hiltViewModel()
 ) {
     val chargers = place.chargerList ?: emptyList()
@@ -356,7 +353,7 @@ fun PlaceChargerDetailScreen(
                     )
                     LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.fillMaxSize()  // ★ 이 영역 안에서 스크롤
+                        modifier = Modifier.fillMaxSize()  // 이 영역 안에서 스크롤
                     ) {
                         items(courses) { c ->
                             WideOverlayCourseCard(item = c)
@@ -414,9 +411,13 @@ fun PlaceChargerDetailScreen(
                                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        Box(Modifier.weight(1f)) { PlaceGridCard(item = row[0]) } // UiNearbyPlace 버전
+                                        Box(Modifier.weight(1f)) {
+                                            PlaceGridCard(item = row[0], onClick = onPlaceClick)
+                                        }
                                         if (row.size > 1) {
-                                            Box(Modifier.weight(1f)) { PlaceGridCard(item = row[1]) }
+                                            Box(Modifier.weight(1f)) {
+                                                PlaceGridCard(item = row[1], onClick = onPlaceClick)
+                                            }
                                         } else {
                                             Spacer(Modifier.weight(1f))
                                         }
@@ -456,7 +457,9 @@ private fun LoadingCard() {
 }
 
 @Composable
-private fun ChargerSummaryCard(blocks: List<Block>) {
+private fun ChargerSummaryCard(
+    blocks: List<Block>
+) {
     val rapid = blocks.firstOrNull { it.label == "급속" }
     val slow = blocks.firstOrNull { it.label == "완속" }
     val ultra = blocks.firstOrNull { it.label == "초급속" }
@@ -476,11 +479,8 @@ private fun ChargerSummaryCard(blocks: List<Block>) {
     val showUltraBottom = (present.size == 3 && ultra != null)
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFF9F9F9)
-        ),
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF9F9F9)),
         shape = MaterialTheme.shapes.large
     ) {
         Column(
@@ -488,7 +488,8 @@ private fun ChargerSummaryCard(blocks: List<Block>) {
                 .fillMaxWidth()
                 .padding(vertical = 14.dp),
             horizontalAlignment = Alignment.CenterHorizontally
-        ) {// ───── 상단 영역 ─────
+        ) {
+            // ───── 상단 영역 ─────
             when (topPair.size) {
                 2 -> {
                     Row(
@@ -498,47 +499,51 @@ private fun ChargerSummaryCard(blocks: List<Block>) {
                             .padding(vertical = 14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        SummaryColumn(topPair[0], Modifier.weight(1f))
-
-                        // 가운데 세로 라인 (세로 중앙 정렬)
+                        SummaryColumn(
+                            topPair[0],
+                            Modifier
+                                .weight(1f)
+                        )
                         VerticalDivider(
                             modifier = Modifier
-                                .fillMaxHeight()                  // Row의 “내용 높이”만큼
+                                .fillMaxHeight()
                                 .padding(horizontal = 12.dp),
                             thickness = 0.5.dp,
                             color = Color(0xFFDBDBDB)
                         )
-
-                        SummaryColumn(topPair[1], Modifier.weight(1f))
+                        SummaryColumn(
+                            topPair[1],
+                            Modifier
+                                .weight(1f)
+                        )
                     }
                 }
                 1 -> {
-                    // 단독 중앙
                     Box(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
                         SummaryColumn(topPair[0])
                     }
                 }
-                else -> { /* nothing */ }
+                else -> {}
             }
 
             // ───── 하단(초급속) 중앙 배치: 세 개 모두 있을 때만 ─────
             if (showUltraBottom) {
                 Spacer(Modifier.height(6.dp))
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     Text(
-                        text = ultra!!.label, // "초급속"
-                        style = BoxTextStyle.copy(
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.W500
-                        ),
+                        text = ultra!!.label,
+                        style = BoxTextStyleSmall,
                         color = Variables.Grayscale600
                     )
                     Text(
                         text = "${mapStatus("2")} ${ultra.available} / ${ultra.total}",
-                        style = BoxTextStyle.copy(fontSize = 12.sp),
+                        style = BoxTextStyle,
                         color = Variables.Blue700
                     )
                 }
@@ -570,7 +575,7 @@ private fun SummaryColumn(b: Block, modifier: Modifier = Modifier) {
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = b.label, style = BoxTextStyle, color = Variables.Grayscale600)
+        Text(text = b.label, style = BoxTextStyleSmall, color = Variables.Grayscale600)
         Text(
             text = "${mapStatus("2")} ${b.available} / ${b.total}",
             style = BoxTextStyle,
@@ -722,12 +727,16 @@ private fun CategoryChips(
 
 // 장소: 2열 카드
 @Composable
-private fun PlaceGridCard(item: UiNearbyPlace) {
+private fun PlaceGridCard(
+    item: UiNearbyPlace,
+    onClick: (UiNearbyPlace) -> Unit
+) {
     Card(
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
-        )
+        ),
+        modifier = Modifier.clickable { onClick(item) }
     ) {
         Column {
             val ctx = LocalContext.current
@@ -746,10 +755,10 @@ private fun PlaceGridCard(item: UiNearbyPlace) {
                 Text(item.title, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
                 Spacer(Modifier.height(4.dp))
                 Spacer(Modifier.height(6.dp))
-                if (item.tags.isNotEmpty()) {
+                if (item.tags != null) {
                     Text(
-                        text = item.tags.joinToString(", "),
-                        style = MaterialTheme.typography.labelSmall, // ← 오타 주의!
+                        text = item.tags,
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1
                     )

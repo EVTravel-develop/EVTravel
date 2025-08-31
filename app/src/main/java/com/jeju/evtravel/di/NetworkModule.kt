@@ -5,11 +5,14 @@ import com.jeju.evtravel.data.remote.api.ChargerApi
 import com.jeju.evtravel.data.remote.api.KakaoLocalApi
 import com.jeju.evtravel.data.remote.api.KakaoLocalRegionApi
 import com.jeju.evtravel.data.remote.api.TourApi
+import com.jeju.evtravel.data.remote.api.TourPlaceApi
 import com.jeju.evtravel.data.repository.ChargerRepository as ChargerListRepository
 import com.jeju.evtravel.data.repository.PlaceRepositoryImpl
 import com.jeju.evtravel.data.repository.RegionCodeRepository
+import com.jeju.evtravel.data.repository.TourPlaceDetailRepositoryImpl
 import com.jeju.evtravel.data.repository.TourPlaceRepositoryImpl
 import com.jeju.evtravel.domain.repository.PlaceRepository
+import com.jeju.evtravel.domain.repository.TourPlaceDetailRepository
 import com.jeju.evtravel.domain.repository.TourPlaceRepository
 import com.jeju.evtravel.domain.usecase.SearchNearbyPlacesUseCase
 import dagger.Module
@@ -75,6 +78,11 @@ object NetworkModule {
     fun provideTourApi(@Named("DATA_RETROFIT") retrofit: Retrofit): TourApi =
         retrofit.create(TourApi::class.java)
 
+    // 공공데이터 - Tour Detail
+    @Provides @Singleton
+    fun provideTourDetailApi(@Named("DATA_RETROFIT") retrofit: Retrofit): TourPlaceApi =
+        retrofit.create(TourPlaceApi::class.java)
+
     // API Keys
     @Provides @Singleton @Named("KAKAO_REST_API_KEY")
     fun provideKakaoRestApiKey(): String = BuildConfig.KAKAO_REST_API_KEY
@@ -84,6 +92,10 @@ object NetworkModule {
 
     @Provides @Singleton @Named("Tour_API_KEY")
     fun provideTourApiKey(): String = BuildConfig.EV_CHARGER_API_KEY
+
+    @Provides @Singleton @Named("TourDetail_API_KEY")
+    fun provideTourDetailApiKey(): String = BuildConfig.EV_CHARGER_API_KEY
+
 
     // Place Repository / UseCase
     @Provides @Singleton
@@ -115,4 +127,11 @@ object NetworkModule {
         api: TourApi,
         @Named("Tour_API_KEY") key: String
     ): TourPlaceRepository = TourPlaceRepositoryImpl(api, key)
+
+    // Tour Detail Repository
+    @Provides @Singleton
+    fun provideTourDetailRepository(
+        api: TourPlaceApi,
+        @Named("TourDetail_API_KEY") key: String
+    ): TourPlaceDetailRepository = TourPlaceDetailRepositoryImpl(api, key)
 }
