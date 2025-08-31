@@ -26,6 +26,11 @@
             android:name="com.kakao.vectormap.AppKey"
             android:value="${KAKAO_MAP_KEY}" />
 
+        <!-- ✅ Kakao 로그인/공통 SDK -->
+        <meta-data
+            android:name="com.kakao.sdk.AppKey"
+            android:value="${KAKAO_NATIVE_APP_KEY}" />
+
         <!-- Kakao 로그인 Redirect 핸들러 -->
         <activity
             android:name="com.kakao.sdk.auth.AuthCodeHandlerActivity"

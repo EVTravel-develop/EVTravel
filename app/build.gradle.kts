@@ -12,6 +12,8 @@ plugins {
     id("com.google.dagger.hilt.android")
     // Kapt (Kotlin DSL에선 이 ID 그대로 사용 가능)
     id("kotlin-kapt")
+
+    id("com.google.firebase.crashlytics")
 }
 
 val secretProperties = Properties().apply {
@@ -213,6 +215,12 @@ dependencies {
     implementation("com.google.firebase:firebase-database-ktx")
     implementation("com.google.firebase:firebase-analytics-ktx")
     implementation("com.google.firebase:firebase-functions-ktx")
+
+    // Crashlytics SDK
+    implementation("com.google.firebase:firebase-crashlytics-ktx")
+
+    // Timber
+    implementation("com.jakewharton.timber:timber:5.0.1")
 
     // --- 기타 ---
     implementation("io.coil-kt:coil-compose:2.6.0")
