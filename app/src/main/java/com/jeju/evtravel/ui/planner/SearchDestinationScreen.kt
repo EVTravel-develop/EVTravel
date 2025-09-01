@@ -162,24 +162,10 @@ fun SearchDestinationScreen(
                         .fillMaxWidth()
                         .padding(vertical = 12.dp)
                         .clickable {
-                            val placeChargers = uiPlace.chargers?.map {
-                                ChargerDto(
-                                    name = it.name,
-                                    address = it.address,
-                                    latitude = it.latitude,
-                                    longitude = it.longitude
-                                )
-                            } ?: emptyList()
-                            
-                            selectedPlace = PlaceDto(
-                                id = uiPlace.place.id,
-                                name = uiPlace.place.name,
-                                roadAddressName = uiPlace.place.roadAddress ?: "",
-                                categoryGroupCode = "",
-                                x = uiPlace.place.longitude,
-                                y = uiPlace.place.latitude,
-                                chargers = placeChargers
-                            )
+                            // ViewModel의 새로운 함수를 사용하여 충전소 정보와 함께 장소 로드
+                            viewModel.loadPlaceWithChargers(uiPlace) { placeWithChargers ->
+                                selectedPlace = placeWithChargers
+                            }
                         },
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -235,7 +221,8 @@ fun SearchDestinationScreen(
                         ),
                         contentDescription = "select",
                         contentScale = ContentScale.Fit,
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier
+                            .size(22.dp)
                     )
                 }
                 

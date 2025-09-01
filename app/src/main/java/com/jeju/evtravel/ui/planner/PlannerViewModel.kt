@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jeju.evtravel.BuildConfig
+import com.jeju.evtravel.data.model.ChargerDto
 import com.jeju.evtravel.data.model.DayPlan
 import com.jeju.evtravel.data.model.PlaceDto
 import com.jeju.evtravel.data.model.PlanDto
@@ -324,6 +325,60 @@ class PlannerViewModel : ViewModel() {
         
     }
     
+    /**
+     * 장소와 함께 충전소 정보를 로드하여 PlaceDto를 생성합니다.
+     * @param place 기본 장소 정보
+     * @param onResult 결과를 받을 콜백 함수
+     */
+    fun loadPlaceWithChargers(place: UiPlace, onResult: (PlaceDto) -> Unit) {
+        viewModelScope.launch {
+            try {
+                // 충전소 정보를 먼저 로드
+                val chargers = chargerRepository.getNearbyChargers(
+                    lat = place.place.latitude,
+                    lon = place.place.longitude
+                ).take(5)
+                
+                val placeChargers = chargers.map {
+                    ChargerDto(
+                        name = it.name,
+                        address = it.address,
+                        latitude = it.latitude,
+                        longitude = it.longitude
+                    )
+                }
+                
+                val placeDto = PlaceDto(
+                    id = place.place.id,
+                    name = place.place.name,
+                    roadAddressName = place.place.roadAddress ?: "",
+                    categoryGroupCode = "",
+                    x = place.place.longitude,
+                    y = place.place.latitude,
+                    chargers = placeChargers
+                )
+                
+                Log.d(
+                    "PlannerDebug",
+                    "[0. 장소 선택] '${placeDto.name}' 선택됨. 충전소 개수: ${placeChargers.size}"
+                )
+                onResult(placeDto)
+                
+            } catch (e: Exception) {
+                Log.e("PlannerDebug", "충전소 로드 실패: ${e.message}")
+                // 충전소 로드 실패시에도 장소는 추가할 수 있도록
+                val placeDto = PlaceDto(
+                    id = place.place.id,
+                    name = place.place.name,
+                    roadAddressName = place.place.roadAddress ?: "",
+                    categoryGroupCode = "",
+                    x = place.place.longitude,
+                    y = place.place.latitude,
+                    chargers = emptyList()
+                )
+                onResult(placeDto)
+            }
+        }
     }
     
     /**
