@@ -1,20 +1,10 @@
 package com.jeju.evtravel.ui.planner
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -24,13 +14,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -69,6 +53,7 @@ fun EditPlanScreen(
     onAddDestinationClick: () -> Unit // 여행지 추가 버튼 클릭 시 실행될 콜백
 
 ) {
+    val TAG = "PlannerDebug"
     // 뷰모델에서 여행 시작일과 종료일을 상태로 가져옴
     val startDate = viewModel.startDate.collectAsState().value
     val endDate = viewModel.endDate.collectAsState().value
@@ -77,6 +62,8 @@ fun EditPlanScreen(
     val hasAnyPlace = dayPlans.any { it.places.isNotEmpty() }
     // 날짜 포맷터
     val formatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
+    
+    val currentPlanId by viewModel.currentPlanId.collectAsState()
     
     val reorderableState = rememberReorderableLazyListState(onMove = { from, to ->
         val date = selectedDate
@@ -88,12 +75,30 @@ fun EditPlanScreen(
     
     // 화면 진입 시 플랜 ID가 있다면 해당 플랜을 로드합니다.
     LaunchedEffect(planId) {
-        if (planId != null) {
-            // ?. 를 추가하여 plans.value가 null이 아닐 때만 find를 실행합니다.
+        Log.d(
+            TAG,
+            "EditPlanScreen: LaunchedEffect triggered. Received planId is '$planId', ViewModel's currentPlanId is '$currentPlanId'."
+        )
+        
+        if (planId != null && planId != currentPlanId) {
             val planToLoad = viewModel.plans.value?.find { it.id == planId }
             if (planToLoad != null) {
+                Log.d(
+                    TAG,
+                    "EditPlanScreen: Found plan in ViewModel list to load details for planId '$planId'."
+                )
                 viewModel.loadPlanDetails(planToLoad)
+            } else {
+                Log.w(
+                    TAG,
+                    "EditPlanScreen: planId '$planId' was received, but no matching plan found in ViewModel's list."
+                )
             }
+        } else {
+            Log.d(
+                TAG,
+                "EditPlanScreen: Skipping data load because planId is null or already loaded."
+            )
         }
     }
     
@@ -277,6 +282,10 @@ fun EditPlanScreen(
                         if (selectedDate == dayPlan.date && dayPlan.places.isNotEmpty()) {
                             Column {
                                 dayPlan.places.forEach { place ->
+                                    Log.d(
+                                        "PlannerDebug",
+                                        "[2. UI 렌더링] '${place.name}' UI 생성 중. 포함된 충전소 개수: ${place.chargers?.size ?: "null"}"
+                                    )
                                     Column(modifier = Modifier.padding(bottom = 12.dp)) {
                                         Row(
                                             modifier = Modifier
@@ -443,7 +452,13 @@ fun EditPlanScreen(
                             color = Color(0xFFE9E9E9),
                             shape = RoundedCornerShape(size = 10.dp)
                         )
-                        .clickable { onAddDestinationClick() },
+                        .clickable {
+                            Log.d(
+                                "PlannerDebug",
+                                "Navigating to SearchScreen. Current state: selectedDate='${viewModel.selectedDate.value}', currentPlanId='${viewModel.currentPlanId.value}'"
+                            )
+                            onAddDestinationClick()
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -471,6 +486,10 @@ fun EditPlanScreen(
                         )
                         .clickable {
                             if (startDate != null && endDate != null) {
+                                Log.d(
+                                    TAG,
+                                    "EditPlanScreen: 'Next' button clicked. Calling viewModel.saveOrUpdatePlan."
+                                )
                                 
                                 // 1. 화면 전환 로직을 onSaveComplete 라는 이름의 람다로 정의
                                 val onSaveComplete = {
@@ -481,7 +500,7 @@ fun EditPlanScreen(
                                 }
                                 
                                 // 2. ViewModel 함수를 호출하며 위에서 정의한 람다를 전달
-                                viewModel.saveCurrentPlan(
+                                viewModel.saveOrUpdatePlan(
                                     start = startDate.toString(),
                                     end = endDate.toString(),
                                     onSaveComplete = onSaveComplete

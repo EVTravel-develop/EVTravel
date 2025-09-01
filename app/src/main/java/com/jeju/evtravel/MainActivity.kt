@@ -1,4 +1,3 @@
-// com/jeju/evtravel/MainActivity.kt
 package com.jeju.evtravel
 
 import android.os.Bundle
@@ -13,7 +12,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,7 +22,6 @@ import androidx.navigation.navArgument
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.firebase.auth.FirebaseAuth
-import com.jeju.evtravel.data.service.GuestLoginService
 import com.jeju.evtravel.navigation.BottomNavigationBar
 import com.jeju.evtravel.ui.map.KakaoMapScreen
 import com.jeju.evtravel.ui.map.MapViewModel
@@ -218,6 +215,8 @@ fun MainScreen(
                 composable("planner_initial") {
                     PlannerScreen(
                         onCreatePlanClick = {
+                            // 새 플랜 생성을 위해 ViewModel 상태 초기화
+                            plannerViewModel.clearPlanDetails()
                             navController.navigate("calendar")
                         }
                     )
@@ -248,7 +247,11 @@ fun MainScreen(
                         selectedStart = start, // 추출한 값을 PlanListScreen에 전달
                         selectedEnd = end,     // 추출한 값을 PlanListScreen에 전달
                         onBackClick = { /* 추후 수정 */ },
-                        onCreatePlanClick = { navController.navigate("calendar") },
+                        onCreatePlanClick = {
+                            // 새 플랜 생성을 위해 ViewModel 상태 초기화
+                            plannerViewModel.clearPlanDetails()
+                            navController.navigate("calendar")
+                        },
                         onPlanClick = { plan ->
                             navController.navigate("editPlan/${plan.id}")
                         }

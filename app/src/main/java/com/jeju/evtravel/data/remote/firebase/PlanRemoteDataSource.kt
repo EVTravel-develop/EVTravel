@@ -1,5 +1,6 @@
 package com.jeju.evtravel.data.remote.firebase
 
+import android.util.Log
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.jeju.evtravel.data.model.PlanDto
@@ -20,6 +21,8 @@ class PlanRemoteDataSource(
      * @param onSuccess 저장 성공 시 실행될 콜백 함수
      * @param onFailure 저장 실패 시 실행될 콜백 함수 (예외 전달)
      */
+    private val TAG = "PlannerDebug"
+    
     fun savePlan(plan: PlanDto, onSuccess: () -> Unit = {}, onFailure: (Exception) -> Unit = {}) {
         // 현재 시간으로 생성/수정 시간을 설정한 새로운 플랜 객체 생성
         val planWithTimestamps = plan.copy(
@@ -58,15 +61,23 @@ class PlanRemoteDataSource(
      * @param plan 업데이트할 플랜 데이터
      */
     suspend fun updatePlan(plan: PlanDto) {
-        val planId = plan.id.ifEmpty { throw IllegalArgumentException("업데이트할 Plan의 ID가 없습니다.") }
-        
+        val planId = plan.id.ifEmpty {
+            Log.e(TAG, "PlanRemoteDataSource: Update failed because Plan ID is empty.")
+            throw IllegalArgumentException("업데이트할 Plan의 ID가 없습니다.")
+        }
         // 수정 시간을 현재 시간으로 설정
+        Log.d(TAG, "PlanRemoteDataSource: Attempting to update planId '$planId' in Firestore.")
         val planWithTimestamp = plan.copy(updatedAt = Timestamp.now())
         
-        // Firestore의 'plans' 컬렉션에서 해당 ID의 문서를 찾아 데이터 덮어쓰기
-        db.collection("plans").document(planId)
-            .set(planWithTimestamp)
-            .await()
+        try {
+            db.collection("plans").document(planId)
+                .set(planWithTimestamp)
+                .await()
+            Log.i(TAG, "PlanRemoteDataSource: Successfully updated planId '$planId' in Firestore.")
+        } catch (e: Exception) {
+            Log.e(TAG, "PlanRemoteDataSource: Firestore update FAILED for planId '$planId'.", e)
+            throw e
+        }
     }
 
     /**
