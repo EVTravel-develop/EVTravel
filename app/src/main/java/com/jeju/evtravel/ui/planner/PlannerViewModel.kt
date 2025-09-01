@@ -90,12 +90,31 @@ class PlannerViewModel : ViewModel() {
      * @param query 검색어
      */
     fun searchPlaces(query: String, x: Double, y: Double) {
+        // 로그 추가: 함수가 호출되었는지 확인
+        Log.d("PlannerDebug", "searchPlaces CALLED with query: '$query'")
+        
         viewModelScope.launch {
-            if (query.isBlank()) {
-                _searchResults.value = emptyList() // 빈 문자열이면 결과 초기화
-            } else {
-                val results = searchPlaceUseCase(query, x, y)
-                _searchResults.value = results.map { UiPlace(place = it) }
+            try {
+                if (query.isBlank()) {
+                    _searchResults.value = emptyList()
+                } else {
+                    val results = searchPlaceUseCase(query, x, y)
+                    // 로그 추가: API 호출 후 받은 결과 수 확인
+                    Log.d("PlannerDebug", "API returned ${results.size} results. Filtering now...")
+                    
+                    val validResults = results.filter {
+                        !it.id.isNullOrBlank() && !it.name.isNullOrBlank()
+                    }
+                    // 로그 추가: 필터링 후 최종 결과 수 확인
+                    Log.d(
+                        "PlannerDebug",
+                        "After filtering, sending ${validResults.size} results to UI."
+                    )
+                    
+                    _searchResults.value = validResults.map { UiPlace(place = it) }
+                }
+            } catch (e: Exception) {
+                Log.e("PlannerDebug", "CRASH DETECTED in searchPlaces! Error: ${e.message}", e)
             }
         }
     }
@@ -128,6 +147,14 @@ class PlannerViewModel : ViewModel() {
                     days = _dayPlans.value,
                     userId = userId
                 )
+                newPlan.days.forEach { day ->
+                    day.places.forEach { place ->
+                        Log.d(
+                            "PlannerDebug",
+                            "[3. DB 저장] '${place.name}' 저장 예정. 충전소 개수: ${place.chargers?.size ?: "null"}"
+                        )
+                    }
+                }
                 savePlanUseCase(newPlan,
                     onSuccess = {
                         viewModelScope.launch {
@@ -137,7 +164,10 @@ class PlannerViewModel : ViewModel() {
                     }
                 )
             } else {
-                Log.i(TAG, "saveOrUpdatePlan: This is an UPDATE for planId '${_currentPlanId.value}'. Calling repository.updatePlan.")
+                Log.i(
+                    TAG,
+                    "saveOrUpdatePlan: This is an UPDATE for planId '${_currentPlanId.value}'. Calling repository.updatePlan."
+                )
                 val updatedPlan = PlanDto(
                     id = _currentPlanId.value!!,
                     startDate = start,
@@ -160,7 +190,10 @@ class PlannerViewModel : ViewModel() {
                 } else {
                     // 만약의 경우를 대비해 기존처럼 전체 목록을 다시 불러옴
                     _plans.value = repository.getPlans(userId)
-                    Log.d(TAG, "saveOrUpdatePlan: Plan not found in current list, re-fetching all plans.")
+                    Log.d(
+                        TAG,
+                        "saveOrUpdatePlan: Plan not found in current list, re-fetching all plans."
+                    )
                 }
                 // 3. 완료 콜백 실행
                 onSaveComplete()
@@ -195,6 +228,10 @@ class PlannerViewModel : ViewModel() {
      * @param place 추가할 장소
      */
     fun addPlaceToDate(date: String, place: PlaceDto) {
+        Log.d(
+            "PlannerDebug",
+            "[1. VM 도착] '${place.name}' 장소 추가 요청. 포함된 충전소 개수: ${place.chargers?.size ?: "null"}"
+        )
         _dayPlans.value = _dayPlans.value.map { dayPlan ->
             if (dayPlan.date == date) {
                 dayPlan.copy(places = dayPlan.places + place)
@@ -274,6 +311,19 @@ class PlannerViewModel : ViewModel() {
         _startDate.value = LocalDate.parse(plan.startDate)
         _endDate.value = LocalDate.parse(plan.endDate)
         _dayPlans.value = plan.days
+        
+        Log.d("PlannerDebug", "[3. DB 로드] Plan ID '${plan.id}' 로드 완료.")
+        plan.days.forEach { day ->
+            day.places.forEach { place ->
+                Log.d(
+                    "PlannerDebug",
+                    "[3. DB 로드] > '${place.name}' 로드 완료. 충전소 개수: ${place.chargers?.size ?: "null"}"
+                )
+            }
+        }
+        
+    }
+    
     }
     
     /**

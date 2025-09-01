@@ -1,5 +1,6 @@
 package com.jeju.evtravel.ui.planner
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -28,6 +29,7 @@ import com.jeju.evtravel.data.model.PlaceDto
 import androidx.compose.ui.res.painterResource
 import com.jeju.evtravel.R
 import com.jeju.evtravel.data.model.ChargerDto
+import kotlinx.coroutines.launch
 
 /**
  * 목적지 검색 화면을 구현하는 Composable 함수
@@ -46,6 +48,7 @@ fun SearchDestinationScreen(
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
     var selectedPlace by remember { mutableStateOf<PlaceDto?>(null) }
+    val viewModelScope = rememberCoroutineScope()
     
     Box(
         modifier = Modifier
@@ -111,7 +114,12 @@ fun SearchDestinationScreen(
                     BasicTextField(
                         value = query,
                         onValueChange = {
+                            // 로그 추가: 어떤 글자가 입력되었는지 확인
+                            Log.d("PlannerDebug", "onValueChange: new text is '${it.text}'")
                             query = it
+                            
+                            // 로그 추가: ViewModel 함수를 호출하기 직전인지 확인
+                            Log.d("PlannerDebug", "Calling viewModel.searchPlaces...")
                             viewModel.searchPlaces(it.text, x, y)
                         },
                         textStyle = TextStyle(

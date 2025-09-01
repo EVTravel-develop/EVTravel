@@ -75,18 +75,30 @@ fun EditPlanScreen(
     
     // 화면 진입 시 플랜 ID가 있다면 해당 플랜을 로드합니다.
     LaunchedEffect(planId) {
-        Log.d(TAG, "EditPlanScreen: LaunchedEffect triggered. Received planId is '$planId', ViewModel's currentPlanId is '$currentPlanId'.")
+        Log.d(
+            TAG,
+            "EditPlanScreen: LaunchedEffect triggered. Received planId is '$planId', ViewModel's currentPlanId is '$currentPlanId'."
+        )
         
         if (planId != null && planId != currentPlanId) {
             val planToLoad = viewModel.plans.value?.find { it.id == planId }
             if (planToLoad != null) {
-                Log.d(TAG, "EditPlanScreen: Found plan in ViewModel list to load details for planId '$planId'.")
+                Log.d(
+                    TAG,
+                    "EditPlanScreen: Found plan in ViewModel list to load details for planId '$planId'."
+                )
                 viewModel.loadPlanDetails(planToLoad)
             } else {
-                Log.w(TAG, "EditPlanScreen: planId '$planId' was received, but no matching plan found in ViewModel's list.")
+                Log.w(
+                    TAG,
+                    "EditPlanScreen: planId '$planId' was received, but no matching plan found in ViewModel's list."
+                )
             }
         } else {
-            Log.d(TAG, "EditPlanScreen: Skipping data load because planId is null or already loaded.")
+            Log.d(
+                TAG,
+                "EditPlanScreen: Skipping data load because planId is null or already loaded."
+            )
         }
     }
     
@@ -270,6 +282,10 @@ fun EditPlanScreen(
                         if (selectedDate == dayPlan.date && dayPlan.places.isNotEmpty()) {
                             Column {
                                 dayPlan.places.forEach { place ->
+                                    Log.d(
+                                        "PlannerDebug",
+                                        "[2. UI 렌더링] '${place.name}' UI 생성 중. 포함된 충전소 개수: ${place.chargers?.size ?: "null"}"
+                                    )
                                     Column(modifier = Modifier.padding(bottom = 12.dp)) {
                                         Row(
                                             modifier = Modifier
@@ -436,7 +452,13 @@ fun EditPlanScreen(
                             color = Color(0xFFE9E9E9),
                             shape = RoundedCornerShape(size = 10.dp)
                         )
-                        .clickable { onAddDestinationClick() },
+                        .clickable {
+                            Log.d(
+                                "PlannerDebug",
+                                "Navigating to SearchScreen. Current state: selectedDate='${viewModel.selectedDate.value}', currentPlanId='${viewModel.currentPlanId.value}'"
+                            )
+                            onAddDestinationClick()
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -464,7 +486,10 @@ fun EditPlanScreen(
                         )
                         .clickable {
                             if (startDate != null && endDate != null) {
-                                Log.d(TAG, "EditPlanScreen: 'Next' button clicked. Calling viewModel.saveOrUpdatePlan.")
+                                Log.d(
+                                    TAG,
+                                    "EditPlanScreen: 'Next' button clicked. Calling viewModel.saveOrUpdatePlan."
+                                )
                                 
                                 // 1. 화면 전환 로직을 onSaveComplete 라는 이름의 람다로 정의
                                 val onSaveComplete = {
