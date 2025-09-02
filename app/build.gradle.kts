@@ -12,6 +12,8 @@ plugins {
     id("com.google.dagger.hilt.android")
     // Kapt (Kotlin DSL에선 이 ID 그대로 사용 가능)
     id("kotlin-kapt")
+
+    id("com.google.firebase.crashlytics")
 }
 
 val secretProperties = Properties().apply {

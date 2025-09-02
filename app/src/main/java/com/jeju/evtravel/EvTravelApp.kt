@@ -19,7 +19,7 @@ class EvTravelApp : Application() {
             Timber.plant(ReleaseTree())
         }
 
-        Timber.tag("KAKAO_LOCAL").i(
+        Timber.tag("KAKAO_LOCAL").w(
             "REST key len=${BuildConfig.KAKAO_REST_API_KEY.length}, " +
                     "suffix=${BuildConfig.KAKAO_REST_API_KEY.takeLast(6)}"
         )
