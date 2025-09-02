@@ -1,5 +1,6 @@
 package com.jeju.evtravel.data.repository
 
+import android.util.Log
 import com.jeju.evtravel.data.model.PlanDto
 import com.jeju.evtravel.data.remote.firebase.PlanRemoteDataSource
 import com.jeju.evtravel.domain.repository.PlanRepository
@@ -21,6 +22,8 @@ class PlanRepositoryImpl(
      * @param onSuccess 저장 성공 시 실행될 콜백 함수
      * @param onFailure 저장 실패 시 실행될 콜백 함수 (예외 전달)
      */
+    private val TAG = "PlannerDebug"
+    
     override fun savePlan(plan: PlanDto, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
         // 원격 데이터 소스를 통해 플랜 저장 요청 전달
         remote.savePlan(plan, onSuccess, onFailure)
@@ -47,5 +50,20 @@ class PlanRepositoryImpl(
      */
     suspend fun deletePlan(planId: String) {
         remote.deletePlan(planId)
+    }
+    
+    /**
+     * 플랜을 업데이트하는 메서드
+     * 원격 데이터 소스를 통해 플랜을 업데이트합니다.
+     *
+     * @param plan 업데이트할 플랜 데이터 (PlanDto)
+     */
+    suspend fun updatePlan(plan: PlanDto) {
+        Log.d(TAG, "PlanRepositoryImpl: updatePlan called for planId '${plan.id}'.")
+        try {
+            remote.updatePlan(plan)
+        } catch (e: Exception) {
+            Log.e(TAG, "PlanRepositoryImpl: Exception caught while calling remote.updatePlan.", e)
+        }
     }
 }

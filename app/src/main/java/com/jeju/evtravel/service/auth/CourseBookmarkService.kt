@@ -1,5 +1,6 @@
 package com.jeju.evtravel.service.auth
 
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -18,7 +19,6 @@ class CourseBookmarkService(
             id = docId,
             uid = uid,
             course_id = courseId,
-            createdAt = System.currentTimeMillis()
         )
         return try {
             collection.document(docId).set(bookmark).await()
@@ -57,7 +57,6 @@ class CourseBookmarkService(
     ): Pair<List<CourseBookmark>, DocumentSnapshot?> {
         var query = collection
             .whereEqualTo("uid", uid)
-            .orderBy("createdAt", Query.Direction.DESCENDING)
             .limit(limit)
 
         if (lastSnapshot != null) {

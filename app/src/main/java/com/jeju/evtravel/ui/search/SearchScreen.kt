@@ -66,7 +66,6 @@ import com.jeju.evtravel.ui.map.getCurrentLocation
 import com.jeju.evtravel.ui.search.SearchViewModel.SearchType
 import com.jeju.evtravel.ui.search.SearchViewModel.SearchUiState
 import com.jeju.evtravel.ui.search.comp.PlaceRow
-import com.jeju.evtravel.ui.theme.Variables
 import com.kakao.vectormap.LatLng
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine

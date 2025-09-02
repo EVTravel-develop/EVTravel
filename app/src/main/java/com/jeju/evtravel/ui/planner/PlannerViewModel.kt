@@ -1,8 +1,10 @@
 package com.jeju.evtravel.ui.planner
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jeju.evtravel.BuildConfig
+import com.jeju.evtravel.data.model.ChargerDto
 import com.jeju.evtravel.data.model.DayPlan
 import com.jeju.evtravel.data.model.PlaceDto
 import com.jeju.evtravel.data.model.PlanDto
@@ -23,13 +25,17 @@ import java.time.LocalDate
  */
 class PlannerViewModel : ViewModel() {
     // 의존성 주입 (실제 앱에서는 Hilt 등을 사용하여 주입)
+    private val TAG = "PlannerDebug"
     private val repository = PlanRepositoryImpl()
     private val savePlanUseCase = SavePlanUseCase(repository)
     
     // 현재 로그인된 사용자의 ID를 저장할 변수
     private var currentUserId: String? = null
     
-    // 날짜별 DayPlan 상태
+    // currentPlanId를 외부에서 관찰 가능한 StateFlow로 변경
+    private val _currentPlanId = MutableStateFlow<String?>(null)
+    val currentPlanId: StateFlow<String?> = _currentPlanId
+    
     private val _dayPlans = MutableStateFlow<List<DayPlan>>(emptyList())
     val dayPlans: StateFlow<List<DayPlan>> = _dayPlans
     
@@ -85,47 +91,114 @@ class PlannerViewModel : ViewModel() {
      * @param query 검색어
      */
     fun searchPlaces(query: String, x: Double, y: Double) {
+        // 로그 추가: 함수가 호출되었는지 확인
+        Log.d("PlannerDebug", "searchPlaces CALLED with query: '$query'")
+        
         viewModelScope.launch {
-            if (query.isBlank()) {
-                _searchResults.value = emptyList() // 빈 문자열이면 결과 초기화
-            } else {
-                val results = searchPlaceUseCase(query, x, y)
-                _searchResults.value = results.map { UiPlace(place = it) }
+            try {
+                if (query.isBlank()) {
+                    _searchResults.value = emptyList()
+                } else {
+                    val results = searchPlaceUseCase(query, x, y)
+                    // 로그 추가: API 호출 후 받은 결과 수 확인
+                    Log.d("PlannerDebug", "API returned ${results.size} results. Filtering now...")
+                    
+                    val validResults = results.filter {
+                        !it.id.isNullOrBlank() && !it.name.isNullOrBlank()
+                    }
+                    // 로그 추가: 필터링 후 최종 결과 수 확인
+                    Log.d(
+                        "PlannerDebug",
+                        "After filtering, sending ${validResults.size} results to UI."
+                    )
+                    
+                    _searchResults.value = validResults.map { UiPlace(place = it) }
+                }
+            } catch (e: Exception) {
+                Log.e("PlannerDebug", "CRASH DETECTED in searchPlaces! Error: ${e.message}", e)
             }
         }
     }
     
     /**
-     * 현재 플랜을 저장합니다.
+     * 플랜을 새로 저장하거나 기존 플랜을 업데이트합니다.
      * @param start 여행 시작일 (yyyy-MM-dd 형식)
      * @param end 여행 종료일 (yyyy-MM-dd 형식)
+     * @param onSaveComplete 저장/업데이트 완료 후 실행할 콜백 함수
      */
-    fun saveCurrentPlan(
+    fun saveOrUpdatePlan(
         start: String,
         end: String,
         onSaveComplete: () -> Unit
     ) {
-        // 저장된 userId를 사용, 없으면 함수 종료
-        val userId = currentUserId ?: return
+        val userId = currentUserId
+        if (userId == null) {
+            Log.e(TAG, "saveOrUpdatePlan: Cannot save/update, currentUserId is null.")
+            return
+        }
+        
+        Log.d(TAG, "saveOrUpdatePlan: Function called. currentPlanId is '${_currentPlanId.value}'")
         
         viewModelScope.launch {
-            val plan = PlanDto(
-                startDate = start,
-                endDate = end,
-                days = _dayPlans.value,  // 날짜별 DayPlan 객체들 그대로 저장
-                userId = userId
-            )
-            
-            savePlanUseCase(plan,
-                onSuccess = {
-                    // 저장이 성공하면, 플랜 목록을 다시 불러옵니다.
-                    viewModelScope.launch {
-                        _plans.value = repository.getPlans(userId)
-                        // 목록 로드까지 완료되면, 파라미터로 받은 콜백(화면 전환)을 실행
-                        onSaveComplete()
+            if (_currentPlanId.value == null) {
+                Log.i(TAG, "saveOrUpdatePlan: This is a NEW plan. Calling savePlanUseCase.")
+                val newPlan = PlanDto(
+                    startDate = start,
+                    endDate = end,
+                    days = _dayPlans.value,
+                    userId = userId
+                )
+                newPlan.days.forEach { day ->
+                    day.places.forEach { place ->
+                        Log.d(
+                            "PlannerDebug",
+                            "[3. DB 저장] '${place.name}' 저장 예정. 충전소 개수: ${place.chargers?.size ?: "null"}"
+                        )
                     }
                 }
-            )
+                savePlanUseCase(newPlan,
+                    onSuccess = {
+                        viewModelScope.launch {
+                            _plans.value = repository.getPlans(userId)
+                            onSaveComplete()
+                        }
+                    }
+                )
+            } else {
+                Log.i(
+                    TAG,
+                    "saveOrUpdatePlan: This is an UPDATE for planId '${_currentPlanId.value}'. Calling repository.updatePlan."
+                )
+                val updatedPlan = PlanDto(
+                    id = _currentPlanId.value!!,
+                    startDate = start,
+                    endDate = end,
+                    days = _dayPlans.value,
+                    userId = userId
+                )
+                Log.d(TAG, "saveOrUpdatePlan: Plan data to be updated: $updatedPlan")
+                
+                // 1. Firestore에 업데이트
+                repository.updatePlan(updatedPlan)
+                
+                // 2. 서버에서 다시 불러오는 대신, 현재 ViewModel이 가진 plans 목록을 직접 수정
+                val currentPlans = _plans.value?.toMutableList() ?: mutableListOf()
+                val index = currentPlans.indexOfFirst { it.id == updatedPlan.id }
+                if (index != -1) {
+                    currentPlans[index] = updatedPlan // 기존 아이템을 업데이트된 내용으로 교체
+                    _plans.value = currentPlans // 갱신된 리스트를 StateFlow에 반영
+                    Log.d(TAG, "saveOrUpdatePlan: Manually updated ViewModel state.")
+                } else {
+                    // 만약의 경우를 대비해 기존처럼 전체 목록을 다시 불러옴
+                    _plans.value = repository.getPlans(userId)
+                    Log.d(
+                        TAG,
+                        "saveOrUpdatePlan: Plan not found in current list, re-fetching all plans."
+                    )
+                }
+                // 3. 완료 콜백 실행
+                onSaveComplete()
+            }
         }
     }
     
@@ -156,6 +229,10 @@ class PlannerViewModel : ViewModel() {
      * @param place 추가할 장소
      */
     fun addPlaceToDate(date: String, place: PlaceDto) {
+        Log.d(
+            "PlannerDebug",
+            "[1. VM 도착] '${place.name}' 장소 추가 요청. 포함된 충전소 개수: ${place.chargers?.size ?: "null"}"
+        )
         _dayPlans.value = _dayPlans.value.map { dayPlan ->
             if (dayPlan.date == date) {
                 dayPlan.copy(places = dayPlan.places + place)
@@ -228,9 +305,80 @@ class PlannerViewModel : ViewModel() {
      * @param plan 화면에 표시할 플랜 데이터
      */
     fun loadPlanDetails(plan: PlanDto) {
+        Log.d(TAG, "loadPlanDetails: Loading details for plan ID '${plan.id}'.")
+        _currentPlanId.value = plan.id
+        Log.d(TAG, "loadPlanDetails: currentPlanId is now set to '${_currentPlanId.value}'.")
+        
         _startDate.value = LocalDate.parse(plan.startDate)
         _endDate.value = LocalDate.parse(plan.endDate)
         _dayPlans.value = plan.days
+        
+        Log.d("PlannerDebug", "[3. DB 로드] Plan ID '${plan.id}' 로드 완료.")
+        plan.days.forEach { day ->
+            day.places.forEach { place ->
+                Log.d(
+                    "PlannerDebug",
+                    "[3. DB 로드] > '${place.name}' 로드 완료. 충전소 개수: ${place.chargers?.size ?: "null"}"
+                )
+            }
+        }
+        
+    }
+    
+    /**
+     * 장소와 함께 충전소 정보를 로드하여 PlaceDto를 생성합니다.
+     * @param place 기본 장소 정보
+     * @param onResult 결과를 받을 콜백 함수
+     */
+    fun loadPlaceWithChargers(place: UiPlace, onResult: (PlaceDto) -> Unit) {
+        viewModelScope.launch {
+            try {
+                // 충전소 정보를 먼저 로드
+                val chargers = chargerRepository.getNearbyChargers(
+                    lat = place.place.latitude,
+                    lon = place.place.longitude
+                ).take(5)
+                
+                val placeChargers = chargers.map {
+                    ChargerDto(
+                        name = it.name,
+                        address = it.address,
+                        latitude = it.latitude,
+                        longitude = it.longitude
+                    )
+                }
+                
+                val placeDto = PlaceDto(
+                    id = place.place.id,
+                    name = place.place.name,
+                    roadAddressName = place.place.roadAddress ?: "",
+                    categoryGroupCode = "",
+                    x = place.place.longitude,
+                    y = place.place.latitude,
+                    chargers = placeChargers
+                )
+                
+                Log.d(
+                    "PlannerDebug",
+                    "[0. 장소 선택] '${placeDto.name}' 선택됨. 충전소 개수: ${placeChargers.size}"
+                )
+                onResult(placeDto)
+                
+            } catch (e: Exception) {
+                Log.e("PlannerDebug", "충전소 로드 실패: ${e.message}")
+                // 충전소 로드 실패시에도 장소는 추가할 수 있도록
+                val placeDto = PlaceDto(
+                    id = place.place.id,
+                    name = place.place.name,
+                    roadAddressName = place.place.roadAddress ?: "",
+                    categoryGroupCode = "",
+                    x = place.place.longitude,
+                    y = place.place.latitude,
+                    chargers = emptyList()
+                )
+                onResult(placeDto)
+            }
+        }
     }
     
     /**
@@ -238,6 +386,8 @@ class PlannerViewModel : ViewModel() {
      * (새로운 플랜 생성 시작 시 사용)
      */
     fun clearPlanDetails() {
+        Log.d(TAG, "clearPlanDetails: Clearing all plan details. Resetting currentPlanId.")
+        _currentPlanId.value = null
         _startDate.value = null
         _endDate.value = null
         _dayPlans.value = emptyList()
