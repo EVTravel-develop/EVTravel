@@ -23,6 +23,10 @@ import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.firebase.auth.FirebaseAuth
 import com.jeju.evtravel.navigation.BottomNavigationBar
+import com.jeju.evtravel.ui.detail.ErrorScreen
+import com.jeju.evtravel.ui.detail.NearbyPlaceViewModel
+import com.jeju.evtravel.ui.detail.PlaceDetailScreen
+import com.jeju.evtravel.ui.detail.TourPlaceDetailViewModel
 import com.jeju.evtravel.ui.map.KakaoMapScreen
 import com.jeju.evtravel.ui.map.MapViewModel
 import com.jeju.evtravel.ui.mypage.*
@@ -157,6 +161,37 @@ fun MainScreen(
                         viewModel = searchViewModel,
                     )
                 }
+
+                // 장소 상세
+                composable(
+                    route = "placeTourDetail/{contentId}",
+                    arguments = listOf(navArgument("contentId") { type = NavType.StringType })
+                ) {
+                    val vm: TourPlaceDetailViewModel = hiltViewModel()
+                    val ui = vm.state.collectAsState().value
+
+                    when {
+                        ui.loading -> {
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator()
+                            }
+                        }
+                        ui.error != null -> {
+                            ErrorScreen(
+                                message = ui.error,
+                                onRetry = { vm.load() }
+                            )
+                        }
+                        ui.data != null -> {
+                            PlaceDetailScreen(
+                                data = ui.data,
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+                    }
+                }
+
+                // 충전기 리스트
 
                 // 마이페이지
                 composable("my") {

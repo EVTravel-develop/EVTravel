@@ -61,7 +61,6 @@ import com.google.accompanist.permissions.MultiplePermissionsState
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.jeju.evtravel.R
-import com.jeju.evtravel.ui.map.DEFAULT_LOCATION
 import com.jeju.evtravel.ui.map.MapViewModel
 import com.jeju.evtravel.ui.map.getCurrentLocation
 import com.jeju.evtravel.ui.search.SearchViewModel.SearchType
@@ -71,8 +70,6 @@ import com.jeju.evtravel.ui.theme.Variables
 import com.kakao.vectormap.LatLng
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
-
-//val DEFAULT_LOCATION = LatLng.from(33.4996, 126.5312)
 
 /**
  * 검색 화면 Composable 함수.
@@ -102,6 +99,8 @@ fun SearchScreen(
     val query by viewModel.query.collectAsState()
     val type by viewModel.type.collectAsState()
     val interactionSource = remember { MutableInteractionSource() }
+
+    val DEFAULT_LOCATION = LatLng.from(33.4996, 126.5312)
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current

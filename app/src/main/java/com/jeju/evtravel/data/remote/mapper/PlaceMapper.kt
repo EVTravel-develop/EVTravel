@@ -7,7 +7,7 @@ fun PlaceDto.toDomain(): Place =
     Place(
         id = id, // id
         name = placeName,  // place_name
-        //category = categoryName,
+        category = categoryName,
         //category_group_code	String
         //category_group_name	String
         //phone	String
@@ -16,5 +16,6 @@ fun PlaceDto.toDomain(): Place =
         longitude = x.toDoubleOrNull() ?: 0.0, // x
         latitude = y.toDoubleOrNull() ?: 0.0, // y
         url = placeUrl, // place_url
+        phone = phone,
         distanceMeters = distance?.toIntOrNull() // distance
     )

@@ -1,16 +1,8 @@
 package com.jeju.evtravel.ui.map
 
-import android.content.Intent
-import android.location.LocationManager
-import android.net.Uri
-import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,27 +13,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MyLocation
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
@@ -60,14 +43,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -75,8 +52,6 @@ import com.jeju.evtravel.R
 import com.jeju.evtravel.domain.model.Place
 import com.jeju.evtravel.ui.detail.PlaceChargerDetailScreen
 import com.jeju.evtravel.ui.search.ClickableSearchBar
-import com.jeju.evtravel.ui.theme.Variables
-import com.kakao.vectormap.GestureType
 import com.kakao.vectormap.KakaoMap
 import com.kakao.vectormap.LatLng
 import com.kakao.vectormap.camera.CameraAnimation
@@ -88,15 +63,36 @@ import com.kakao.vectormap.label.LabelStyle
 import com.kakao.vectormap.label.LabelStyles
 import com.kakao.vectormap.label.LabelTextBuilder
 import com.kakao.vectormap.label.LabelTextStyle
+import com.kakao.vectormap.GestureType
 import kotlinx.coroutines.launch
-import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.pow
-import kotlin.math.sin
-import kotlin.math.sqrt
+import android.content.Intent
+import android.location.LocationManager
+import android.net.Uri
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import com.jeju.evtravel.ui.theme.Variables
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import kotlin.math.*
 
 private const val REQUERY_DISTANCE_M = 250.0
-val DEFAULT_LOCATION = LatLng.from(33.4996, 126.5312) // 기본 좌표
+val DEFAULT_CENTER = LatLng.from(33.4995, 126.5311) // 기본 좌표
 private const val DEFAULT_ZOOM = 15
 
 /**
@@ -162,6 +158,8 @@ fun KakaoMapScreen(
     var cameBackFromSettings by remember { mutableStateOf(false) }
 
     // 위치/GPS 설정 화면 런처
+    var gpsMode by remember { mutableStateOf(false) } // GPS 버튼 눌러 위치 이동을 했는지 여부
+
     val openLocationSettings = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
@@ -251,51 +249,58 @@ fun KakaoMapScreen(
      * - 검색 화면에서 되돌아온 경우에는 자동 초기화 스킵
      * - 최초 진입 시 현재 위치로 카메라 이동, 한 장짜리 마커를 붙이고 주변 검색
      */
-    LaunchedEffect(permissionState.allPermissionsGranted, kakaoMap) {
+    LaunchedEffect(kakaoMap) {
+//        val map = kakaoMap ?: return@LaunchedEffect
+//
+//        // 권한이 없으면 기본 위치로 이동
+//        if (!permissionState.allPermissionsGranted) {
+//            fallbackToDefaultCenter(viewModel, map, arrowController)
+//            showRequery = false
+//            return@LaunchedEffect
+//        }
+//
+//        if (viewModel.skipAutoCenterOnce || viewModel.lastCenter != null) {
+//            viewModel.skipAutoCenterOnce = false
+//            viewModel.lastCenter?.let { c ->
+//                viewModel.searchNearby("제주 전기차 충전소", c.longitude, c.latitude, 2000)
+//                viewModel.markSearched(c, kakaoMap?.zoomLevel)
+//                showRequery = false
+//            }
+//            return@LaunchedEffect
+//        }
         val map = kakaoMap ?: return@LaunchedEffect
+        // 항상 DEFAULT_CENTER로 이동 + 주변 검색, GPS 모드 아님
+        fallbackToDefaultCenter(viewModel, map, arrowController)
+        showRequery = false
+        gpsMode = false
 
-        // 권한이 없으면 기본 위치로 이동
-        if (!permissionState.allPermissionsGranted) {
-            fallbackToDefaultCenter(viewModel, map, arrowController)
-            showRequery = false
-            return@LaunchedEffect
-        }
-
-        if (viewModel.skipAutoCenterOnce || viewModel.lastCenter != null) {
-            viewModel.skipAutoCenterOnce = false
-            viewModel.lastCenter?.let { c ->
-                viewModel.searchNearby("전기차 충전소", c.longitude, c.latitude, 2000)
-                viewModel.markSearched(c, kakaoMap?.zoomLevel)
-                showRequery = false
-            }
-            return@LaunchedEffect
-        }
-
-        getCurrentLocation(context, fusedLocationClient) { loc ->
-            if (loc == null) {
-                // 위치 획득 실패 시에도 폴백
-                fallbackToDefaultCenter(viewModel, map, arrowController)
-                showRequery = false
-            } else {
-                viewModel.lastUserLocation = loc
-                viewModel.lastCenter = loc
-
-                val zoom = kakaoMap?.zoomLevel ?: 15
-                kakaoMap?.moveCamera(CameraUpdateFactory.newCenterPosition(loc, zoom))
-
-                // 현재 위치 마커(한 장짜리) 부착
-                arrowController?.attachOrMove(loc)
-
-                // 주변 검색
-                viewModel.searchNearby("전기차 충전소", loc.longitude, loc.latitude, 2000)
-                viewModel.markSearched(loc, kakaoMap?.zoomLevel)
-                showRequery = false
-            }
-        }
+//        getCurrentLocation(context, fusedLocationClient) { loc ->
+//            if (loc == null) {
+//                // 위치 획득 실패 시에도 폴백
+//                fallbackToDefaultCenter(viewModel, map, arrowController)
+//                showRequery = false
+//            } else {
+//                viewModel.lastUserLocation = loc
+//                viewModel.lastCenter = loc
+//
+//                val zoom = kakaoMap?.zoomLevel ?: 15
+//                kakaoMap?.moveCamera(CameraUpdateFactory.newCenterPosition(loc, zoom))
+//
+//                // 현재 위치 마커(한 장짜리) 부착
+//                arrowController?.attachOrMove(loc)
+//
+//                // 주변 검색
+//                viewModel.searchNearby("제주 전기차 충전소", loc.longitude, loc.latitude, 2000)
+//                viewModel.markSearched(loc, kakaoMap?.zoomLevel)
+//                showRequery = false
+//            }
+//        }
     }
 
     /** 검색에서 돌아온 경우: lastCenter로 카메라 이동 + 주변 검색 */
     LaunchedEffect(kakaoMap, viewModel.lastCenter) {
+        if (!gpsMode) return@LaunchedEffect
+
         val map = kakaoMap ?: return@LaunchedEffect
         val center = viewModel.lastCenter ?: return@LaunchedEffect
 
@@ -306,7 +311,7 @@ fun KakaoMapScreen(
         map.moveCamera(CameraUpdateFactory.newCenterPosition(center, zoom))
 
         // 선택한 지점을 기준으로 주변 검색 실행
-        viewModel.searchNearby("전기차 충전소", center.longitude, center.latitude, 2000)
+        viewModel.searchNearby("제주 전기차 충전소", center.longitude, center.latitude, 2000)
         viewModel.markSearched(center, kakaoMap?.zoomLevel)
         showRequery = false
 
@@ -409,41 +414,47 @@ fun KakaoMapScreen(
                         permissionState.allPermissionsGranted // or permissionState.status.isGranted
                     val gpsOn = isLocationEnabled(context)
 
-                    if (granted && gpsOn) {
-                        gpsErrorMessage = null
-
-                        // 돌아오자마자 현재 위치 재획득 + 지도/마커/검색 재초기화
-                        getCurrentLocation(context, fusedLocationClient) { loc ->
-                            if (loc != null) {
-                                viewModel.lastUserLocation = loc
-                                viewModel.lastCenter = loc
-                                viewModel.isMapRestored = false
-
-                                kakaoMap?.moveCamera(
-                                    CameraUpdateFactory.newCenterPosition(
-                                        loc,
-                                        kakaoMap?.zoomLevel ?: 15
-                                    )
-                                )
-                                arrowController?.attachOrMove(loc)
-
-                                viewModel.searchNearby("전기차 충전소", loc.longitude, loc.latitude, 2000)
-                                viewModel.markSearched(loc, kakaoMap?.zoomLevel)
-                                showRequery = false
-                            } else {
-                                // 여전히 못가져오면 폴백
-                                fallbackToDefaultCenter(viewModel, kakaoMap, arrowController)
-                            }
-                        }
-                    } else {
-                        // 아직 조건 미충족 → 안내 유지/재요청
-                        gpsErrorMessage = when {
-                            !granted -> "정확한 위치 권한이 필요합니다. 설정에서 권한을 허용해 주세요."
-                            !gpsOn -> "GPS가 꺼져 있습니다. 설정에서 위치 서비스를 켜주세요."
-                            else -> null
-                        }
-                        // 필요 시 권한 자동 재요청 트리거 (accompanist)
-                        // if (!granted) permissionState.launchPermissionRequest()
+//                    if (granted && gpsOn) {
+//                        gpsErrorMessage = null
+//
+//                        // 돌아오자마자 현재 위치 재획득 + 지도/마커/검색 재초기화
+//                        getCurrentLocation(context, fusedLocationClient) { loc ->
+//                            if (loc != null) {
+//                                viewModel.lastUserLocation = loc
+//                                viewModel.lastCenter = loc
+//                                viewModel.isMapRestored = false
+//
+//                                kakaoMap?.moveCamera(
+//                                    CameraUpdateFactory.newCenterPosition(
+//                                        loc,
+//                                        kakaoMap?.zoomLevel ?: 15
+//                                    )
+//                                )
+//                                arrowController?.attachOrMove(loc)
+//
+//                                viewModel.searchNearby("제주 전기차 충전소", loc.longitude, loc.latitude, 2000)
+//                                viewModel.markSearched(loc, kakaoMap?.zoomLevel)
+//                                showRequery = false
+//                            } else {
+//                                // 여전히 못가져오면 폴백
+//                                fallbackToDefaultCenter(viewModel, kakaoMap, arrowController)
+//                            }
+//                        }
+//                    } else {
+//                        // 아직 조건 미충족 → 안내 유지/재요청
+//                        gpsErrorMessage = when {
+//                            !granted -> "정확한 위치 권한이 필요합니다. 설정에서 권한을 허용해 주세요."
+//                            !gpsOn -> "GPS가 꺼져 있습니다. 설정에서 위치 서비스를 켜주세요."
+//                            else -> null
+//                        }
+//                        // 필요 시 권한 자동 재요청 트리거 (accompanist)
+//                        // if (!granted) permissionState.launchPermissionRequest()
+//                    }
+                    // 조건 충족해도 자동 이동/검색은 하지 않음. (오직 GPS 버튼에서만)
+                    gpsErrorMessage = when {
+                        !granted -> "정확한 위치 권한이 필요합니다. 설정에서 권한을 허용해 주세요."
+                        !gpsOn   -> "GPS가 꺼져 있습니다. 설정에서 위치 서비스를 켜주세요."
+                        else     -> null // 문제 없으면 메시지 제거만
                     }
                 }
             }
@@ -495,7 +506,7 @@ fun KakaoMapScreen(
         sheetTonalElevation = if (isFullScreen) 0.dp else BottomSheetDefaults.Elevation,
         sheetShadowElevation = if (isFullScreen) 0.dp else BottomSheetDefaults.Elevation,
         sheetDragHandle = { if (!isFullScreen) TinyHandle() },
-        sheetPeekHeight = if (selectedPlace != null) 200.dp else 8.dp,
+        sheetPeekHeight = if (selectedPlace != null) 460.dp else 0.dp,
         sheetSwipeEnabled = selectedPlace != null,
         sheetContent = {
             if (selectedPlace != null) {
@@ -512,8 +523,11 @@ fun KakaoMapScreen(
                         place = selectedPlace!!,
                         isFullScreen = isFullScreen,
                         isLoading = isDetailLoading,
-                        onRetry = { selectedPlace?.id?.let(viewModel::fetchCharger) },
-                        onNavigateClick = { coroutineScope.launch { sheetState.hide() } }
+                        onRetry = { selectedPlace?.id?.let { viewModel.fetchCharger(it, forceRefresh = true) } },
+                        onNavigateClick = { coroutineScope.launch { sheetState.hide() } },
+                        onPlaceClick = { ui ->
+                            navController.navigate("placeTourDetail/${ui.id}")
+                        }
                     )
 
                     detailError?.let { msg ->
@@ -593,7 +607,7 @@ fun KakaoMapScreen(
                             val center = viewModel.lastCenter ?: return@AssistChip
                             val zoom = kakaoMap?.zoomLevel
                             // 현재 지도 중심으로 재검색
-                            viewModel.searchNearby("전기차 충전소", center.longitude, center.latitude, 2000)
+                            viewModel.searchNearby("제주 전기차 충전소", center.longitude, center.latitude, 2000)
                             // 검색 기준 갱신해 다음부터 배너가 사라지도록
                             viewModel.markSearched(center, zoom)
                             showRequery = false
@@ -679,7 +693,9 @@ fun KakaoMapScreen(
                                 gpsErrorMessage = "현재 위치를 가져올 수 없습니다. 잠시 후 다시 시도해 주세요."
                                 fallbackToDefaultCenter(viewModel, kakaoMap, arrowController)
                                 showRequery = false
+                                gpsMode = false
                             } else {
+                                gpsMode = true
                                 currentLatLng = loc
                                 viewModel.lastUserLocation = loc
                                 viewModel.lastCenter = loc
@@ -696,7 +712,7 @@ fun KakaoMapScreen(
                                 arrowController?.attachOrMove(loc)
 
                                 // 주변 충전소 재탐색(요구사항: 현재 위치 기준 충전소 검은색 마커들)
-                                viewModel.searchNearby("전기차 충전소", loc.longitude, loc.latitude, 2000)
+                                viewModel.searchNearby("제주 전기차 충전소", loc.longitude, loc.latitude, 2000)
                                 viewModel.markSearched(loc, kakaoMap?.zoomLevel)
                                 showRequery = false
                             }
@@ -775,20 +791,20 @@ private fun fallbackToDefaultCenter(
 
     // 카메라 이동
     kakaoMap?.moveCamera(
-        CameraUpdateFactory.newCenterPosition(DEFAULT_LOCATION, DEFAULT_ZOOM)
+        CameraUpdateFactory.newCenterPosition(DEFAULT_CENTER, DEFAULT_ZOOM)
     )
 
     // 상태 기록
-    viewModel.lastCenter = DEFAULT_LOCATION
+    viewModel.lastCenter = DEFAULT_CENTER
     viewModel.lastZoomLevel = DEFAULT_ZOOM
     viewModel.isMapRestored = false
-    viewModel.markSearched(DEFAULT_LOCATION, kakaoMap?.zoomLevel)
+    viewModel.markSearched(DEFAULT_CENTER, kakaoMap?.zoomLevel)
 
     // 주변 충전소 검색
     viewModel.searchNearby(
-        query = "전기차 충전소",
-        longitude = DEFAULT_LOCATION.longitude,
-        latitude = DEFAULT_LOCATION.latitude,
+        query = "제주 전기차 충전소",
+        longitude = DEFAULT_CENTER.longitude,
+        latitude = DEFAULT_CENTER.latitude,
         radius = searchRadius
     )
 }

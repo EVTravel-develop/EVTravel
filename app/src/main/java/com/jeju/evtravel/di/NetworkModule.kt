@@ -4,10 +4,16 @@ import com.jeju.evtravel.BuildConfig
 import com.jeju.evtravel.data.remote.api.ChargerApi
 import com.jeju.evtravel.data.remote.api.KakaoLocalApi
 import com.jeju.evtravel.data.remote.api.KakaoLocalRegionApi
+import com.jeju.evtravel.data.remote.api.TourApi
+import com.jeju.evtravel.data.remote.api.TourPlaceApi
 import com.jeju.evtravel.data.repository.ChargerRepository as ChargerListRepository
 import com.jeju.evtravel.data.repository.PlaceRepositoryImpl
 import com.jeju.evtravel.data.repository.RegionCodeRepository
+import com.jeju.evtravel.data.repository.TourPlaceDetailRepositoryImpl
+import com.jeju.evtravel.data.repository.TourPlaceRepositoryImpl
 import com.jeju.evtravel.domain.repository.PlaceRepository
+import com.jeju.evtravel.domain.repository.TourPlaceDetailRepository
+import com.jeju.evtravel.domain.repository.TourPlaceRepository
 import com.jeju.evtravel.domain.usecase.SearchNearbyPlacesUseCase
 import dagger.Module
 import dagger.Provides
@@ -25,8 +31,8 @@ import java.util.concurrent.TimeUnit
 object NetworkModule {
 
     // kakao 공통 Retrofit
-    private const val BASE_URL = "https://dapi.kakao.com/"
-    private const val DATA_URL = "https://apis.data.go.kr/"
+    private const val KAKAO_BASE = "https://dapi.kakao.com/"
+    private const val DATA_BASE = "https://apis.data.go.kr/"
 
     // 공통 OkHttpClient
     @Provides
@@ -37,85 +43,95 @@ object NetworkModule {
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
-    @Provides
-    @Singleton
-    fun provideRetrofit(
-        client: OkHttpClient
-    ): Retrofit = Retrofit.Builder()
-        .baseUrl(BASE_URL)
-        .addConverterFactory(GsonConverterFactory.create())
-        .client(client)
-        .build()
-
-    // Kakao Local Api 키
-    @Provides
-    @Singleton
-    @Named("KAKAO_REST_API_KEY")
-    fun provideKakaoRestApiKey(): String = BuildConfig.KAKAO_REST_API_KEY
-
-    // 공공데이터 전기차 충전소 Api 키
-    @Provides
-    @Singleton
-    @Named("EV_CHARGER_API_KEY")
-    fun provideEvChargerApiKey(): String = BuildConfig.EV_CHARGER_API_KEY
-
-    // 공공데이터 전기차 충전소 Retrofit
-    @Provides
-    @Singleton
-    fun provideChargerApi(
-        client: OkHttpClient
-    ): ChargerApi {
-        return Retrofit.Builder()
-            .baseUrl(DATA_URL) // 공공데이터 API base URL
+    @Provides @Singleton @Named("KAKAO_RETROFIT")
+    fun provideKakaoRetrofit(client: OkHttpClient): Retrofit =
+        Retrofit.Builder()
+            .baseUrl(KAKAO_BASE)
             .addConverterFactory(GsonConverterFactory.create())
             .client(client)
             .build()
-            .create(ChargerApi::class.java)
-    }
 
-    // 키워드로 장소 검색하기
-    @Provides
-    @Singleton
-    fun provideKakaoLocalApi(retrofit: Retrofit): KakaoLocalApi =
+    @Provides @Singleton @Named("DATA_RETROFIT")
+    fun provideDataRetrofit(client: OkHttpClient): Retrofit =
+        Retrofit.Builder()
+            .baseUrl(DATA_BASE)
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(client)
+            .build()
+
+    // Kakao Local
+    @Provides @Singleton
+    fun provideKakaoLocalApi(@Named("KAKAO_RETROFIT") retrofit: Retrofit): KakaoLocalApi =
         retrofit.create(KakaoLocalApi::class.java)
 
-    // 좌표로 행정구역정보 변환
-    @Provides
-    @Singleton
-    fun provideKakaoLocalRegionApi(retrofit: Retrofit): KakaoLocalRegionApi =
+    @Provides @Singleton
+    fun provideKakaoLocalRegionApi(@Named("KAKAO_RETROFIT") retrofit: Retrofit): KakaoLocalRegionApi =
         retrofit.create(KakaoLocalRegionApi::class.java)
 
+    // 공공데이터 - 충전소
+    @Provides @Singleton
+    fun provideChargerApi(@Named("DATA_RETROFIT") retrofit: Retrofit): ChargerApi =
+        retrofit.create(ChargerApi::class.java)
+
+    // 공공데이터 - Tour
+    @Provides @Singleton
+    fun provideTourApi(@Named("DATA_RETROFIT") retrofit: Retrofit): TourApi =
+        retrofit.create(TourApi::class.java)
+
+    // 공공데이터 - Tour Detail
+    @Provides @Singleton
+    fun provideTourDetailApi(@Named("DATA_RETROFIT") retrofit: Retrofit): TourPlaceApi =
+        retrofit.create(TourPlaceApi::class.java)
+
+    // API Keys
+    @Provides @Singleton @Named("KAKAO_REST_API_KEY")
+    fun provideKakaoRestApiKey(): String = BuildConfig.KAKAO_REST_API_KEY
+
+    @Provides @Singleton @Named("EV_CHARGER_API_KEY")
+    fun provideEvChargerApiKey(): String = BuildConfig.EV_CHARGER_API_KEY
+
+    @Provides @Singleton @Named("Tour_API_KEY")
+    fun provideTourApiKey(): String = BuildConfig.EV_CHARGER_API_KEY
+
+    @Provides @Singleton @Named("TourDetail_API_KEY")
+    fun provideTourDetailApiKey(): String = BuildConfig.EV_CHARGER_API_KEY
 
 
-    // 키워드로 장소 검색 Repository
-    @Provides
-    @Singleton
+    // Place Repository / UseCase
+    @Provides @Singleton
     fun providePlaceRepository(
         api: KakaoLocalApi,
         @Named("KAKAO_REST_API_KEY") key: String
     ): PlaceRepository = PlaceRepositoryImpl(api, key)
 
-    // 키워드로 장소 검색 UseCase
-    @Provides
-    @Singleton
+    @Provides @Singleton
     fun provideSearchNearbyPlacesUseCase(repo: PlaceRepository) =
         SearchNearbyPlacesUseCase(repo)
 
-    // 좌표로 행정구역정보 변환 Repository
-    @Provides
-    @Singleton
+    @Provides @Singleton
     fun provideRegionCodeRepository(
         api: KakaoLocalRegionApi,
         @Named("KAKAO_REST_API_KEY") key: String
     ): RegionCodeRepository = RegionCodeRepository(api, key)
 
-    // 공공데이터 전기차 충전소 Repository
-    @Provides
-    @Singleton
+    // Charger Repository
+    @Provides @Singleton
     fun provideChargerRepository(
         api: ChargerApi,
         @Named("EV_CHARGER_API_KEY") key: String
-    ): ChargerListRepository {
-        return ChargerListRepository(api, key)
-    }
+    ): ChargerListRepository = ChargerListRepository(api, key)
+
+    // Tour Repository
+    @Provides @Singleton
+    fun provideTourRepository(
+        api: TourApi,
+        @Named("Tour_API_KEY") key: String
+    ): TourPlaceRepository = TourPlaceRepositoryImpl(api, key)
+
+    // Tour Detail Repository
+    @Provides @Singleton
+    fun provideTourDetailRepository(
+        api: TourPlaceApi,
+        @Named("TourDetail_API_KEY") key: String
+    ): TourPlaceDetailRepository = TourPlaceDetailRepositoryImpl(api, key)
 }

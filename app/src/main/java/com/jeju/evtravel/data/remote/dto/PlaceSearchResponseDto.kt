@@ -10,17 +10,23 @@ data class PlaceSearchResponseDto(
 data class PlaceDto(
     @SerializedName("id") val id: String,
     @SerializedName("place_name") val placeName: String,
-    //@SerializedName("category_name") val categoryName: String?,
+    @SerializedName("category_name") val categoryName: String?,
     @SerializedName("address_name") val addressName: String?,
     @SerializedName("road_address_name") val roadAddressName: String?,
     @SerializedName("x") val x: String, // longitude
     @SerializedName("y") val y: String, // latitude
     @SerializedName("place_url") val placeUrl: String?,
     @SerializedName("distance") val distance: String?,
+    @SerializedName("phone") val phone: String?
 )
 
 data class MetaDto(
     @SerializedName("is_end") val isEnd: Boolean,
     @SerializedName("pageable_count") val pageableCount: Int,
     @SerializedName("total_count") val totalCount: Int
+)
+
+data class KakaoErrorDto(
+    val errorType: String? = null,
+    val message: String? = null
 )

@@ -2,9 +2,11 @@ package com.jeju.evtravel
 
 
 import android.app.Application
+import android.util.Log
 import com.kakao.sdk.common.KakaoSdk
 import com.kakao.vectormap.KakaoMapSdk
 import dagger.hilt.android.HiltAndroidApp
+import timber.log.Timber
 
 @HiltAndroidApp
 class EvTravelApp : Application() {
