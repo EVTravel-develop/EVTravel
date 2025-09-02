@@ -12,8 +12,6 @@ plugins {
     id("com.google.dagger.hilt.android")
     // Kapt (Kotlin DSL에선 이 ID 그대로 사용 가능)
     id("kotlin-kapt")
-
-    id("com.google.firebase.crashlytics")
 }
 
 val secretProperties = Properties().apply {
@@ -200,7 +198,7 @@ dependencies {
 
     // --- Networking (Retrofit + Moshi + OkHttp) ---
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
-    implementation("com.squareup.retrofit2:converter-moshi:2.11.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     // --- Hilt ---

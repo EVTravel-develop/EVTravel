@@ -1,6 +1,7 @@
 package com.jeju.evtravel.data.remote.api
 
 import com.jeju.evtravel.data.remote.dto.PlaceSearchResponseDto
+import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Query
@@ -16,7 +17,7 @@ interface KakaoLocalApi {
         @Query("radius") radius: Int? = null, // 0~20000
         @Query("page") page: Int? = null,
         @Query("size") size: Int? = null
-    ): PlaceSearchResponseDto
+    ): Response<PlaceSearchResponseDto>
 
     @GET("/v2/local/search/keyword.json")
     suspend fun searchChargers(
@@ -27,5 +28,5 @@ interface KakaoLocalApi {
         @Query("radius") radius: Int? = null,
         @Query("page") page: Int? = null,
         @Query("size") size: Int? = null
-    ): PlaceSearchResponseDto
+    ): Response<PlaceSearchResponseDto>
 }

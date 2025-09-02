@@ -25,3 +25,8 @@ data class MetaDto(
     @SerializedName("pageable_count") val pageableCount: Int,
     @SerializedName("total_count") val totalCount: Int
 )
+
+data class KakaoErrorDto(
+    val errorType: String? = null,
+    val message: String? = null
+)
