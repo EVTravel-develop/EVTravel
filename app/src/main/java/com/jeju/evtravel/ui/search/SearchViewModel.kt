@@ -102,7 +102,7 @@ class SearchViewModel @Inject constructor(
                                 query = params.query,
                                 x = DEFAULT_CENTER.longitude,
                                 y = DEFAULT_CENTER.latitude,
-                                radius = loc?.let{params.radius}
+                                radius = params.radius
                             )
                         }
                     }

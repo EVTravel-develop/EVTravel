@@ -87,7 +87,7 @@ fun PlaceDetailScreen(
                             )
                             Spacer(Modifier.height(8.dp))
                         }
-                        if (data.tel == null && data.tel == "") {
+                        if (!data.tel.isNullOrEmpty()) {
                             data.tel?.let {
                                 InfoRow(
                                     leading = { Icon(painterResource(id = R.drawable.ic_phone), contentDescription = null) },
@@ -121,36 +121,6 @@ fun PlaceDetailScreen(
                     }
                 }
             }
-        }
-    }
-}
-
-/* ----------------- 재사용 요소 ----------------- */
-
-@Composable
-private fun InfoRow(
-    leading: @Composable () -> Unit,
-    text: String
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.primary) {
-            leading()
-        }
-        Spacer(Modifier.width(8.dp))
-        Text(text, style = MaterialTheme.typography.bodyMedium)
-    }
-}
-
-@Composable
-fun ErrorScreen(message: String, onRetry: () -> Unit) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(message, color = MaterialTheme.colorScheme.error)
-            Spacer(Modifier.height(12.dp))
-            Button(onClick = onRetry) { Text("다시 시도") }
         }
     }
 }

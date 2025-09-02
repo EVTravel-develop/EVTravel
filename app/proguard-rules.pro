@@ -25,5 +25,5 @@
 -keep interface com.kakao.** { *; }
 
 # Domain model rules
--keepclassmembers class com.jeju.evtravel.domain.model.User { public <init>(); *; }
+-keepclassmembers class com.jeju.evtravel.domain.model.User { public <init>(); }
 -keepattributes *Annotation*

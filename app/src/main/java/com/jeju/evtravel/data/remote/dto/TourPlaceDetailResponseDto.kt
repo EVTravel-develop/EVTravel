@@ -23,7 +23,6 @@ data class DetailBody(
     @SerializedName("totalCount") val totalCount: Int
 )
 
-//@JsonAdapter(ItemsAdapter::class)
 data class DetailItems(
     @SerializedName("item") val item: List<TourInfoItem>
 )

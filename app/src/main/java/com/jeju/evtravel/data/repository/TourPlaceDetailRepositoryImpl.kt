@@ -26,7 +26,7 @@ class TourPlaceDetailRepositoryImpl (
             type = type,
             contentId = contentId
         )
-        val item = dto.response.body.items.item.firstOrNull()
+        val item = dto?.response?.body?.items?.item?.firstOrNull()
             ?: throw IllegalStateException("상세 정보가 없습니다. contentId=$contentId")
 
         return item.toDomain()

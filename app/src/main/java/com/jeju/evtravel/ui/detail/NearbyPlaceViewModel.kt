@@ -88,6 +88,13 @@ class NearbyPlaceViewModel @Inject constructor(
 //        )
 //        else -> ServerFilter()
 //    }
+    private fun getCategoryQuery(category: String): String = when (category) {
+        "자연환경" -> "공원"
+        "박물관" -> "박물관"
+        "맛집" -> "맛집"
+        "카페" -> "카페"
+        else -> category
+    }
 
     /** 공통 조회 로직 */
     fun fetch(onComplete: () -> Unit = {}) {
@@ -101,7 +108,7 @@ class NearbyPlaceViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching {
                 searchNearbyPlacesUseCase.invoke(
-                    query = _state.value.selectedCategory, // 카테고리명을 쿼리로 넘김
+                    query = getCategoryQuery(_state.value.selectedCategory), // 카테고리명을 쿼리로 넘김
                     x = x,
                     y = y,
                     radius = lastRadius,

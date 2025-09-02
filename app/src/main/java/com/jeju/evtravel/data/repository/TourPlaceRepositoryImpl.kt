@@ -31,7 +31,7 @@ class TourPlaceRepositoryImpl(
         lclsSystm2: String? ,
         lclsSystm3: String? ,
     ): List<TourPlace> {
-        val dto = api.getTourListInfo(
+        val res = api.getTourListInfo(
             serviceKey   = tourApiKey,
             mapX         = mapX,
             mapY         = mapY,
@@ -54,6 +54,11 @@ class TourPlaceRepositoryImpl(
             lclsSystm2   = lclsSystm2 ?: "",
             lclsSystm3   = lclsSystm3 ?: "",
         )
-        return dto.response.body.items.item.map { it.toDomain() }
+        val header = res.response?.header
+        if (header?.resultCode != "0000") {
+            throw IllegalStateException("Tour API error: ${header?.resultMsg ?: "unknown"} (${header?.resultCode})")
+        }
+        val dto = res.response?.body?.items?.item.orEmpty()
+        return dto.map { it.toDomain() }
     }
 }
