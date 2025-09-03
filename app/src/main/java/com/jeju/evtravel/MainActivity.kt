@@ -328,13 +328,24 @@ fun MainScreen(
                     LaunchedEffect(Unit) {
                         try {
                             fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-                                location?.let {
-                                    x = it.longitude
-                                    y = it.latitude
+                                if (location != null) {
+                                    x = location.longitude
+                                    y = location.latitude
+                                } else {
+                                    // 위치 정보를 가져올 수 없는 경우 기본 좌표 설정
+                                    x = 126.53112475064323
+                                    y = 33.499545786637974
                                 }
+                            }.addOnFailureListener {
+                                // 위치 가져오기 실패시 기본 좌표 설정
+                                x = 126.53112475064323
+                                y = 33.499545786637974
                             }
                         } catch (e: SecurityException) {
                             Log.e("Location", "Location permission not granted: ${e.message}")
+                            // 권한 없을 때도 기본 좌표 설정
+                            x = 126.53112475064323
+                            y = 33.499545786637974
                         }
                     }
 
