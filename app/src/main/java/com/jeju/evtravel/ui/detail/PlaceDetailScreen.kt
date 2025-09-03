@@ -76,8 +76,7 @@ fun PlaceDetailScreen(
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(data.title, style = TextStyle(
                             fontFamily = RobotoFamily,
-                            fontWeight = FontWeight.Bold,
-
+                            fontWeight = FontWeight.Bold
                         ))
                         Spacer(Modifier.height(12.dp))
                         data.address?.let {

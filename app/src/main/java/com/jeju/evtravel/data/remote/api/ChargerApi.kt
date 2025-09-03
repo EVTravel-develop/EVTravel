@@ -13,7 +13,8 @@ interface ChargerApi {
         @Query("numOfRows") numOfRows: Int = 100,
         @Query("dataType") dataType: String = "JSON",
         @Query("zcode") zcode: String,
-        @Query("zscode") zscode: String
+        @Query("zscode") zscode: String,
+        @Query("statId") statId: String
     ): ChargerApiResponseDto
 
     // row 응답 확인용 로그 api
@@ -24,6 +25,7 @@ interface ChargerApi {
         @Query("numOfRows") numOfRows: Int = 100,
         @Query("dataType") dataType: String = "JSON",
         @Query("zcode") zcode: String,
-        @Query("zscode") zscode: String
+        @Query("zscode") zscode: String,
+        @Query("statId") statId: String
     ): Response<ResponseBody>
 }
