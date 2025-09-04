@@ -61,6 +61,7 @@ import com.google.accompanist.permissions.MultiplePermissionsState
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.jeju.evtravel.R
+import com.jeju.evtravel.ui.detail.SummaryKind
 import com.jeju.evtravel.ui.map.MapViewModel
 import com.jeju.evtravel.ui.map.getCurrentLocation
 import com.jeju.evtravel.ui.search.SearchViewModel.SearchType
@@ -328,7 +329,8 @@ fun SearchScreen(
                             place = place,
                             query = query,
                             onClick = {
-                                mapViewModel.focusAndSelect(place)
+                                val kind = mapViewModel.kindFor(place)
+                                mapViewModel.focusAndSelect(place, kind = kind)
                                 navController.popBackStack()
                             }
                         )

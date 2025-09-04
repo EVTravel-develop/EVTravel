@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -170,6 +171,7 @@ private val CategoryChipTextStyle = TextStyle(
 @Composable
 fun PlaceChargerDetailScreen(
     place: Place,
+    kind: SummaryKind,
     isFullScreen: Boolean = false,  // 전체화면
     isLoading: Boolean = false,     // 로딩
     onRetry: () -> Unit,       // 새로고침/다시 시도
@@ -177,6 +179,11 @@ fun PlaceChargerDetailScreen(
     onPlaceClick: (Place) -> Unit = {},
     nearbyVm: NearbyPlaceViewModel = hiltViewModel()
 ) {
+    if (kind == SummaryKind.PLACE) {
+        PlaceSummary(place, onNavigateClick)
+        return
+    }
+
     val chargers = place.chargerList
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     val uiState = nearbyVm.state.collectAsState().value
@@ -781,4 +788,95 @@ private fun PlaceGridCard(
             }
         }
     }
+}
+@Composable
+private fun PlaceSummary(
+    place: Place,
+    onNavigateClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 16.dp)
+    ) {
+//        AsyncImage(
+//            model = place.imageUrl,
+//            contentDescription = null,
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .height(180.dp),
+//            contentScale = ContentScale.Crop
+//        )
+//
+//        Spacer(Modifier.height(12.dp))
+
+        Text(place.name, style = TitleTextStyle)
+
+        Spacer(Modifier.height(8.dp))
+        val addr = place.roadAddress?.takeIf { it.isNotBlank() } ?: place.address
+        if (!addr.isNullOrBlank()) {
+            InfoRow(iconRes = R.drawable.ic_location, text = addr)
+        }
+        if (!place.phone.isNullOrBlank()) {
+            InfoRow(iconRes = R.drawable.ic_phone, text = place.phone)
+        }
+
+        Spacer(Modifier.height(12.dp))
+        AiSummaryBox(
+            text = "이 장소에 대한 요약이 준비되어 있어요."
+        )
+
+        Spacer(Modifier.height(12.dp))
+        PrimaryActionButton(text = "안내하기", onClick = onNavigateClick)
+    }
+}
+
+@Composable
+private fun InfoRow(iconRes: Int, text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Image(
+            painter = painterResource(id = iconRes),
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+            contentScale = ContentScale.Fit
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(text, style = SubtitleTextStyle, color = Color(0xFF5A5A5A))
+    }
+}
+
+@Composable
+private fun AiSummaryBox(text: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFF2F7FF), shape = RoundedCornerShape(12.dp))
+            .border(BorderStroke(1.dp, Color(0xFFE2EDFF)), shape = RoundedCornerShape(12.dp))
+            .padding(14.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Image(
+                painter = painterResource(id = R.drawable.ic_my), // 작은 로봇 아이콘(리소스 준비)
+                contentDescription = null,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(Modifier.width(6.dp))
+            Text("AI 요약", style = MaterialTheme.typography.labelMedium, color = Variables.Blue700)
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = Color(0xFF4A4A4A))
+    }
+}
+
+@Composable
+private fun PrimaryActionButton(text: String, onClick: () -> Unit) {
+    Button(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Variables.Blue700,
+            contentColor = Color.White
+        ),
+    ) { Text(text) }
 }
