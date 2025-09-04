@@ -13,6 +13,9 @@ import com.jeju.evtravel.domain.model.Place
 import com.jeju.evtravel.domain.usecase.SearchNearbyPlacesUseCase
 import com.kakao.vectormap.LatLng
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -117,51 +120,38 @@ class MapViewModel @Inject constructor(
                 val statIds = fetchStatIdsForKakaoId(kakaoId)
 
                 if (statIds.isEmpty()) {
-                    // 정책: statId가 없으면 비우거나(엄격) 또는 지역 전체를 불러와 보여주기(관대한 fallback)
-//                    _selectedPlaceError.value = "연결된 충전소(statId)가 없습니다."
                     Log.w("MVM_selectPlace", "kakao_id=$kakaoId → statIds 비어있음")
                     // 필요시 fallback:
                     val fallback = chargerListRepository.fetchChargers(zcode, zscode, statId = "")
                     _selectedPlace.value = place.copy(chargerList = fallback)
-                    _isSelectedPlaceLoading.value = false
-                    onComplete()
                     return@launch
                 }
 
                 // 3) statId별로 공공데이터 API 호출 (캐시/강제새로고침 반영)
-                val merged = mutableListOf<ChargerInfo>()
-                for (sid in statIds) {
-                    val key = Triple(zcode, zscode, sid)
-
-                    val listForSid: List<ChargerInfo> = if (forceRefresh) {
-                        chargerByStatCache.remove(key)
-                        runCatching {
-                            chargerListRepository.fetchChargers(
-                                zcode = zcode,
-                                zscode = zscode,
-                                statId = sid
-                            )
-                        }.onFailure { e ->
-                            Log.e("MVM_selectPlace", "충전소 API 실패 sid=$sid", e)
-                        }.getOrElse { emptyList() }
-                            .also { chargerByStatCache[key] = it }
-                    } else {
-                        chargerByStatCache.getOrPut(key) {
-                            runCatching {
-                                chargerListRepository.fetchChargers(
-                                    zcode = zcode,
-                                    zscode = zscode,
-                                    statId = sid
-                                )
-                            }.onFailure { e ->
-                                Log.e("MVM_selectPlace", "충전소 API 실패 sid=$sid", e)
-                            }.getOrElse { emptyList() }
-                        }
+                val merged = kotlinx.coroutines.coroutineScope {
+                    statIds.map { sid ->
+                        async {
+                            val key = Triple(zcode, zscode, sid)
+                            val listForSid: List<ChargerInfo> = if (forceRefresh) {
+                                chargerByStatCache.remove(key)
+                                runCatching {
+                                    chargerListRepository.fetchChargers(zcode, zscode, sid)
+                                    }.onFailure { e -> Log.e("MVM_selectPlace", "충전소 API 실패 sid=$sid", e) }
+                                .getOrElse { emptyList() }
+                                .also { chargerByStatCache[key] = it }
+                                } else {
+                                chargerByStatCache.getOrPut(key) {
+                                    runCatching {
+                                        chargerListRepository.fetchChargers(zcode, zscode, sid)
+                                        }.onFailure { e -> Log.e("MVM_selectPlace", "충전소 API 실패 sid=$sid", e) }
+                                    .getOrElse { emptyList() }
+                                    }
+                                }
+                            Log.d("MVM_selectPlace", "statId=$sid → ${listForSid.size}개 수신")
+                            listForSid
+                            }
+                        }.awaitAll().flatten()
                     }
-
-                    Log.d("MVM_selectPlace", "statId=$sid → ${listForSid.size}개 수신")
-                    merged += listForSid
-                }
 
                 Log.d("MVM_selectPlace", "총 합계(중복 포함) ${merged.size}개")
 
@@ -175,9 +165,8 @@ class MapViewModel @Inject constructor(
                 Log.d("MVM_selectPlace", "중복 제거 후 ${dedup.size}개")
 
                 // 4) Place 업데이트 (선택 변경이 있으면 폐기)
-                val updated = try { place.copy(chargerList = dedup) } catch (_: Throwable) {
-                    place.chargerList = dedup; place
-                }
+                val updated = place.copy(chargerList = dedup)
+
                 val curr1 = _selectedPlace.value
                 if (curr1 != null && curr1.id != place.id) {
                     Log.d("MVM_selectPlace", "선택 변경 감지: ${curr1.id} != ${place.id}, 업데이트 폐기")
