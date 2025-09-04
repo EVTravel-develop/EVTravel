@@ -99,6 +99,7 @@ fun HeaderImage(
 
 @Composable
 fun InfoCard(
+    hours: String?,
     address: String?,
     phone: String?,
     modifier: Modifier = Modifier
@@ -109,6 +110,13 @@ fun InfoCard(
         shape = MaterialTheme.shapes.large
     ) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+            if (!hours.isNullOrBlank()) {
+                InfoRow(
+                    leading = { Icon(painterResource(id = R.drawable.ic_clock), contentDescription = null) },
+                    text = hours
+                )
+                Spacer(Modifier.height(12.dp))
+            }
             if (!address.isNullOrBlank()) {
                 InfoRow(
                     leading = { Icon(painterResource(id = R.drawable.ic_location), contentDescription = null) },

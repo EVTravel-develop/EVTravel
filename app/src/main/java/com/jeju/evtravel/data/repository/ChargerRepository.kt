@@ -14,12 +14,13 @@ class ChargerRepository @Inject constructor(
 ) {
     suspend fun fetchChargers(
     zcode: String,
-    zscode: String
+    zscode: String,
+    statId: String
     ): List<ChargerInfo> {
 
         val result = mutableListOf<ChargerInfo>()
-        val rowsPerPage = 100
-        var totalPages = 1
+        val size = 100
+        var page = 1
 
         try {
             // 첫 페이지 row 응답 확인용 로그
@@ -27,8 +28,9 @@ class ChargerRepository @Inject constructor(
                 serviceKey = apiKey,
                 zcode = zcode,
                 zscode = zscode,
+                statId = statId,
                 pageNo = 1,
-                numOfRows = rowsPerPage
+                numOfRows = size
             )
 
             if (BuildConfig.DEBUG) {
@@ -37,36 +39,17 @@ class ChargerRepository @Inject constructor(
                 Log.d("ChargerFetchRaw", "page=1 preview=${raw.take(1000)}")
             }
 
-            // 첫 페이지 호출 → totalCount 확인
-            val first = api.getChargerInfo(
+            val dto = api.getChargerInfo(
                 serviceKey = apiKey,
                 zcode = zcode,
                 zscode = zscode,
-                pageNo = 1,
-                numOfRows = rowsPerPage
+                statId = statId,
+                pageNo = page,
+                numOfRows = size
             )
-            val totalCount = first.totalCount
-            totalPages = (totalCount + rowsPerPage - 1) / rowsPerPage
-
-            Log.d("ChargerFetch", "전체 항목 수: $totalCount → 총 페이지 수: $totalPages")
-
-            val firstItems = first.items.item
-            result.addAll(firstItems.map { it.toDomain() })
-
-            // 2페이지부터 반복
-            for (page in 2..totalPages) {
-//                delay(500L)
-                val dto = api.getChargerInfo(
-                    serviceKey = apiKey,
-                    zcode = zcode,
-                    zscode = zscode,
-                    pageNo = page,
-                    numOfRows = rowsPerPage
-                )
-                val items = dto.items.item
-                Log.d("ChargerFetch", "page=$page → ${items.size}개 항목 수신")
-                result.addAll(items.map { it.toDomain() })
-            }
+            val items = dto.items.item
+            Log.d("ChargerFetch", "page=$page → ${items.size}개 항목 수신")
+            result.addAll(items.map { it.toDomain() })
 
         } catch (e: Exception) {
             Log.e("ChargerFetch", "API 호출 중 오류 발생", e)

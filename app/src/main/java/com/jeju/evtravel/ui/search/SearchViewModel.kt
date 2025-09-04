@@ -43,7 +43,7 @@ class SearchViewModel @Inject constructor(
 
     // 현재 위치/반경
     private val location = MutableStateFlow<Pair<Double, Double>?>(null) // (lon, lat)
-    private val radius = MutableStateFlow(2000)
+    private val radius = MutableStateFlow(20000)
 
     fun setType(newType: SearchType) { type.value = newType }
     fun updateQuery(text: String) { query.value = text }
@@ -55,8 +55,8 @@ class SearchViewModel @Inject constructor(
         val base = raw.trim().replace("\\s+".toRegex(), " ")
         return when (t) {
             SearchType.PLACE ->
-                if (base.isBlank()) "제주 전기차 충전소" else base
-            SearchType.CHARGER -> listOf(base, "제주 전기차 충전소")
+                if (base.isBlank()) "전기차 충전소" else base
+            SearchType.CHARGER -> listOf(base, "전기차 충전소")
                 .filter { it.isNotBlank() }.joinToString(" ")
         }
     }
@@ -89,15 +89,13 @@ class SearchViewModel @Inject constructor(
 
                     val result = runCatching {
                         if (params.rawQuery.isBlank()) {
-                            val (lon, lat) = params.loc!!
                             searchNearbyPlacesUseCase(
                                 query = params.query,
-                                x = lon,
-                                y = lat,
+                                x = DEFAULT_CENTER.longitude,
+                                y = DEFAULT_CENTER.latitude,
                                 radius = params.radius
                             )
                         } else {
-                            val loc = params.loc
                             searchNearbyPlacesUseCase(
                                 query = params.query,
                                 x = DEFAULT_CENTER.longitude,
