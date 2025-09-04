@@ -27,4 +27,8 @@ interface PlaceRepository {
         page: Int? = 1,
         size: Int? = 15
     ): List<Place>
+
+    suspend fun getPlaceById(id: String): Place
+
+    fun cachePlace(place: Place)
 }

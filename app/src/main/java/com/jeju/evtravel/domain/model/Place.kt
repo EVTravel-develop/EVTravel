@@ -1,5 +1,9 @@
 package com.jeju.evtravel.domain.model
 
+import android.os.Parcelable
+import kotlinx.parcelize.IgnoredOnParcel
+import kotlinx.parcelize.Parcelize
+
 /**
  * Place는 장소 정보를 나타내는 데이터 클래스입니다.
  * 카카오 로컬 API에서 제공하는 장소 정보를 매핑합니다.
@@ -13,6 +17,7 @@ package com.jeju.evtravel.domain.model
  * @property url 장소 URL
  * @property distanceMeters 검색 결과와의 거리 (미터 단위)
  */
+@Parcelize
 data class Place(
     val id: String, // id
     val name: String, // place_name
@@ -25,5 +30,6 @@ data class Place(
     val distanceMeters: Int?, // distance
     val phone: String?, // phone
 
+    @IgnoredOnParcel
     var chargerList: List<ChargerInfo> = emptyList()
-)
+) : Parcelable

@@ -22,6 +22,7 @@ import androidx.navigation.navArgument
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.firebase.auth.FirebaseAuth
+import com.jeju.evtravel.domain.model.Place
 import com.jeju.evtravel.navigation.BottomNavigationBar
 import com.jeju.evtravel.ui.detail.ErrorScreen
 import com.jeju.evtravel.ui.detail.NearbyPlaceViewModel
@@ -164,30 +165,20 @@ fun MainScreen(
 
                 // 장소 상세
                 composable(
-                    route = "placeTourDetail/{contentId}",
-                    arguments = listOf(navArgument("contentId") { type = NavType.StringType })
-                ) {
-                    val vm: TourPlaceDetailViewModel = hiltViewModel()
+                    route = "placeDetail/{placeId}",
+                    arguments = listOf(navArgument("placeId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val vm: TourPlaceDetailViewModel = hiltViewModel(backStackEntry)
                     val ui = vm.state.collectAsState().value
 
                     when {
-                        ui.loading -> {
-                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator()
-                            }
-                        }
-                        ui.error != null -> {
-                            ErrorScreen(
-                                message = ui.error,
-                                onRetry = { vm.load() }
-                            )
-                        }
-                        ui.data != null -> {
-                            PlaceDetailScreen(
-                                data = ui.data,
-                                onBack = { navController.popBackStack() }
-                            )
-                        }
+                        ui.loading -> CircularProgressIndicator()
+                        ui.error != null -> ErrorScreen(ui.error) { vm.reload() }
+                        ui.data != null -> PlaceDetailScreen(
+                            place = ui.data,
+                            // tour = ui.tour
+                            onBack = { navController.popBackStack() }
+                        )
                     }
                 }
 

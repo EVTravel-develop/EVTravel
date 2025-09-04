@@ -8,6 +8,7 @@ import com.jeju.evtravel.domain.model.Place
 import com.jeju.evtravel.domain.repository.PlaceRepository
 import timber.log.Timber
 import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * PlaceRepositoryImpl은 PlaceRepository 인터페이스를 구현하여
@@ -24,6 +25,8 @@ class PlaceRepositoryImpl(
      * 지정된 좌표 주변의 장소를 검색합니다.
      */
     private val gson = Gson()
+
+    private val memory = ConcurrentHashMap<String, Place>()
 
     override suspend fun searchNearbyPlaces(
         query: String,
@@ -57,6 +60,21 @@ class PlaceRepositoryImpl(
         }
 
         val dto = res.body() ?: throw IOException("Kakao Local API empty body (HTTP ${res.code()})")
-        return dto.documents.map { it.toDomain() }
+        // ✅ 도메인 변환 + 캐싱
+        val list = dto.documents.map { it.toDomain() }
+        list.forEach { place -> memory[place.id] = place }   // <-- 여기서 캐시에 넣는다
+        return list
+    }
+
+    // ✅ 캐시에서 조회
+    override suspend fun getPlaceById(id: String): Place {
+        return memory[id] ?: throw NoSuchElementException(
+            "Place($id) not found in cache; pass cachedPlace via SavedStateHandle or search first."
+        )
+    }
+
+    // (선택) 외부에서 명시적으로 캐시할 수 있게
+    override fun cachePlace(place: Place) {
+        memory[place.id] = place
     }
 }

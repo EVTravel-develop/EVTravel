@@ -174,11 +174,12 @@ fun PlaceChargerDetailScreen(
     isLoading: Boolean = false,     // 로딩
     onRetry: () -> Unit,       // 새로고침/다시 시도
     onNavigateClick: () -> Unit,
-    onPlaceClick: (UiNearbyPlace) -> Unit = {},
+    onPlaceClick: (Place) -> Unit = {},
     nearbyVm: NearbyPlaceViewModel = hiltViewModel()
 ) {
-    val chargers = place.chargerList ?: emptyList()
+    val chargers = place.chargerList
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+    val uiState = nearbyVm.state.collectAsState().value
 
     Box(
         modifier = Modifier
@@ -412,11 +413,25 @@ fun PlaceChargerDetailScreen(
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
                                         Box(Modifier.weight(1f)) {
-                                            PlaceGridCard(item = row[0], onClick = onPlaceClick)
+                                            PlaceGridCard(
+                                                item = row[0],
+                                                onClick = { clicked ->
+                                                    uiState.itemsRaw
+                                                        .firstOrNull { it.id == clicked.id }
+                                                        ?.let { onPlaceClick(it) }
+                                                }
+                                            )
                                         }
                                         if (row.size > 1) {
                                             Box(Modifier.weight(1f)) {
-                                                PlaceGridCard(item = row[1], onClick = onPlaceClick)
+                                                PlaceGridCard(
+                                                    item = row[1],
+                                                    onClick = { clicked ->
+                                                        uiState.itemsRaw
+                                                            .firstOrNull { it.id == clicked.id }
+                                                            ?.let { onPlaceClick(it) }
+                                                    }
+                                                )
                                             }
                                         } else {
                                             Spacer(Modifier.weight(1f))

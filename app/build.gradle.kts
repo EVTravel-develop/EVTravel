@@ -14,6 +14,7 @@ plugins {
     id("kotlin-kapt")
 
     id("com.google.firebase.crashlytics")
+    id("kotlin-parcelize")
 }
 
 val secretProperties = Properties().apply {

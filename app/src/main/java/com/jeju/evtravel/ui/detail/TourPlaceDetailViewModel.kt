@@ -3,74 +3,71 @@ package com.jeju.evtravel.ui.detail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jeju.evtravel.domain.model.TourPlaceDetail
-import com.jeju.evtravel.domain.usecase.TourPlaceDetailUseCase
+import com.jeju.evtravel.domain.model.Place
+import com.jeju.evtravel.domain.repository.PlaceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-data class TourPlaceDetailUi(
-    val id: String,
-    val title: String,
-    val address: String?,
-    val tel: String?,
-    val overview: String?,     // HTML일 수 있음 → UI에서 처리
-    val imageUrl: String?,
-    val contentTypeId: String? // 상세 응답에 없으므로 null
+data class PlaceDetailUiState(
+    val loading: Boolean = false,
+    val error: String? = null,
+    val data: Place? = null
 )
 
-data class TourPlaceDetailState(
-    val loading: Boolean = true,
-    val error: String? = null,
-    val data: TourPlaceDetailUi? = null
+data class PlaceDetailUi(
+    val place: Place,
+    val tourPlace: TourPlaceDetailUi? = null
+)
+
+data class TourPlaceDetailUi(
+    val id: String?,
+    val overview: String?,
+    val imageUrl: String?
 )
 
 @HiltViewModel
 class TourPlaceDetailViewModel @Inject constructor(
-    private val detailUseCase: TourPlaceDetailUseCase,
-    private val savedStateHandle: SavedStateHandle
+    private val placeRepo: PlaceRepository,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    // NavHost route = "placeTourDetail/{contentId}"와 키를 반드시 일치시켜야 함
-    private val contentId: String =
-        checkNotNull(savedStateHandle["contentId"]) { "contentId is required" }
+    // NavHost에서 route = "placeDetail/{placeId}" 로 넘긴 값
+    private val placeId: String =
+        checkNotNull(savedStateHandle.get<String>("placeId")) { "placeId is required" }
 
-    private val _state = MutableStateFlow(TourPlaceDetailState())
-    val state: StateFlow<TourPlaceDetailState> = _state
+    // 출발 화면에서 미리 넣어둔 캐시(선택)
+    private val cachedPlace: Place? = savedStateHandle.get<Place>("cachedPlace")
+
+    private val _state = MutableStateFlow(PlaceDetailUiState(loading = true))
+    val state: StateFlow<PlaceDetailUiState> = _state
 
     init {
-        load()
-    }
+        // 1) 캐시 즉시 반영
+        cachedPlace?.let { _state.value = PlaceDetailUiState(loading = false, data = it) }
 
-    fun load() {
-        _state.value = _state.value.copy(loading = true, error = null)
+        // 2) 저장소에서 보강(캐시 히트 기대)
         viewModelScope.launch {
-            runCatching {
-                detailUseCase(contentId)   // UseCase가 TourPlaceDetail 반환
-            }.onSuccess { detail ->
-                _state.value = TourPlaceDetailState(
-                    loading = false,
-                    data = detail.toUi()
-                )
-            }.onFailure { e ->
-                _state.value = TourPlaceDetailState(
-                    loading = false,
-                    error = e.message ?: "정보를 불러오지 못했습니다."
-                )
-            }
+            runCatching { placeRepo.getPlaceById(placeId) }
+                .onSuccess { _state.value = PlaceDetailUiState(data = it) }
+                .onFailure { e ->
+                    // 캐시가 이미 보이는 경우는 그대로 두고, 아니면 에러
+                    if (_state.value.data == null) {
+                        _state.value = PlaceDetailUiState(error = e.message ?: "불러오기 실패")
+                    }
+                }
         }
     }
 
-    private fun TourPlaceDetail.toUi(): TourPlaceDetailUi =
-        TourPlaceDetailUi(
-            id = contentId ?: "",                    // detail 모델의 contentId
-            title = title ?: "",
-            address = addr1 ?: addr2,                // addr1 우선, 없으면 addr2
-            tel = tel,
-            overview = overview,
-            imageUrl = firstImage ?: firstImage2,
-            contentTypeId = null                     // 상세엔 없음(필요하면 모델/매퍼 확장)
-        )
+    fun reload() {
+        viewModelScope.launch {
+            runCatching { placeRepo.getPlaceById(placeId) }
+                .onSuccess { _state.value = PlaceDetailUiState(data = it) }
+                .onFailure { e ->
+                    _state.value = _state.value.copy(error = e.message ?: "불러오기 실패")
+                }
+        }
+    }
 }

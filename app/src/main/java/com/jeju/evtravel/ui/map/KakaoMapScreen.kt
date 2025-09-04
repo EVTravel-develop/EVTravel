@@ -525,8 +525,11 @@ fun KakaoMapScreen(
                         isLoading = isDetailLoading,
                         onRetry = { selectedPlace?.id?.let { viewModel.fetchCharger(it, forceRefresh = true) } },
                         onNavigateClick = { coroutineScope.launch { sheetState.hide() } },
-                        onPlaceClick = { ui ->
-                            navController.navigate("placeTourDetail/${ui.id}")
+                        onPlaceClick = { place: Place ->
+                            navController.navigate("placeDetail/${place.id}")
+                            navController.getBackStackEntry("placeDetail/{placeId}")
+                                .savedStateHandle
+                                .set("cachedPlace", place)
                         }
                     )
 
