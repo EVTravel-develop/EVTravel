@@ -9,6 +9,7 @@ fun ChargerRemoteDto.toDomain(): ChargerInfo {
         chargerId = chgerId ?: "",
         name = statNm ?: "",
         address = addr ?: "주소 정보 없음",
+        location = location ?: "",
         usageTime = useTime ?: "",
         provider = busiNm ?: "",
         output = output ?: "",

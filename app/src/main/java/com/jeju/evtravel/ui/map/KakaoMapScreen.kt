@@ -1,8 +1,16 @@
 package com.jeju.evtravel.ui.map
 
+import android.content.Intent
+import android.location.LocationManager
+import android.net.Uri
+import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,18 +21,27 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
@@ -43,15 +60,26 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.jeju.evtravel.R
 import com.jeju.evtravel.domain.model.Place
-import com.jeju.evtravel.ui.detail.PlaceChargerDetailScreen
+import com.jeju.evtravel.ui.detail.PlaceSheetScreen
+import com.jeju.evtravel.ui.detail.SummaryKind
+import com.jeju.evtravel.ui.detail.openChargerDetail
+import com.jeju.evtravel.ui.detail.openPlaceDetail
 import com.jeju.evtravel.ui.search.ClickableSearchBar
+import com.jeju.evtravel.ui.theme.Variables
+import com.kakao.vectormap.GestureType
 import com.kakao.vectormap.KakaoMap
 import com.kakao.vectormap.LatLng
 import com.kakao.vectormap.camera.CameraAnimation
@@ -63,34 +91,12 @@ import com.kakao.vectormap.label.LabelStyle
 import com.kakao.vectormap.label.LabelStyles
 import com.kakao.vectormap.label.LabelTextBuilder
 import com.kakao.vectormap.label.LabelTextStyle
-import com.kakao.vectormap.GestureType
 import kotlinx.coroutines.launch
-import android.content.Intent
-import android.location.LocationManager
-import android.net.Uri
-import android.provider.Settings
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MyLocation
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.TextButton
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import com.jeju.evtravel.ui.theme.Variables
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.ui.unit.sp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.jeju.evtravel.ui.detail.SummaryKind
-import kotlin.math.*
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.pow
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 private const val REQUERY_DISTANCE_M = 250.0
 val DEFAULT_CENTER = LatLng.from(33.4995, 126.5311) // 기본 좌표
@@ -145,10 +151,10 @@ fun KakaoMapScreen(
     val scaffoldState = rememberBottomSheetScaffoldState(sheetState)
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
-    val isFullScreen = sheetState.currentValue == SheetValue.Expanded
+    val isExpanded = sheetState.currentValue == SheetValue.Expanded
     val expandLatchPx = with(density) { 56.dp.toPx() }
     val corner by animateDpAsState(
-        targetValue = if (isFullScreen) 0.dp else 16.dp,
+        targetValue = if (isExpanded) 0.dp else 16.dp,
         label = "sheetCorner"
     )
     /** GPS 오류 상태 */
@@ -256,8 +262,18 @@ fun KakaoMapScreen(
      */
     LaunchedEffect(kakaoMap) {
         val map = kakaoMap ?: return@LaunchedEffect
-        // 항상 DEFAULT_CENTER로 이동 + 주변 검색, GPS 모드 아님
-        fallbackToDefaultCenter(viewModel, map, arrowController)
+
+        val center = viewModel.lastCenter
+        val zoom = viewModel.lastZoomLevel ?: DEFAULT_ZOOM
+
+        if (center != null) {
+            map.moveCamera(CameraUpdateFactory.newCenterPosition(center, zoom))
+            viewModel.searchNearby("제주 전기차 충전소", center.longitude, center.latitude, 2000)
+            viewModel.markSearched(center, zoom)
+        } else {
+            fallbackToDefaultCenter(viewModel, map, arrowController)
+        }
+
         showRequery = false
         gpsMode = false
     }
@@ -443,7 +459,7 @@ fun KakaoMapScreen(
     val peekHeight = when {
         selectedPlace == null -> 0.dp // 아무 것도 선택 안 함 → 시트 숨김
         currentKind == SummaryKind.CHARGER -> 460.dp
-        else -> 280.dp // 장소
+        else -> 290.dp // 장소
     }
     /**
      * 화면 레이아웃 및 하단 시트 구성
@@ -455,9 +471,9 @@ fun KakaoMapScreen(
         scaffoldState = scaffoldState,
         sheetShape = RoundedCornerShape(topStart = corner, topEnd = corner),
         sheetContainerColor = Color.White,
-        sheetTonalElevation = if (isFullScreen) 0.dp else BottomSheetDefaults.Elevation,
-        sheetShadowElevation = if (isFullScreen) 0.dp else BottomSheetDefaults.Elevation,
-        sheetDragHandle = { if (!isFullScreen) TinyHandle() },
+        sheetTonalElevation = if (isExpanded) 0.dp else BottomSheetDefaults.Elevation,
+        sheetShadowElevation = if (isExpanded) 0.dp else BottomSheetDefaults.Elevation,
+        sheetDragHandle = { if (!isExpanded) TinyHandle() },
         sheetPeekHeight = peekHeight,
         sheetSwipeEnabled = selectedPlace != null,
         sheetContent = {
@@ -465,11 +481,11 @@ fun KakaoMapScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .then(if (isFullScreen) Modifier.statusBarsPadding() else Modifier)
+                        .then(if (isExpanded) Modifier.statusBarsPadding() else Modifier)
                         .navigationBarsPadding()
                         .imePadding()
                         .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .padding(vertical = 12.dp)
                 ) {
                     if (showRequery && sheetState.currentValue == SheetValue.Expanded) {
                         AssistChip(
@@ -495,19 +511,24 @@ fun KakaoMapScreen(
                         )
                         Spacer(Modifier.height(8.dp))
                     }
-                    PlaceChargerDetailScreen(
+                    PlaceSheetScreen(
                         place = selectedPlace!!,
                         kind = currentKind,
-                        isFullScreen = isFullScreen,
+                        isFullScreen = isExpanded,
                         isLoading = isDetailLoading,
                         onRetry = { selectedPlace?.id?.let { viewModel.fetchCharger(it, forceRefresh = true) } },
                         onNavigateClick = { coroutineScope.launch { sheetState.hide() } },
-                        onPlaceClick = { place: Place ->
-                            navController.navigate("placeDetail/${place.id}")
-                            navController.getBackStackEntry("placeDetail/{placeId}")
-                                .savedStateHandle
-                                .set("cachedPlace", place)
-                        }
+                        onPlaceClick = { place ->
+                            openPlaceDetail(navController, place)
+                        },
+                        onOpenPlaceDetail = { place ->
+                            coroutineScope.launch { sheetState.hide() }
+                            openPlaceDetail(navController, place)
+                        },
+                        onOpenChargerDetail = { place ->
+                            coroutineScope.launch { sheetState.hide() }
+                            openChargerDetail(navController, place)
+                        },
                     )
 
                     detailError?.let { msg ->
@@ -557,6 +578,8 @@ fun KakaoMapScreen(
                     if (isLabelHighlighted) {
                         selectedLabel?.let { runCatching { it.applyDefaultStyle() } }
                         isLabelHighlighted = false
+                        selectedLabel = null
+                        viewModel.clearSelection()
                     }
                 }
             })

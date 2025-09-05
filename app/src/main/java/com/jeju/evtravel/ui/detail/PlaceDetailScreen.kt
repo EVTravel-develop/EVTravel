@@ -1,10 +1,26 @@
 package com.jeju.evtravel.ui.detail
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
+import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -15,6 +31,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.jeju.evtravel.R
 import com.jeju.evtravel.domain.model.Place
+import com.jeju.evtravel.ui.summary.AiSummaryBox
+import com.jeju.evtravel.ui.theme.Variables
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,120 +43,96 @@ fun PlaceDetailScreen(
     onNavigateClick: () -> Unit = {}
 ) {
     Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(onClick = onNavigateClick) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_navigate),
-                    contentDescription = "길찾기"
-                )
-            }
-        },
-        containerColor = Color.White
+        floatingActionButton = { ActionFAB(onClick = onNavigateClick) }
     ) { inner ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .padding(inner)
                 .fillMaxSize()
+                .background(Color.White),
+            contentPadding = PaddingValues(bottom = 96.dp)
         ) {
             // 헤더(이미지/뒤로가기)
-            Box(modifier = Modifier.fillMaxWidth()) {
-                // (옵션) 투어 상세 이미지가 있으면 보여주기
-                /*
-                AsyncImage(
-                    model = tour?.imageUrl,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(230.dp),
-                    contentScale = ContentScale.Crop
-                )
-                */
-                IconButton(
-                    onClick = onBack,
-                    modifier = Modifier
-                        .statusBarsPadding()
-                        .padding(8.dp)
-                        .align(Alignment.TopStart)
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_back),
-                        contentDescription = "뒤로가기"
-                    )
+            item {
+                Box(Modifier.fillMaxWidth()) {
+                    HeaderImage(imageUrl = " ")
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier
+                            .statusBarsPadding()
+                            .padding(3.dp)
+                            .align(Alignment.TopStart)
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_back),
+                            contentDescription = "뒤로가기"
+                        )
+                    }
                 }
             }
 
             // 상단 둥근 섹션
-            Surface(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .offset(y = (-20).dp),
-                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-                color = Color.White
-            ) {
-                Column(modifier = Modifier.fillMaxSize()) {
+            item {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .offset(y = (-20).dp),
+                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+                    color = Color.White
+                ) {
+                    Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                        Text(text = place.name, style = DetailTitleTextStyle)
+                        Spacer(Modifier.height(20.dp))
 
-                    // ── Kakao Place 기본 정보(항상 표시) ──
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = place.name,
-                            style = TextStyle(fontWeight = FontWeight.Bold)
-                        )
-                        Spacer(Modifier.height(12.dp))
-
-                        place.address?.let { addr ->
-                            InfoRow(
-                                leading = {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.ic_location),
-                                        contentDescription = null
-                                    )
-                                },
-                                text = addr
-                            )
-                            Spacer(Modifier.height(8.dp))
+                        val addr = place.roadAddress?.takeIf { it.isNotBlank() } ?: place.address
+                        if (!addr.isNullOrBlank()) {
+                            InfoRow(iconRes = R.drawable.ic_location, text = addr)
+                            Spacer(Modifier.height(12.dp))
                         }
-
                         if (!place.phone.isNullOrEmpty()) {
-                            InfoRow(
-                                leading = {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.ic_phone),
-                                        contentDescription = null
-                                    )
-                                },
-                                text = place.phone
-                            )
+                            InfoRow(iconRes = R.drawable.ic_phone, text = place.phone)
+                            Spacer(Modifier.height(18.dp))
                         }
 
-                        Spacer(Modifier.height(12.dp))
-                        Divider()
+                        AiSummaryBox(text = "AI 작성 중...")
                     }
-
-                    // ── 스크롤 상세(투어 상세가 있을 때만 내용 풍성) ──
-//                    Column(
-//                        modifier = Modifier
-//                            .weight(1f)
-//                            .verticalScroll(rememberScrollState())
-//                            .padding(16.dp)
-//                    ) {
-//                        Text("상세정보", style = MaterialTheme.typography.titleMedium)
-//                        Spacer(Modifier.height(8.dp))
-//
-//                        val overview = tour?.overview
-//                        if (!overview.isNullOrBlank()) {
-//                            Text(overview, style = MaterialTheme.typography.bodyMedium)
-//                        } else {
-//                            Text(
-//                                "등록된 상세 설명이 없습니다.",
-//                                style = MaterialTheme.typography.bodyMedium,
-//                                color = MaterialTheme.colorScheme.onSurfaceVariant
-//                            )
-//                        }
-//
-//                        Spacer(Modifier.height(80.dp)) // FAB 간섭 방지
-//                    }
                 }
             }
+
+            item {
+                Divider(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(7.dp),
+                    color = Variables.Grayscale50,
+                    thickness = 7.dp
+                )
+            }
+//            item {
+//                Column(
+//                    modifier = Modifier
+//                        .padding(16.dp)
+//                ) {
+//                    Text("상세 설명", style = DetailInfoTextStyle)
+//                    Spacer(Modifier.height(8.dp))
+//
+//                    val overview = tour?.overview
+//                    if (!overview.isNullOrBlank()) {
+//                        Text(overview,
+//                             style = DetailOverviewTextStyle,
+//                             color = Color(0xFF5E5E5E)
+//                        )
+//                    } else {
+//                        Text(
+//                            "등록된 상세 설명이 없습니다.",
+//                            style = DetailOverviewTextStyle,
+//                            color = Color(0xFF5E5E5E)
+//                        )
+//                    }
+//
+//                    Spacer(Modifier.height(80.dp)) // FAB 간섭 방지
+//                }
+//            }
         }
     }
 }

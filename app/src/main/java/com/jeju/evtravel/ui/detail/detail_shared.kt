@@ -1,16 +1,28 @@
 package com.jeju.evtravel.ui.detail
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.NearMe
-import androidx.compose.material.icons.outlined.Phone
-import androidx.compose.material.icons.outlined.Place
-import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -21,6 +33,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
@@ -30,13 +43,141 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.jeju.evtravel.R
 import com.jeju.evtravel.ui.theme.Variables
-import androidx.compose.ui.graphics.vector.ImageVector
+
+data class Block(
+    val label: String,
+    val total: Int,
+    val charging: Int,       // "3"
+    val available: Int       // = total - charging
+)
+
+data class CourseCardData(
+    val title: String,
+    val subtitle: String,
+    val imageRes: Int
+)
 
 val RobotoFamily = FontFamily(
     Font(R.font.roboto_regular, FontWeight.Normal),
     Font(R.font.roboto_bold, FontWeight.Bold)
 )
 
+val OutputTextStyle = TextStyle(
+    fontFamily = RobotoFamily,
+    fontWeight = FontWeight.SemiBold,
+    fontSize = 14.sp,
+    lineHeight = 26.sp,
+    letterSpacing = 0.sp,
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.None
+    )
+)
+
+val StatTextStyle = TextStyle(
+    fontFamily = RobotoFamily,
+    fontWeight = FontWeight.SemiBold,
+    fontSize = 16.sp,
+    lineHeight = 24.sp,
+    letterSpacing = 0.sp,
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.None
+    )
+)
+
+val TitleTextStyle = TextStyle(
+    fontFamily = RobotoFamily,
+    fontWeight = FontWeight.Bold,
+    fontSize = 18.sp,
+    lineHeight = 24.sp,
+    letterSpacing = 0.001.em,
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.None
+    )
+)
+val SubtitleTextStyle = TextStyle(
+    fontFamily = RobotoFamily,
+    fontWeight = FontWeight.Medium,
+    fontSize = 16.sp,
+    lineHeight = 24.sp,
+    letterSpacing = 0.sp
+)
+
+val SelectedTabTextStyle = TextStyle(
+    fontFamily = RobotoFamily,
+    fontWeight = FontWeight.Bold,   // 700
+    fontSize = 16.sp,
+    lineHeight = 24.sp,
+    letterSpacing = 0.sp,
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.None
+    )
+)
+
+val UnselectedTabTextStyle = TextStyle(
+    fontFamily = RobotoFamily,
+    fontWeight = FontWeight.Bold,
+    fontSize = 16.sp,
+    lineHeight = 24.sp,
+    letterSpacing = 0.sp,
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.None
+    )
+)
+
+val CategoryChipTextStyle = TextStyle(
+    fontFamily = RobotoFamily,
+    fontWeight = FontWeight.W500,
+    fontSize = 13.sp,
+    lineHeight = 24.sp,
+    letterSpacing = 0.0125.em,
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.None
+    )
+)
+
+val PlaceTabTitleTextStyle = TextStyle(
+    fontFamily = RobotoFamily,
+    fontWeight = FontWeight.Bold,
+    fontSize = 14.sp,
+    lineHeight = 20.sp,
+    letterSpacing = 0.0125.em,
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.None
+    )
+)
+
+val PlaceTabTagTextStyle = TextStyle(
+    fontFamily = RobotoFamily,
+    fontWeight = FontWeight.Medium,
+    fontSize = 14.sp,
+    lineHeight = 20.sp,
+    letterSpacing = 0.0125.em,
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.None
+    )
+)
+
+val CourseCardTitleTextStyle = TextStyle(
+    fontFamily = RobotoFamily,
+    fontWeight = FontWeight.Bold,
+    fontSize = 17.sp,
+    lineHeight = 24.sp,
+    letterSpacing = 0.001.em,
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.None
+    )
+)
+
+/** 장소 상세 이름 */
 val DetailTitleTextStyle = TextStyle(
     fontFamily = RobotoFamily,
     fontWeight = FontWeight.Bold,
@@ -49,21 +190,78 @@ val DetailTitleTextStyle = TextStyle(
     )
 )
 
-val DetailSubtitleTextStyle = TextStyle(
+/** 상세 충전기 상태 정보 */
+val DetailOutputTextStyle = TextStyle(
     fontFamily = RobotoFamily,
-    fontWeight = FontWeight.Medium,
+    fontWeight = FontWeight.SemiBold,
+    fontSize = 15.sp,
+    lineHeight = 24.sp,
+    letterSpacing = 0.0125.em,
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.None
+    )
+)
+val DetailStatTextStyle = TextStyle(
+    fontFamily = RobotoFamily,
+    fontWeight = FontWeight.SemiBold,
     fontSize = 16.sp,
-    lineHeight = 24.sp
+    lineHeight = 24.sp,
+    letterSpacing = 0.0125.em,
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.None
+    )
 )
 
-val DetailLabelTextStyle = TextStyle(
+/** 상세 정보 */
+val DetailInfoTextStyle = TextStyle(
+    fontFamily = RobotoFamily,
+    fontWeight = FontWeight.Bold,
+    fontSize = 16.sp,
+    lineHeight = 20.sp,
+    letterSpacing = 0.0015.em,
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.None
+    )
+)
+val DetailOverviewTextStyle = TextStyle(
+    fontFamily = RobotoFamily,
+    fontWeight = FontWeight.W400,
+    fontSize = 14.sp,
+    lineHeight = 21.sp,
+    letterSpacing = 0.0125.em,
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.None
+    )
+)
+
+/** AI 요약 */
+val AiTitleTextStyle = TextStyle(
+    fontFamily = RobotoFamily,
+    fontWeight = FontWeight.Bold,
+    fontSize = 16.sp,
+    lineHeight = 24.sp,
+    letterSpacing = 0.sp,
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.None
+    )
+)
+val AiSummaryTextStyle = TextStyle(
     fontFamily = RobotoFamily,
     fontWeight = FontWeight.Normal,
-    fontSize = 14.sp,
-    lineHeight = 22.sp
+    fontStyle = FontStyle.Normal,
+    fontSize = 13.sp,
+    lineHeight = 22.5.sp,
+    letterSpacing = 0.0125.em,
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.None
+    )
 )
-
-/* ------------------------------ Shared UI ------------------------------ */
 
 @Composable
 fun HeaderImage(
@@ -97,57 +295,17 @@ fun HeaderImage(
     }
 }
 
-@Composable
-fun InfoCard(
-    hours: String?,
-    address: String?,
-    phone: String?,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = MaterialTheme.shapes.large
-    ) {
-        Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-            if (!hours.isNullOrBlank()) {
-                InfoRow(
-                    leading = { Icon(painterResource(id = R.drawable.ic_clock), contentDescription = null) },
-                    text = hours
-                )
-                Spacer(Modifier.height(12.dp))
-            }
-            if (!address.isNullOrBlank()) {
-                InfoRow(
-                    leading = { Icon(painterResource(id = R.drawable.ic_location), contentDescription = null) },
-                    text = address
-                )
-                Spacer(Modifier.height(12.dp))
-            }
-            if (!phone.isNullOrBlank()) {
-                InfoRow(
-                    leading = { Icon(painterResource(id = R.drawable.ic_phone), contentDescription = null) },
-                    text = phone
-                )
-            }
-        }
-    }
-}
 
 @Composable
-fun InfoRow(
-    leading: @Composable () -> Unit,
-    text: String
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.primary) {
-            leading()
-        }
+fun InfoRow(iconRes: Int, text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Image(
+            painter = painterResource(id = iconRes),
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+        )
         Spacer(Modifier.width(8.dp))
-        Text(text, style = MaterialTheme.typography.bodyMedium)
+        Text(text, style = SubtitleTextStyle, color = Color(0xFF5A5A5A))
     }
 }
 
@@ -164,18 +322,12 @@ fun ActionFAB(onClick: () -> Unit) {
         contentColor = Color.White,
         shape = RoundedCornerShape(18.dp)
     ) {
-        Icon(Icons.Outlined.NearMe, contentDescription = "길안내")
+        Image(
+            painter = painterResource(id = R.drawable.ic_navigate),
+            contentDescription = "길안내"
+        )
     }
 }
-
-/* ------------------------------ Utilities ------------------------------ */
-
-fun isCharging(status: String?): Boolean {
-    // 공공데이터 표준/내부코드 양쪽 대응
-    return status == "3" || status.equals("CHARGING", true)
-}
-
-
 
 @Composable
 fun ErrorScreen(message: String, onRetry: () -> Unit) {
