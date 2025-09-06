@@ -1,7 +1,5 @@
-// com/jeju/evtravel/ui/onboarding/OnboardingScreen.kt
 package com.jeju.evtravel.ui.onboarding
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -9,7 +7,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,14 +35,18 @@ fun OnboardingScreen(
 
     val pagerState = rememberPagerState(initialPage = 0) { pages.size }
     val context = LocalContext.current
+    var showLoading by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
-            .padding(24.dp)
+            .background(Color.White) // ✅ 전체 흰 배경
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp) // ✅ 이제 Column 안에서만 padding 적용
+        ) {
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.weight(1f)
@@ -103,64 +105,70 @@ fun OnboardingScreen(
                 }
             }
             Spacer(modifier = Modifier.height(32.dp))
+
+            // 버튼
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Button(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFE812)),
+                    onClick = {
+                        showLoading = true
+                        KakaoLoginService.kakaoLogin(context) { success ->
+                            showLoading = false
+                            onKakaoClick(success)
+                        }
+                    }
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_kakao),
+                            contentDescription = "Kakao Icon",
+                            tint = Color.Unspecified,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "카카오톡으로 로그인",
+                            color = Color.Black,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedButton(
+                    onClick = {
+                        showLoading = true
+                        GuestLoginService.guestLogin { success ->
+                            showLoading = false
+                            onGuestClick(success)
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFF5F5F5))
+                ) {
+                    Text("비회원", color = Color.Black, fontSize = 16.sp)
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
         }
 
-        // 버튼
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-        ) {
-            Button(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFE812)),
-                onClick = {
-                    KakaoLoginService.kakaoLogin(context) { success ->
-                        onKakaoClick(success)
-                    }
-                }
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_kakao),
-                        contentDescription = "Kakao Icon",
-                        tint = Color.Unspecified,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        "카카오톡으로 로그인",
-                        color = Color.Black,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedButton(
-                onClick = {
-                    // ✅ Guest 로그인 실행 후 성공 여부만 반환
-                    GuestLoginService.guestLogin { success ->
-                        onGuestClick(success)
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFF5F5F5))
-            ) {
-                Text("비회원", color = Color.Black, fontSize = 16.sp)
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
+        // ✅ 로딩 모달
+        if (showLoading) {
+            LoadingDialog()
         }
     }
 }
