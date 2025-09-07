@@ -52,7 +52,7 @@ import com.jeju.evtravel.ui.planner.SearchDestinationScreen
 import com.jeju.evtravel.ui.search.SearchScreen
 import com.jeju.evtravel.ui.search.SearchViewModel
 import com.jeju.evtravel.ui.splash.SplashScreen
-import com.jeju.evtravel.ui.withdrawal.WithdrawalScreen
+import com.jeju.evtravel.ui.mypage.WithdrawalScreen
 import com.jeju.evtravel.viewmodel.SavedPlaceScreen
 import com.kakao.vectormap.utils.MapUtils
 import dagger.hilt.android.AndroidEntryPoint
