@@ -212,8 +212,11 @@ fun MainScreen(
                         ?.get<Place>("cachedPlace")
 
                     val place = cached
-                        ?: hiltViewModel<MapViewModel>().selectedPlace.collectAsState().value
-                        ?: return@composable
+                        ?: mapViewModel.selectedPlace.collectAsState().value
+                        ?: run {
+                            navController.popBackStack()
+                            return@composable
+                        }
 
                     ChargerDetailScreen(
                         place = place,

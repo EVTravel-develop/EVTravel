@@ -98,7 +98,7 @@ fun ChargerSummaryScreen(
     nearbyVm: NearbyPlaceViewModel = hiltViewModel(),
     onExpandToDetail: () -> Unit
 ) {
-    val chargers = place.chargerList
+    val chargers = place.chargerList ?: emptyList()
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
     Box(

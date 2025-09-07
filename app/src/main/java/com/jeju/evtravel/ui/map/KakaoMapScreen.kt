@@ -419,7 +419,7 @@ fun KakaoMapScreen(
         snapshotFlow { sheetState.currentValue }
             .collect { value ->
                 if (value == SheetValue.Hidden && selectedPlace != null) {
-                    // viewModel.clearSelection()
+                    viewModel.clearSelection()
                     isLabelHighlighted = false
                 }
             }

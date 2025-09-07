@@ -53,6 +53,7 @@ class TourPlaceDetailViewModel @Inject constructor(
             runCatching { placeRepo.getPlaceById(placeId) }
                 .onSuccess { _state.value = PlaceDetailUiState(data = it) }
                 .onFailure { e ->
+                    if (e is kotlin.coroutines.cancellation.CancellationException) throw e
                     // 캐시가 이미 보이는 경우는 그대로 두고, 아니면 에러
                     if (_state.value.data == null) {
                         _state.value = PlaceDetailUiState(error = e.message ?: "불러오기 실패")
@@ -66,6 +67,7 @@ class TourPlaceDetailViewModel @Inject constructor(
             runCatching { placeRepo.getPlaceById(placeId) }
                 .onSuccess { _state.value = PlaceDetailUiState(data = it) }
                 .onFailure { e ->
+                    if (e is kotlin.coroutines.cancellation.CancellationException) throw e
                     _state.value = _state.value.copy(error = e.message ?: "불러오기 실패")
                 }
         }
