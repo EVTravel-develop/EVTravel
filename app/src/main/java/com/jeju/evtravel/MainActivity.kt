@@ -35,6 +35,7 @@ import com.jeju.evtravel.ui.planner.*
 import com.jeju.evtravel.ui.search.SearchScreen
 import com.jeju.evtravel.ui.search.SearchViewModel
 import com.jeju.evtravel.ui.splash.SplashScreen
+import com.jeju.evtravel.ui.withdrawal.WithdrawalScreen
 import com.jeju.evtravel.viewmodel.SavedPlaceScreen
 import com.kakao.vectormap.utils.MapUtils
 import dagger.hilt.android.AndroidEntryPoint
@@ -197,8 +198,9 @@ fun MainScreen(
                 composable("my") {
                     MyPageScreen(
                         onEditProfileClick = { navController.navigate("profileEdit") },
-                        onSavedPlaceClick = { navController.navigate("saved_places") },   // ✅ 버튼 클릭 시
-                        onSavedCourseClick = { navController.navigate("saved_courses") }  // ✅ 버튼 클릭 시
+                        onSavedPlaceClick = { navController.navigate("saved_places") },
+                        onSavedCourseClick = { navController.navigate("saved_courses") },
+                        onDeleteAccountClick = { navController.navigate("withdrawal") } // ✅ 탈퇴하기 클릭 시 이동
                     )
                 }
 
@@ -214,6 +216,25 @@ fun MainScreen(
                 composable("saved_courses") {
                     SavedCourseScreen(navController = navController)
                 }
+
+                // ✅ 회원 탈퇴 화면 추가
+                composable("withdrawal") {
+                    WithdrawalScreen(
+                        onWithdrawComplete = {
+                            // 탈퇴 성공 시 온보딩 화면으로 이동 (모든 백스택 제거)
+                            navController.navigate("onboarding") {
+                                popUpTo(navController.graph.startDestinationId) {
+                                    inclusive = true
+                                }
+                            }
+                        },
+                        onCancel = {
+                            // 취소 시 이전 화면(마이페이지)으로 돌아감
+                            navController.popBackStack()
+                        }
+                    )
+                }
+
 
                 // 플래너 탭의 분기점 역할. UI 없음.
                 composable("planner") {

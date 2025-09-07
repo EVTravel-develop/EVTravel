@@ -1,4 +1,3 @@
-// com/jeju/evtravel/service/auth/FirestoreUserService.kt
 package com.jeju.evtravel.service.auth
 
 import android.util.Log
@@ -59,4 +58,36 @@ object FirestoreUserService {
             }
     }
 
+    fun deleteUserAccount(onResult: (Boolean) -> Unit) {
+        val uid = auth.currentUser?.uid
+        val user = auth.currentUser
+        if (uid == null || user == null) {
+            Log.d("FirestoreUserService", "❌ 현재 로그인된 유저 없음 → 탈퇴 불가")
+            onResult(false)
+            return
+        }
+
+        // 1. Firestore 유저 문서 삭제
+        db.collection("users")
+            .document(uid)
+            .delete()
+            .addOnSuccessListener {
+                Log.d("FirestoreUserService", "✅ Firestore 유저 문서 삭제 성공")
+
+                // 2. FirebaseAuth 계정 삭제
+                user.delete()
+                    .addOnSuccessListener {
+                        Log.d("FirestoreUserService", "✅ FirebaseAuth 계정 삭제 성공")
+                        onResult(true)
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("FirestoreUserService", "❌ FirebaseAuth 계정 삭제 실패", e)
+                        onResult(false)
+                    }
+            }
+            .addOnFailureListener { e ->
+                Log.e("FirestoreUserService", "❌ Firestore 유저 문서 삭제 실패", e)
+                onResult(false)
+            }
+    }
 }
