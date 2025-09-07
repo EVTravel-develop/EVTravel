@@ -5,6 +5,7 @@ data class ChargerInfo(
     val chargerId: String,
     val name: String,
     val address: String,
+    val location: String,
     val usageTime: String,
     val provider: String,
     val output: String,

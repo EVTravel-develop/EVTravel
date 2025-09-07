@@ -11,6 +11,7 @@ import com.jeju.evtravel.data.repository.RegionCodeRepository
 import com.jeju.evtravel.domain.model.ChargerInfo
 import com.jeju.evtravel.domain.model.Place
 import com.jeju.evtravel.domain.usecase.SearchNearbyPlacesUseCase
+import com.jeju.evtravel.ui.detail.SummaryKind
 import com.kakao.vectormap.LatLng
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
@@ -38,6 +39,10 @@ class MapViewModel @Inject constructor(
     private val _selectedPlace = MutableStateFlow<Place?>(null)
     val selectedPlace: StateFlow<Place?> = _selectedPlace
 
+    // 장소 타입 보관
+    private val _selectedKind = MutableStateFlow<SummaryKind?>(null)
+    val selectedKind: StateFlow<SummaryKind?> = _selectedKind
+
     // 상세 패널용 로딩/에러 상태 보관
     private val _isSelectedPlaceLoading = MutableStateFlow(false)
     val isSelectedPlaceLoading: StateFlow<Boolean> = _isSelectedPlaceLoading
@@ -56,7 +61,10 @@ class MapViewModel @Inject constructor(
     var lastSearchCenter: LatLng? = null
     var lastSearchZoomLevel: Int? = null
 
-    fun clearSelection() { _selectedPlace.value = null }
+    fun clearSelection() {
+        _selectedPlace.value = null
+        _selectedKind.value = null
+    }
     private val chargerByStatCache = mutableMapOf<Triple<String, String, String>, List<ChargerInfo>>()
     private var placeIndex = mutableMapOf<String, Place>()  // id -> Place
     private var currentPlaces: List<Place> = emptyList()    // 리스트 보관 (디버그/순회용
@@ -89,21 +97,31 @@ class MapViewModel @Inject constructor(
         }
     }
 
-    /** 상세 충전소 검색 */
-    fun selectPlace(place: Place, forceRefresh: Boolean = false, onComplete: () -> Unit = {}) {
+    fun kindFor(place: Place, preferred: SummaryKind? = null): SummaryKind {
+        if (preferred != null) return preferred
+        return if (isEvCharger(place)) SummaryKind.CHARGER else SummaryKind.PLACE
+    }
+
+    private fun isEvCharger(place: Place): Boolean {
+        val cat = (place.category ?: "").lowercase()
+        if (cat.contains("전기차 충전소")) return true
+        return false
+    }
+
+    private fun selectPlaceCharger(
+        place: Place,
+        forceRefresh: Boolean = false,
+        onComplete: () -> Unit = {}
+    ) {
         selectJob?.cancel()
         selectJob = viewModelScope.launch {
             try {
                 _selectedPlaceError.value = null
-                Log.d("MVM_selectPlace", "장소 선택: ${place.name} (${place.latitude}, ${place.longitude}) id=${place.id}")
-
                 val curr0 = _selectedPlace.value
-                if (curr0 == null || curr0.id != place.id) {
-                    _selectedPlace.value = place
-                }
+                if (curr0 == null || curr0.id != place.id) _selectedPlace.value = place
                 _isSelectedPlaceLoading.value = true
 
-                // 1) 좌표 → 지역 코드
+                // --- 아래는 기존 CHARGER 분기 안에 있던 코드 그대로 이동 ---
                 val x = place.longitude
                 val y = place.latitude
                 val regionCode = regionCodeRepository.getRegionCodeFromCoord(x, y)
@@ -113,78 +131,79 @@ class MapViewModel @Inject constructor(
                     }
                 val zcode = regionCode.zcode
                 val zscode = regionCode.zscode
-                Log.d("MVM_selectPlace", "주소 변환 → zcode=$zcode, zscode=$zscode")
 
-                // 2) Firestore에서 카카오 id로 statId 배열 조회
                 val kakaoId = place.id
                 val statIds = fetchStatIdsForKakaoId(kakaoId)
 
                 if (statIds.isEmpty()) {
-                    Log.w("MVM_selectPlace", "kakao_id=$kakaoId → statIds 비어있음")
-                    // 필요시 fallback:
-                    val fallback = chargerListRepository.fetchChargers(zcode, zscode, statId = "")
-                    _selectedPlace.value = place.copy(chargerList = fallback)
+                    val updated = place.copy(chargerList = emptyList())
+                    _selectedPlace.value = updated
+                    placeIndex[updated.id] = updated
+                    // _selectedPlaceError.value = "이 장소는 매핑된 충전소가 없습니다." // 안내를 띄우고 싶으면 주석 해제
                     return@launch
                 }
 
-                // 3) statId별로 공공데이터 API 호출 (캐시/강제새로고침 반영)
-                val merged = kotlinx.coroutines.coroutineScope {
+                val merged = coroutineScope {
                     statIds.map { sid ->
                         async {
                             val key = Triple(zcode, zscode, sid)
-                            val listForSid: List<ChargerInfo> = if (forceRefresh) {
-                                chargerByStatCache.remove(key)
-                                runCatching {
-                                    chargerListRepository.fetchChargers(zcode, zscode, sid)
-                                    }.onFailure { e -> Log.e("MVM_selectPlace", "충전소 API 실패 sid=$sid", e) }
-                                .getOrElse { emptyList() }
-                                .also { chargerByStatCache[key] = it }
+                            val listForSid: List<ChargerInfo> =
+                                if (forceRefresh) {
+                                    chargerByStatCache.remove(key)
+                                    runCatching { chargerListRepository.fetchChargers(zcode, zscode, sid) }
+                                        .getOrElse { emptyList() }
+                                        .also { chargerByStatCache[key] = it }
                                 } else {
-                                chargerByStatCache.getOrPut(key) {
-                                    runCatching {
-                                        chargerListRepository.fetchChargers(zcode, zscode, sid)
-                                        }.onFailure { e -> Log.e("MVM_selectPlace", "충전소 API 실패 sid=$sid", e) }
-                                    .getOrElse { emptyList() }
+                                    chargerByStatCache.getOrPut(key) {
+                                        runCatching { chargerListRepository.fetchChargers(zcode, zscode, sid) }
+                                            .getOrElse { emptyList() }
                                     }
                                 }
-                            Log.d("MVM_selectPlace", "statId=$sid → ${listForSid.size}개 수신")
                             listForSid
-                            }
-                        }.awaitAll().flatten()
-                    }
-
-                Log.d("MVM_selectPlace", "총 합계(중복 포함) ${merged.size}개")
-
-                // (선택) 중복 제거: 같은 statId/chgerId 조합 중복이 있을 수 있으니 고유화
-                val dedup = merged
-                    .distinctBy { c ->
-                        // 도메인 모델 정의에 맞게 키 선택
-                        "${runCatching { c.statId }.getOrNull()}#${runCatching { c.chargerId }.getOrNull()}"
-                    }
-
-                Log.d("MVM_selectPlace", "중복 제거 후 ${dedup.size}개")
-
-                // 4) Place 업데이트 (선택 변경이 있으면 폐기)
-                val updated = place.copy(chargerList = dedup)
-
-                val curr1 = _selectedPlace.value
-                if (curr1 != null && curr1.id != place.id) {
-                    Log.d("MVM_selectPlace", "선택 변경 감지: ${curr1.id} != ${place.id}, 업데이트 폐기")
-                    return@launch
+                        }
+                    }.awaitAll().flatten()
                 }
+
+                val dedup = merged.distinctBy { c ->
+                    "${runCatching { c.statId }.getOrNull()}#${runCatching { c.chargerId }.getOrNull()}"
+                }
+
+                val updated = place.copy(chargerList = dedup)
+                val curr1 = _selectedPlace.value
+                if (curr1 != null && curr1.id != place.id) return@launch
                 if (curr1 != updated) {
                     _selectedPlace.value = updated
                     placeIndex[updated.id] = updated
                 }
-
             } catch (ce: CancellationException) {
                 throw ce
             } catch (e: Exception) {
                 _selectedPlaceError.value = "알 수 없는 오류가 발생했습니다."
-                Log.e("MVM_selectPlace", "selectPlace error", e)
             } finally {
                 _isSelectedPlaceLoading.value = false
                 runCatching { onComplete() }
+            }
+        }
+    }
+
+    fun selectPlace(
+        place: Place,
+        kind: SummaryKind,
+        forceRefresh: Boolean = false,
+        onComplete: () -> Unit = {}
+    ) {
+        _selectedKind.value = kind
+
+        if (kind == SummaryKind.CHARGER) {
+            selectPlaceCharger(place, forceRefresh, onComplete)
+            return
+        } else {
+            selectJob?.cancel()
+            selectJob = viewModelScope.launch {
+                _selectedPlaceError.value = null
+                _isSelectedPlaceLoading.value = false
+                _selectedPlace.value = place
+                onComplete()
             }
         }
     }
@@ -196,7 +215,7 @@ class MapViewModel @Inject constructor(
         // 마지막 검색/선택 캐시에서 place 찾아서 재요청
         val place = placeIndex[placeId] ?: _selectedPlace.value?.takeIf { it.id == placeId }
         if (place != null) {
-            selectPlace(place, forceRefresh = forceRefresh)
+            selectPlace(place, SummaryKind.CHARGER, forceRefresh = forceRefresh)
         } else {
             Log.w("MapVM", "fetchCharger: place not found for id=$placeId")
         }
@@ -210,25 +229,43 @@ class MapViewModel @Inject constructor(
 
     var skipAutoCenterOnce: Boolean = false
 
-    fun focusAndSelect(place: Place, radius: Int = 2000, defaultZoom: Int = 15) {
-        // 카메라/선택 복원 상태 세팅
+    fun focusAndSelect(
+        place: Place,
+        radius: Int = 2000,
+        defaultZoom: Int = 15
+    ) {
+        val kind = kindFor(place)
+        focusAndSelect(place, kind, radius, defaultZoom)
+    }
+
+    fun focusAndSelect(
+        place: Place,
+        kind: SummaryKind,
+        radius: Int = 2000,
+        defaultZoom: Int = 15
+    ) {
         lastCenter = LatLng.from(place.latitude, place.longitude)
         lastZoomLevel = defaultZoom
         lastSelectedPlaceId = place.id
         isMapRestored = false
 
-        // 상세(충전기) 로딩
-        selectPlace(place)
+        _selectedKind.value = kind
 
-        // 주변 재검색
-        searchNearby(
-            query = "제주 전기차 충전소",
-            longitude = place.longitude,
-            latitude = place.latitude,
-            radius = radius
-        )
+        if (kind == SummaryKind.CHARGER) {
+            // 충전소는 상세 로딩 + 주변 충전소 재검색 유지
+            selectPlace(place, kind)
+            searchNearby(
+                query = "제주 전기차 충전소",
+                longitude = place.longitude,
+                latitude = place.latitude,
+                radius = radius
+            )
+        } else {
+            // 장소는 선택만 (주변 충전소 재검색은 불필요)
+            _selectedPlace.value = place
+            _isSelectedPlaceLoading.value = false
+        }
 
-        // 다음 진입 시 현재위치 자동 세팅을 1회 건너뛰기
         skipAutoCenterOnce = true
     }
 

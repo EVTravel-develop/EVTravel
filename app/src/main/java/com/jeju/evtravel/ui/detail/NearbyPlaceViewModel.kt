@@ -31,6 +31,7 @@ data class NearbyUiState(
     val selectedCategory: String = "자연환경",
     val items: List<UiNearbyPlace> = emptyList(),     // 화면에 표시되는 목록(필터 적용 결과)
     val itemsAll: List<UiNearbyPlace> = emptyList(),  // 전체 원본(필터 전)
+    val itemsRaw: List<Place> = emptyList()
 )
 
 @HiltViewModel
@@ -120,7 +121,8 @@ class NearbyPlaceViewModel @Inject constructor(
                 _state.value = _state.value.copy(
                     loading = false,
                     itemsAll = mapped,
-                    items = mapped
+                    items = mapped,
+                    itemsRaw = list
                 )
                 onComplete()
             }.onFailure { e ->

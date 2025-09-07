@@ -5,6 +5,7 @@ data class ChargerRemoteDto(
     val chgerId: String? = null,
     val statNm: String? = null,
     val addr: String? = null,
+    val location: String? = null,
     val useTime: String? = null,
     val busiNm: String? = null,
     val output: String? = null,

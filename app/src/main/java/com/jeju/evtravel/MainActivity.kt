@@ -12,26 +12,43 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
-import androidx.navigation.compose.*
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.firebase.auth.FirebaseAuth
+import com.jeju.evtravel.domain.model.Place
 import com.jeju.evtravel.navigation.BottomNavigationBar
+import com.jeju.evtravel.ui.detail.ChargerDetailScreen
 import com.jeju.evtravel.ui.detail.ErrorScreen
-import com.jeju.evtravel.ui.detail.NearbyPlaceViewModel
 import com.jeju.evtravel.ui.detail.PlaceDetailScreen
 import com.jeju.evtravel.ui.detail.TourPlaceDetailViewModel
 import com.jeju.evtravel.ui.map.KakaoMapScreen
 import com.jeju.evtravel.ui.map.MapViewModel
-import com.jeju.evtravel.ui.mypage.*
+import com.jeju.evtravel.ui.mypage.MyPageScreen
+import com.jeju.evtravel.ui.mypage.ProfileEditScreen
+import com.jeju.evtravel.ui.mypage.SavedCourseScreen
 import com.jeju.evtravel.ui.onboarding.OnboardingScreen
-import com.jeju.evtravel.ui.planner.*
+import com.jeju.evtravel.ui.planner.CalendarScreen
+import com.jeju.evtravel.ui.planner.EditPlanScreen
+import com.jeju.evtravel.ui.planner.PlanListScreen
+import com.jeju.evtravel.ui.planner.PlannerScreen
+import com.jeju.evtravel.ui.planner.PlannerViewModel
+import com.jeju.evtravel.ui.planner.SearchDestinationScreen
 import com.jeju.evtravel.ui.search.SearchScreen
 import com.jeju.evtravel.ui.search.SearchViewModel
 import com.jeju.evtravel.ui.splash.SplashScreen
@@ -164,34 +181,49 @@ fun MainScreen(
 
                 // 장소 상세
                 composable(
-                    route = "placeTourDetail/{contentId}",
-                    arguments = listOf(navArgument("contentId") { type = NavType.StringType })
-                ) {
-                    val vm: TourPlaceDetailViewModel = hiltViewModel()
-                    val ui = vm.state.collectAsState().value
+                    route = "placeDetail/{placeId}",
+                    arguments = listOf(navArgument("placeId"){ type = NavType.StringType })
+                ) { backStackEntry ->
+                    val cached = navController.previousBackStackEntry
+                        ?.savedStateHandle?.get<Place>("cachedPlace")
 
-                    when {
-                        ui.loading -> {
-                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator()
+                    if (cached != null) {
+                        PlaceDetailScreen(
+                            place = cached,
+                            onBack = { navController.popBackStack() },
+                            onNavigateClick = { /* ... */ }
+                        )
+                    } else {
+                        val vm: TourPlaceDetailViewModel = hiltViewModel(backStackEntry)
+                        val ui = vm.state.collectAsState().value
+                        when {
+                            ui.loading -> CircularProgressIndicator()
+                            ui.error != null -> ErrorScreen(ui.error) { vm.reload() }
+                            ui.data != null -> PlaceDetailScreen(place = ui.data, onBack = {navController.popBackStack()}) {
+                                navController.popBackStack()
                             }
-                        }
-                        ui.error != null -> {
-                            ErrorScreen(
-                                message = ui.error,
-                                onRetry = { vm.load() }
-                            )
-                        }
-                        ui.data != null -> {
-                            PlaceDetailScreen(
-                                data = ui.data,
-                                onBack = { navController.popBackStack() }
-                            )
                         }
                     }
                 }
+                // 충전소 상세
+                composable("chargerDetail/{placeId}") { backStackEntry ->
+                    val cached = navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.get<Place>("cachedPlace")
 
-                // 충전기 리스트
+                    val place = cached
+                        ?: mapViewModel.selectedPlace.collectAsState().value
+                        ?: run {
+                            navController.popBackStack()
+                            return@composable
+                        }
+
+                    ChargerDetailScreen(
+                        place = place,
+                        onBack = { navController.popBackStack() },
+                        onNavigateClick = { /* ... */ }
+                    )
+                }
 
                 // 마이페이지
                 composable("my") {
