@@ -1,4 +1,4 @@
-package com.jeju.evtravel.ui.withdrawal
+package com.jeju.evtravel.ui.mypage
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -17,6 +17,8 @@ fun WithdrawalScreen(
 ) {
     val user by viewModel.user
     val withdrawSuccess by viewModel.withdrawSuccess
+    // TODO: ViewModel에 isProcessing 상태를 추가하고 collectAsState()로 가져와야 합니다.
+    // val isProcessing by viewModel.isProcessing.collectAsState()
 
     // 드롭다운 상태
     var expanded by remember { mutableStateOf(false) }
@@ -61,6 +63,7 @@ fun WithdrawalScreen(
                 onValueChange = {},
                 readOnly = true,
                 label = { Text("탈퇴 사유") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 modifier = Modifier
                     .menuAnchor()
                     .fillMaxWidth()
@@ -105,11 +108,16 @@ fun WithdrawalScreen(
                 Text("취소")
             }
             Spacer(modifier = Modifier.width(8.dp))
+
+            // 버튼 활성화/비활성화 로직 추가
+            val isReasonSelected = selectedReason != "선택해주세요."
+            val isOtherReasonValid = selectedReason != "기타" || customReason.isNotBlank()
+            val isButtonEnabled = isReasonSelected && isOtherReasonValid // && !isProcessing
+
             Button(
                 onClick = {
                     val finalReason =
                         if (selectedReason == "기타") customReason
-                        else if (selectedReason == "선택해주세요.") "" // 선택 안한 경우 빈 문자열로 처리
                         else selectedReason
 
                     viewModel.withdrawAccount(finalReason)
@@ -117,7 +125,8 @@ fun WithdrawalScreen(
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
-                )
+                ),
+                enabled = isButtonEnabled // 활성화/비활성화 상태 적용
             ) {
                 Text("탈퇴하기")
             }
