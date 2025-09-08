@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.jeju.evtravel.viewmodel.SavedCourseViewModel
+import com.jeju.evtravel.R // R 클래스 임포트
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,7 +38,8 @@ fun SavedCourseScreen(
             .collect { layoutInfo ->
                 val totalItems = layoutInfo.totalItemsCount
                 val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-                if (lastVisibleItem >= totalItems - 1) {
+                val loadMoreThreshold = 5
+                if (lastVisibleItem >= totalItems - loadMoreThreshold) {
                     viewModel.loadMore()
                 }
             }
@@ -62,10 +64,16 @@ fun SavedCourseScreen(
                 .fillMaxSize()
         ) {
             items(bookmarks.value) { bookmark ->
+                val imageModel = if (bookmark.imageUrl.isNullOrEmpty()) {
+                    R.drawable.jeju_place_sample // URL이 없으면 리소스 ID 사용
+                } else {
+                    bookmark.imageUrl // URL이 있으면 URL 사용
+                }
+
                 SavedItemRow(
-                    imageUrl = "https://picsum.photos/200/100", // TODO: 코스 썸네일 있으면 교체
-                    title = "코스 ID: ${bookmark.course_id}",
-                    description = "북마크한 UID: ${bookmark.uid}"
+                    imageUrl = imageModel,
+                    title = bookmark.course_name,
+                    description = bookmark.course_description
                 )
             }
         }

@@ -20,7 +20,7 @@ import coil.compose.AsyncImage
 
 @Composable
 fun SavedItemRow(
-    imageUrl: String,
+    imageUrl: Any, // String -> Any로 변경
     title: String,
     description: String
 ) {
@@ -30,19 +30,17 @@ fun SavedItemRow(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
-            // ✅ 왼쪽 이미지 (라운드 + 꽉 채움)
             AsyncImage(
-                model = imageUrl,
+                model = imageUrl, // Any 타입으로 변경
                 contentDescription = title,
                 modifier = Modifier
-                    .size(100.dp) // 정사각형으로 크게
+                    .size(100.dp)
                     .clip(RoundedCornerShape(16.dp)),
-                contentScale = ContentScale.Crop // 꽉 차게
+                contentScale = ContentScale.Crop
             )
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // ✅ 오른쪽 텍스트 + 별
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -57,7 +55,7 @@ fun SavedItemRow(
                     Icon(
                         imageVector = Icons.Default.Star,
                         contentDescription = "즐겨찾기",
-                        tint = Color(0xFFFFD700) // 노란색 별
+                        tint = Color(0xFFFFD700)
                     )
                 }
 
@@ -70,8 +68,6 @@ fun SavedItemRow(
                 )
             }
         }
-
-        // ✅ 리스트 구분선
         Divider(color = Color.LightGray, thickness = 1.dp)
     }
 }

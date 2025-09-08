@@ -5,6 +5,9 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthRecentLoginRequiredException
 import com.google.firebase.firestore.FirebaseFirestore
 import com.jeju.evtravel.domain.model.User
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.tasks.await
+import kotlin.coroutines.resume // ⭐️ 이 줄을 추가합니다.
 
 object FirestoreUserService {
 
@@ -59,13 +62,21 @@ object FirestoreUserService {
             }
     }
 
-    fun deleteUserAccount(onResult: (Boolean) -> Unit) {
+    // ✅ 콜백 기반 함수를 suspend 함수로 변경
+    suspend fun deleteUserAccount(): Boolean = suspendCancellableCoroutine { continuation ->
         val uid = auth.currentUser?.uid
         val user = auth.currentUser
+
+        // ⭐️ 코루틴이 취소되었을 때의 동작을 정의
+        // Firebase 작업은 취소 기능이 없으므로 로그만 남깁니다.
+        continuation.invokeOnCancellation {
+            Log.d("FirestoreUserService", "계정 삭제 코루틴이 취소되었습니다.")
+        }
+
         if (uid == null || user == null) {
             Log.d("FirestoreUserService", "❌ 현재 로그인된 유저 없음 → 탈퇴 불가")
-            onResult(false)
-            return
+            continuation.resume(false)
+            return@suspendCancellableCoroutine
         }
 
         db.collection("users")
@@ -77,22 +88,35 @@ object FirestoreUserService {
                 user.delete()
                     .addOnSuccessListener {
                         Log.d("FirestoreUserService", "✅ FirebaseAuth 계정 삭제 성공")
-                        onResult(true)
+                        continuation.resume(true)
                     }
                     .addOnFailureListener { e ->
-                        // ✅ 재로그인이 필요하다는 특정 에러를 잡아서 로그를 남깁니다.
                         if (e is FirebaseAuthRecentLoginRequiredException) {
                             Log.w("FirestoreUserService", "⚠️ 계정 삭제를 위해 재로그인이 필요합니다.", e)
-                            // TODO: ViewModel에 재로그인이 필요하다는 상태를 전달하여 UI에서 재로그인 화면을 띄워주는 처리가 필요합니다.
                         } else {
                             Log.e("FirestoreUserService", "❌ FirebaseAuth 계정 삭제 실패", e)
                         }
-                        onResult(false)
+                        continuation.resume(false)
                     }
             }
             .addOnFailureListener { e ->
                 Log.e("FirestoreUserService", "❌ Firestore 유저 문서 삭제 실패", e)
-                onResult(false)
+                continuation.resume(false)
             }
+    }
+
+    // 여행 계획 삭제
+    suspend fun deletePlansByUid(uid: String): Boolean {
+        val querySnapshot = db.collection("plans").whereEqualTo("uid", uid).get().await()
+        return try {
+            val batch = db.batch()
+            for (document in querySnapshot.documents) {
+                batch.delete(document.reference)
+            }
+            batch.commit().await()
+            true
+        } catch (e: Exception) {
+            false
+        }
     }
 }
