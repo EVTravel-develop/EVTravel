@@ -1,12 +1,8 @@
 package com.jeju.evtravel.ui.detail
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.LineHeightStyle
-import androidx.compose.ui.unit.em
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.jeju.evtravel.domain.model.Course
 import com.jeju.evtravel.domain.model.Place
 import com.jeju.evtravel.ui.summary.ChargerSummaryScreen
 import com.jeju.evtravel.ui.summary.PlaceSummaryScreen
@@ -37,7 +33,8 @@ fun PlaceSheetScreen(
     onNavigateClick: () -> Unit,
     onPlaceClick: (Place) -> Unit = {},
     onOpenPlaceDetail: (Place) -> Unit,
-    onOpenChargerDetail: (Place) -> Unit
+    onOpenChargerDetail: (Place) -> Unit,
+    onCourseClick: (Course) -> Unit
 ) {
     when (kind) {
         SummaryKind.PLACE -> {
@@ -55,7 +52,8 @@ fun PlaceSheetScreen(
                 onRetry = onRetry,
                 onNavigateClick = onNavigateClick,
                 onPlaceClick = onPlaceClick,
-                onExpandToDetail = { onOpenChargerDetail(place) }
+                onExpandToDetail = { onOpenChargerDetail(place) },
+                onCourseClick = onCourseClick
             )
         }
     }

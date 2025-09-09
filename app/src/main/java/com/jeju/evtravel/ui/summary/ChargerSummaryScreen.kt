@@ -1,7 +1,6 @@
 package com.jeju.evtravel.ui.summary
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,14 +11,13 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForward
@@ -50,7 +48,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -60,7 +57,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
@@ -69,10 +65,10 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.jeju.evtravel.R
 import com.jeju.evtravel.data.util.mapStatus
+import com.jeju.evtravel.domain.model.Course
 import com.jeju.evtravel.domain.model.Place
 import com.jeju.evtravel.ui.detail.Block
 import com.jeju.evtravel.ui.detail.CategoryChipTextStyle
-import com.jeju.evtravel.ui.detail.CourseCardData
 import com.jeju.evtravel.ui.detail.CourseCardTitleTextStyle
 import com.jeju.evtravel.ui.detail.NearbyPlaceViewModel
 import com.jeju.evtravel.ui.detail.OutputTextStyle
@@ -85,6 +81,8 @@ import com.jeju.evtravel.ui.detail.SubtitleTextStyle
 import com.jeju.evtravel.ui.detail.TitleTextStyle
 import com.jeju.evtravel.ui.detail.UiNearbyPlace
 import com.jeju.evtravel.ui.detail.UnselectedTabTextStyle
+import com.jeju.evtravel.ui.detail.course.CourseCard
+import com.jeju.evtravel.ui.detail.course.CourseViewModel
 import com.jeju.evtravel.ui.theme.Variables
 
 @Composable
@@ -95,26 +93,44 @@ fun ChargerSummaryScreen(
     onRetry: () -> Unit,
     onNavigateClick: () -> Unit,
     onPlaceClick: (Place) -> Unit = {},
+    onCourseClick: (Course) -> Unit,
     nearbyVm: NearbyPlaceViewModel = hiltViewModel(),
+    courseVm: CourseViewModel = hiltViewModel(),
     onExpandToDetail: () -> Unit
 ) {
     val chargers = place.chargerList ?: emptyList()
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
-    Box(
+    val courseUiState = courseVm.state.collectAsState().value
+
+    var tabIndex by remember { mutableStateOf(0) }
+    val tabs = listOf("추천 코스", "장소")
+
+    val uiState = nearbyVm.state.collectAsState().value
+
+    LaunchedEffect(tabIndex, place.longitude, place.latitude) {
+        if (tabIndex == 1) {
+            nearbyVm.selectTourPlace(place)
+        }
+    }
+
+    // 새로운 LaunchedEffect를 추가하여 place.id가 변경될 때마다 코스를 다시 조회
+    LaunchedEffect(place.id) {
+        courseVm.fetchCoursesForPlace(place.id.toLong())
+    }
+
+    LazyColumn(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(max = screenHeight)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-        ) {
+        item {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 16.dp, start = 16.dp, end = 16.dp)
             ) {
+                // --- 상단 타이틀 ---
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -125,28 +141,27 @@ fun ChargerSummaryScreen(
                     Text(
                         text = place.name,
                         style = TitleTextStyle,
-                        maxLines = 1,                         // 한 줄만 표시
-                        overflow = TextOverflow.Ellipsis,     // 길면 … 처리
-                        modifier = Modifier.weight(1f)        // 오른쪽 아이콘 자리 확보
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
                     )
                     Icon(
                         painterResource(id = R.drawable.ic_right),
                         contentDescription = "상세 보기",
-                        tint = Color.Black,                   // 필요하면 색상 지정
+                        tint = Color.Black,
                         modifier = Modifier.padding(start = 8.dp)
                     )
                 }
 
                 Spacer(Modifier.height(12.dp))
 
-                // 로딩
+                // --- 로딩 / 에러 / 데이터 ---
                 if (isLoading) {
                     LoadingCard()
                     Spacer(Modifier.height(18.dp))
                     return@Column
                 }
 
-                // 로딩 완료 후 데이터가 비어있는 상태 (0, null, 빈 리스트)
                 if (chargers.isEmpty()) {
                     EmptyChargerCard(
                         title = "충전기 정보를 찾지 못했어요",
@@ -195,11 +210,14 @@ fun ChargerSummaryScreen(
 
                 // 속도별 집계 카드
                 ChargerSummaryCard(blocks)
+
                 Spacer(Modifier.height(18.dp))
 
                 // 안내하기 버튼
                 Button(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
                     onClick = onNavigateClick,
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
@@ -209,22 +227,25 @@ fun ChargerSummaryScreen(
                 ) {
                     Text("안내하기")
                 }
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(10.dp))
             }
+        }
 
+        item {
             Box(
                 Modifier
                     .fillMaxWidth()
                     .height(7.dp)
                     .background(Variables.Grayscale50)
             )
-
-            Spacer(Modifier.height(20.dp))
-
+            Spacer(Modifier.height(16.dp))
+        }
+        item {
             Column(
-                Modifier.padding(top = 16.dp, start = 16.dp, end = 16.dp)
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp, start = 16.dp, end = 16.dp)
             ) {
-                // 섹션 타이틀
                 Text(
                     text = "충전 시간 동안 주변을 둘러보세요",
                     style = TextStyle(
@@ -239,33 +260,17 @@ fun ChargerSummaryScreen(
                         )
                     )
                 )
-
                 Spacer(Modifier.height(12.dp))
-
-                // 탭
-                var tabIndex by remember { mutableStateOf(0) }
-                val tabs = listOf("추천 코스", "장소")
-
-                // ViewModel 상태 구독
-                val uiState = nearbyVm.state.collectAsState().value
-
-                // "장소" 탭에 진입할 때 TourAPI 조회
-                LaunchedEffect(
-                    tabIndex,
-                    place.longitude,
-                    place.latitude
-                ) {
-                    if (tabIndex == 1) {
-                        nearbyVm.selectTourPlace(place)
-                    }
-                }
-
+            }
+        }
+        item {
+            Column(Modifier.fillMaxWidth()) {
                 TabRow(
                     selectedTabIndex = tabIndex,
                     indicator = { tabPositions ->
                         TabRowDefaults.Indicator(
                             modifier = Modifier
-                                .tabIndicatorOffset(tabPositions[tabIndex]) // 선택 탭 위치/폭에 맞춤
+                                .tabIndicatorOffset(tabPositions[tabIndex])
                                 .height(2.dp),
                             color = Variables.Blue700
                         )
@@ -288,92 +293,133 @@ fun ChargerSummaryScreen(
                         )
                     }
                 }
-
                 Spacer(Modifier.height(12.dp))
+            }
+        }
+        item {
+            Column(Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+            ) {
+                // 🔹 스크롤을 없애고 Column으로 변경
+                if (tabIndex == 0) {
+                    when {
+                        courseUiState.loading -> {
+                            LoadingCard()
+                        }
 
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                ) {
-                    // 가로 카드 리스트
-                    if (tabIndex == 0) {
-                        // [추천 코스] — 세로 큰 카드 + 이미지 오버레이
-                        val courses = listOf(
-                            CourseCardData(
-                                title = "탑동광장",
-                                subtitle = "빛과제주의 일몰이 아름다운 장소. 해안가를 걸으며, 노을 촬영에 최적입니다.",
-                                imageRes = com.jeju.evtravel.R.drawable.jeju_course_sample
-                            ),
-                            CourseCardData(
-                                title = "탑동광장",
-                                subtitle = "빛과제주의 일몰이 아름다운 장소. 해안가를 걸으며, 노을 촬영에 최적입니다.",
-                                imageRes = R.drawable.jeju_course_sample
+                        courseUiState.data == null -> {
+                            EmptyChargerCard(
+                                title = "추천 코스를 찾지 못했어요",
+                                subtitle = "잠시 후 다시 시도해주세요.",
+                                primaryText = "다시 시도",
+                                onPrimary = { /* reload */ }
                             )
-                        )
-                        LazyColumn(
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            modifier = Modifier.fillMaxSize()  // 이 영역 안에서 스크롤
-                        ) {
-                            items(courses) { c ->
-                                WideOverlayCourseCard(item = c)
+                        }
+
+                        else -> {
+                            val courseInfo = courseUiState.data.course_info.firstOrNull()
+                            if (courseInfo != null) {
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    // ─── 상단 코스 이름 ───
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(Color.White, RoundedCornerShape(16.dp))
+                                            .clickable { onCourseClick(courseUiState.data) }
+                                            .padding(vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(
+                                            text = courseInfo.course_name,
+                                            style = CourseCardTitleTextStyle,
+                                            color = Color.Black,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Icon(
+                                            Icons.Filled.ArrowForward,
+                                            contentDescription = "코스 상세 보기",
+                                            tint = Color.Black,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+
+                                    // ─── 하단 장소 카드 ───
+                                    courseInfo.places.forEach { placeName ->
+                                        CourseCard(
+                                            placeName = placeName,
+                                            onNavigateToPlace = { onNavigateClick() }
+                                        )
+                                    }
+                                }
                             }
                         }
-                    } else {
-                        // [장소] — 카테고리 칩 + 2열 카드 그리드
-                        val categories = listOf("자연환경", "맛집", "카페", "박물관")
+                    }
+                } else {
+                    // [장소] — 카테고리 칩 + 2열 카드 그리드
+                    val categories = listOf("자연환경", "맛집", "카페", "박물관")
+
+                    Spacer(Modifier.height(12.dp))
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                    ) {
+                        CategoryChips(
+                            categories = categories,
+                            selected = uiState.selectedCategory,
+                            onSelect = { label -> nearbyVm.selectCategory(label) }
+                        )
 
                         Spacer(Modifier.height(12.dp))
 
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            item {
-                                CategoryChips(
-                                    categories = categories,
-                                    selected = uiState.selectedCategory,
-                                    onSelect = { label -> nearbyVm.selectCategory(label) }
+                        // 상태별 UI
+                        when {
+                            uiState.loading && uiState.items.isEmpty() -> {
+                                LoadingCard()
+                            }
+
+                            uiState.error != null && uiState.items.isEmpty() -> {
+                                EmptyChargerCard(
+                                    title = "주변 장소를 불러오지 못했어요",
+                                    subtitle = "네트워크 상태를 확인해주세요.",
+                                    primaryText = "다시 시도",
+                                    onPrimary = { nearbyVm.selectTourPlace(place) }
                                 )
                             }
 
-                            // 상태별 UI
-                            when {
-                                uiState.loading && uiState.items.isEmpty() -> {
-                                    item { LoadingCard() }
-                                }
+                            uiState.items.isEmpty() -> {
+                                EmptyChargerCard(
+                                    title = "반경 내 추천 장소가 없어요",
+                                    subtitle = "반경을 넓히거나 다른 카테고리를 선택해보세요.",
+                                    primaryText = "다시 시도",
+                                    onPrimary = { nearbyVm.selectTourPlace(place) }
+                                )
+                            }
 
-                                uiState.error != null && uiState.items.isEmpty() -> {
-                                    item {
-                                        EmptyChargerCard(
-                                            title = "주변 장소를 불러오지 못했어요",
-                                            subtitle = "네트워크 상태를 확인해주세요.",
-                                            primaryText = "다시 시도",
-                                            onPrimary = { nearbyVm.selectTourPlace(place) }
-                                        )
-                                    }
-                                }
-
-                                uiState.items.isEmpty() -> {
-                                    item {
-                                        EmptyChargerCard(
-                                            title = "반경 내 추천 장소가 없어요",
-                                            subtitle = "반경을 넓히거나 다른 카테고리를 선택해보세요.",
-                                            primaryText = "다시 시도",
-                                            onPrimary = { nearbyVm.selectTourPlace(place) }
-                                        )
-                                    }
-                                }
-
-                                else -> {
-                                    items(uiState.items.chunked(2)) { row ->
-                                        Row(
-                                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
+                            else -> {
+                                uiState.items.chunked(2).forEach { row ->
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 8.dp)
+                                    ) {
+                                        Box(Modifier.weight(1f)) {
+                                            PlaceGridCard(
+                                                item = row[0],
+                                                onClick = { clicked ->
+                                                    uiState.itemsRaw
+                                                        .firstOrNull { it.id == clicked.id }
+                                                        ?.let { onPlaceClick(it) }
+                                                }
+                                            )
+                                        }
+                                        if (row.size > 1) {
                                             Box(Modifier.weight(1f)) {
                                                 PlaceGridCard(
-                                                    item = row[0],
+                                                    item = row[1],
                                                     onClick = { clicked ->
                                                         uiState.itemsRaw
                                                             .firstOrNull { it.id == clicked.id }
@@ -381,20 +427,8 @@ fun ChargerSummaryScreen(
                                                     }
                                                 )
                                             }
-                                            if (row.size > 1) {
-                                                Box(Modifier.weight(1f)) {
-                                                    PlaceGridCard(
-                                                        item = row[1],
-                                                        onClick = { clicked ->
-                                                            uiState.itemsRaw
-                                                                .firstOrNull { it.id == clicked.id }
-                                                                ?.let { onPlaceClick(it) }
-                                                        }
-                                                    )
-                                                }
-                                            } else {
-                                                Spacer(Modifier.weight(1f))
-                                            }
+                                        } else {
+                                            Spacer(Modifier.weight(1f))
                                         }
                                     }
                                 }
@@ -415,7 +449,8 @@ private fun LoadingCard() {
             .border(
                 width = 1.dp,
                 shape = MaterialTheme.shapes.large,
-                color = Color(0xFFF9F9F9)),
+                color = Color(0xFFF9F9F9)
+            ),
         shape = MaterialTheme.shapes.large
     ) {
         Column(
@@ -611,52 +646,6 @@ private fun EmptyChargerCard(
                         Text(secondaryText)
                     }
                 }
-            }
-        }
-    }
-}
-
-/* ----------------------- 탭 전용 UI ----------------------- */
-
-// 추천 코스: 가로 꽉찬 큰 이미지 카드(그라데이션 오버레이 + 텍스트)
-@Composable
-private fun WideOverlayCourseCard(item: CourseCardData) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(112.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
-    ) {
-        Box {
-            Image(
-                painter = painterResource(id = item.imageRes),
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-            // 좌측 하단이 더 어두운 그라데이션
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(Color(0x99000000), Color(0x33000000), Color.Transparent)
-                        )
-                    )
-            )
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(16.dp)
-            ) {
-                Text(
-                    text = item.title,
-                    style = CourseCardTitleTextStyle,
-                    color = Color.White
-                )
-                Spacer(Modifier.height(2.dp))
-                // 네비 버튼 추가
             }
         }
     }

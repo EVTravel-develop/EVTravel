@@ -72,6 +72,7 @@ import androidx.navigation.NavController
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.jeju.evtravel.R
+import com.jeju.evtravel.domain.model.Course
 import com.jeju.evtravel.domain.model.Place
 import com.jeju.evtravel.ui.detail.PlaceSheetScreen
 import com.jeju.evtravel.ui.detail.SummaryKind
@@ -458,8 +459,8 @@ fun KakaoMapScreen(
     val currentKind = selectedKind ?: SummaryKind.CHARGER
     val peekHeight = when {
         selectedPlace == null -> 0.dp // 아무 것도 선택 안 함 → 시트 숨김
-        currentKind == SummaryKind.CHARGER -> 460.dp
-        else -> 290.dp // 장소
+        currentKind == SummaryKind.CHARGER -> 480.dp
+        else -> 350.dp // 장소
     }
     /**
      * 화면 레이아웃 및 하단 시트 구성
@@ -477,6 +478,11 @@ fun KakaoMapScreen(
         sheetPeekHeight = peekHeight,
         sheetSwipeEnabled = selectedPlace != null,
         sheetContent = {
+            val onCourseClick: (Course) -> Unit = { course ->
+                navController.currentBackStackEntry?.savedStateHandle?.set("selectedCourse", course)
+                navController.navigate("courseDetail/${course.id}")
+            }
+
             if (selectedPlace != null) {
                 Column(
                     modifier = Modifier
@@ -529,6 +535,7 @@ fun KakaoMapScreen(
                             coroutineScope.launch { sheetState.hide() }
                             openChargerDetail(navController, place)
                         },
+                        onCourseClick = onCourseClick
                     )
 
                     detailError?.let { msg ->

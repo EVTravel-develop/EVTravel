@@ -31,12 +31,15 @@ import androidx.navigation.navArgument
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.firebase.auth.FirebaseAuth
+import com.jeju.evtravel.domain.model.Course
 import com.jeju.evtravel.domain.model.Place
 import com.jeju.evtravel.navigation.BottomNavigationBar
 import com.jeju.evtravel.ui.detail.ChargerDetailScreen
 import com.jeju.evtravel.ui.detail.ErrorScreen
 import com.jeju.evtravel.ui.detail.PlaceDetailScreen
 import com.jeju.evtravel.ui.detail.TourPlaceDetailViewModel
+import com.jeju.evtravel.ui.detail.course.CourseDetailScreen
+import com.jeju.evtravel.ui.detail.course.CourseViewModel
 import com.jeju.evtravel.ui.map.KakaoMapScreen
 import com.jeju.evtravel.ui.map.MapViewModel
 import com.jeju.evtravel.ui.mypage.MyPageScreen
@@ -200,9 +203,14 @@ fun MainScreen(
                         when {
                             ui.loading -> CircularProgressIndicator()
                             ui.error != null -> ErrorScreen(ui.error) { vm.reload() }
-                            ui.data != null -> PlaceDetailScreen(place = ui.data, onBack = {navController.popBackStack()}) {
-                                navController.popBackStack()
-                            }
+                            ui.data != null -> PlaceDetailScreen(
+                                place = ui.data,
+                                onBack = { navController.popBackStack() },
+                                onNavigateClick = {
+                                    navController.popBackStack()
+                                },
+                                viewModel = hiltViewModel(backStackEntry)
+                            )
                         }
                     }
                 }
@@ -224,6 +232,23 @@ fun MainScreen(
                         onBack = { navController.popBackStack() },
                         onNavigateClick = { /* ... */ }
                     )
+                }
+
+                composable(
+                    route = "courseDetail/{courseId}",
+                    arguments = listOf(navArgument("courseId"){ type = NavType.StringType })
+                ) { backStackEntry ->
+                    val course = navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.get<Course>("selectedCourse")
+
+                    if (course != null) {
+                        CourseDetailScreen(
+                            course = course,
+                            onBack = { navController.popBackStack() },
+                            onNavigateToPlace = { }
+                        )
+                    }
                 }
 
                 // 마이페이지
