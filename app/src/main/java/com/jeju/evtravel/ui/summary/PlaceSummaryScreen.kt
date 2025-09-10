@@ -102,18 +102,12 @@ fun PlaceSummaryScreen(
                         overflow = TextOverflow.Ellipsis,     // 길면 … 처리
                         modifier = Modifier.weight(1f)        // 오른쪽 아이콘 자리 확보
                     )
-                    if (isLoading) {
-                        Box(
-                            modifier = Modifier
-                        )
-                    } else {
-                        Icon(
-                            painterResource(id = R.drawable.ic_right),
-                            contentDescription = "상세 보기",
-                            tint = Color.Black,
-                            modifier = Modifier.padding(start = 8.dp)
-                        )
-                    }
+                    Icon(
+                        painterResource(id = R.drawable.ic_right),
+                        contentDescription = "상세 보기",
+                        tint = Color.Black,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
                     Spacer(Modifier.height(20.dp))
                 }
             }

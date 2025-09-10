@@ -155,7 +155,7 @@ fun KakaoMapScreen(
     val isExpanded = sheetState.currentValue == SheetValue.Expanded
     val expandLatchPx = with(density) { 56.dp.toPx() }
     val corner by animateDpAsState(
-        targetValue = if (isExpanded) 0.dp else 16.dp,
+        targetValue = if (isExpanded) 0.dp else 30.dp,
         label = "sheetCorner"
     )
     /** GPS 오류 상태 */
@@ -748,16 +748,16 @@ fun KakaoMapScreen(
 @Composable
 private fun TinyHandle(
     thickness: Dp = 4.dp,         // 바 두께
-    length: Dp = 36.dp,           // 바 길이
-    topPadding: Dp = 10.dp,       // 바와 시트 상단 간격
-    cornerRadius: Dp = 2.dp,
-    color: Color = Color.Gray // 배경과 대비되는 색
+    length: Dp = 50.dp,           // 바 길이
+    topPadding: Dp = 12.dp,       // 바와 시트 상단 간격
+    cornerRadius: Dp = 4.dp,
+    color: Color = Variables.Grayscale300
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .background(color = Color.White)
-            .padding(top = topPadding, bottom = 0.dp),
+            .padding(top = topPadding, bottom = 16.dp),
         contentAlignment = Alignment.Center
     ) {
         Box(
