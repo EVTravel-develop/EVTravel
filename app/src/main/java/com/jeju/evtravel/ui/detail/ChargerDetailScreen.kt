@@ -1,5 +1,6 @@
 package com.jeju.evtravel.ui.detail
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,12 +28,17 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jeju.evtravel.R
 import com.jeju.evtravel.domain.model.Place
 import com.jeju.evtravel.ui.theme.Variables
@@ -76,11 +83,18 @@ private fun kwBucket(output: String?): String? {
 
 @Composable
 fun ChargerDetailScreen(
-    place: Place,                       // place.chargerList 사용
+    place: Place,
     onBack: () -> Unit,
-    onNavigateClick: () -> Unit
+    onNavigateClick: () -> Unit,
+    bookmarkViewModel: BookmarkViewModel = hiltViewModel()
 ) {
     val chargers = place.chargerList ?: emptyList()
+    val isBookmarked by bookmarkViewModel.isPlaceBookmarked.collectAsState()
+
+    // 화면 진입 시 북마크 상태 체크
+    LaunchedEffect(key1 = place.id) {
+        bookmarkViewModel.checkPlaceBookmark(place.id)
+    }
 
     // 샘플 변환: 출력(W)과 커넥터를 합쳐 라벨링하고 가격/가용수 계산
     val rows: List<ChargerRowUi> = chargers
@@ -142,7 +156,28 @@ fun ChargerDetailScreen(
                     Column(Modifier.fillMaxWidth()) {
                         // ─ 기본 정보 ─
                         Column(Modifier.padding(16.dp)) {
-                            Text(text = place.name, style = DetailTitleTextStyle)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = place.name,
+                                    style = DetailTitleTextStyle
+                                )
+                                IconButton(
+                                    onClick = {
+                                        bookmarkViewModel.togglePlaceBookmark(place)
+                                    },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    val iconRes = if (isBookmarked) R.drawable.ic_bookmark_filled else R.drawable.ic_bookmark_empty
+                                    Image(
+                                        painter = painterResource(id = iconRes),
+                                        contentDescription = "북마크"
+                                    )
+                                }
+                            }
                             Spacer(Modifier.height(20.dp))
 
                             val hours = chargers.firstOrNull()?.usageTime.orEmpty()
@@ -213,7 +248,6 @@ fun ChargerDetailScreen(
 
 @Composable
 private fun ChargerRow(row: ChargerRowUi) {
-    // 스크린샷처럼 왼쪽: 사양/요금, 오른쪽: 상태(색상)
     Card(
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = Color(0xFFF9F9F9))

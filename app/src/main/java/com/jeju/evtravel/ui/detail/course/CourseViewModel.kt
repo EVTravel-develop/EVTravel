@@ -8,13 +8,18 @@ import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.firestore.toObjects
 import com.google.firebase.ktx.Firebase
 import com.jeju.evtravel.domain.model.Course
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 private const val TAG = "CourseViewModel"
 
-class CourseViewModel  : ViewModel() {
+@HiltViewModel
+class CourseViewModel @Inject constructor(
+
+): ViewModel() {
 
     // Hilt 대신 직접 Firestore 인스턴스를 가져옵니다.
     private val firestore: FirebaseFirestore = Firebase.firestore

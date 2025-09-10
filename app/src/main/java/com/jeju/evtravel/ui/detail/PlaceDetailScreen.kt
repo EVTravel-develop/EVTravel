@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -37,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jeju.evtravel.R
 import com.jeju.evtravel.domain.model.Place
@@ -49,9 +51,16 @@ fun PlaceDetailScreen(
 //    tour: TourPlaceDetailUi? = null,
     onBack: () -> Unit,
     onNavigateClick: () -> Unit = {},
-    viewModel: SummarizePlaceViewModel = viewModel()
+    viewModel: SummarizePlaceViewModel = viewModel(),
+    bookmarkViewModel: BookmarkViewModel = hiltViewModel()
 ) {
     val summaryText by viewModel.summaryText.collectAsState()
+    val isBookmarked by bookmarkViewModel.isPlaceBookmarked.collectAsState()
+
+    // 화면 진입 시 북마크 상태 체크
+    LaunchedEffect(key1 = place.id) {
+        bookmarkViewModel.checkPlaceBookmark(place.id)
+    }
 
     LaunchedEffect(key1 = place.id) {
         val cachedSummary = viewModel.getCachedSummary()
@@ -110,7 +119,31 @@ fun PlaceDetailScreen(
                     color = Color.White
                 ) {
                     Column(Modifier.fillMaxWidth().padding(16.dp)) {
-                        Text(text = place.name, style = DetailTitleTextStyle)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // 장소 이름
+                            Text(
+                                text = place.name,
+                                style = DetailTitleTextStyle,
+                                modifier = Modifier.weight(1f) // 남은 공간을 모두 차지하여 긴 이름에도 대응
+                            )
+                            // 북마크 버튼
+                            IconButton(
+                                onClick = {
+                                    bookmarkViewModel.togglePlaceBookmark(place)
+                                },
+                                modifier = Modifier.size(24.dp) // 버튼 크기 조정
+                            ) {
+                                val iconRes = if (isBookmarked) R.drawable.ic_bookmark_filled else R.drawable.ic_bookmark_empty
+                                Image(
+                                    painter = painterResource(id = iconRes),
+                                    contentDescription = "북마크"
+                                )
+                            }
+                        }
                         Spacer(Modifier.height(20.dp))
 
                         val addr = place.roadAddress?.takeIf { it.isNotBlank() } ?: place.address

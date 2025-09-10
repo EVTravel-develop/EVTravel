@@ -29,6 +29,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -36,12 +39,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jeju.evtravel.R
 import com.jeju.evtravel.domain.model.Course
+import com.jeju.evtravel.ui.detail.BookmarkViewModel
 import com.jeju.evtravel.ui.detail.CourseCardPlaceNameTextStyle
 import com.jeju.evtravel.ui.detail.CourseDescriptionTextStyle
 import com.jeju.evtravel.ui.detail.CoursePlaceTitleTextStyle
 import com.jeju.evtravel.ui.detail.CourseTitleTextStyle
+import com.jeju.evtravel.ui.detail.DetailTitleTextStyle
 import com.jeju.evtravel.ui.detail.HeaderImage
 import com.jeju.evtravel.ui.theme.Variables
 
@@ -50,8 +57,17 @@ import com.jeju.evtravel.ui.theme.Variables
 fun CourseDetailScreen(
     course: Course,
     onBack: () -> Unit,
-    onNavigateToPlace: (String) -> Unit
+    onNavigateToPlace: (String) -> Unit,
+    bookmarkViewModel: BookmarkViewModel = hiltViewModel()
 ) {
+    val isBookmarked by bookmarkViewModel.isCourseBookmarked.collectAsState()
+
+    // 화면 진입 시 북마크 상태 체크
+    LaunchedEffect(key1 = course.id) {
+        val placeId = course.id.toString()
+        bookmarkViewModel.checkCourseBookmark(placeId)
+    }
+
     val courseInfo = course.course_info.firstOrNull()
     Log.d("CourseDetailScreen", "courseInfo: $courseInfo")
     if (courseInfo == null) {
@@ -101,11 +117,32 @@ fun CourseDetailScreen(
                     color = Color.White
                 ) {
                     Column(modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp)) {
-                        Text(
-                            text = courseInfo.course_name,
-                            style = CourseTitleTextStyle,
-                            color = Color.Black
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // 장소 이름
+                            Text(
+                                text = courseInfo.course_name,
+                                style = CourseTitleTextStyle,
+                                color = Color.Black,
+                                modifier = Modifier.weight(1f) // 남은 공간을 모두 차지하여 긴 이름에도 대응
+                            )
+                            // 북마크 버튼
+                            IconButton(
+                                onClick = {
+                                    bookmarkViewModel.toggleCourseBookmark(course)
+                                },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                val iconRes = if (isBookmarked) R.drawable.ic_bookmark_filled else R.drawable.ic_bookmark_empty
+                                Image(
+                                    painter = painterResource(id = iconRes),
+                                    contentDescription = "북마크"
+                                )
+                            }
+                        }
                         Spacer(Modifier.height(8.dp))
                         Text(
                             text = courseInfo.course_description,
@@ -154,11 +191,11 @@ fun CourseDetailScreen(
 //@Composable
 //private fun HotCourseBadge(modifier: Modifier = Modifier) {
 //    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
-////        Icon(
-////            painter = painterResource(id = R.drawable.ic_hot), // TODO: 리소스 준비 필요
-////            contentDescription = "핫코스",
-////            tint = Color.Red
-////        )
+//        Image(
+//            painter = painterResource(id = R.drawable.ic_hot), // TODO: 리소스 준비 필요
+//            contentDescription = "핫코스",
+//            tint = Color.Red
+//        )
 //        Spacer(Modifier.width(4.dp))
 //        Text("HOT 코스", color = Color.Red, fontWeight = FontWeight.Bold)
 //    }

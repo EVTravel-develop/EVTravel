@@ -14,7 +14,7 @@ class PlaceBookmarkService(
 
     /** uid + kakao_id 기반 북마크 저장 */
     suspend fun addBookmark(
-        uid: String,
+        uid: String?,
         kakaoId: String,
         x: Double,
         y: Double,
@@ -41,8 +41,19 @@ class PlaceBookmarkService(
         }
     }
 
+    /** uid + kakao_id 기반 단건 삭제 */
+    suspend fun deleteBookmark(uid: String?, kakaoId: String): Boolean {
+        val docId = "${uid}_${kakaoId}"
+        return try {
+            collection.document(docId).delete().await()
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     /** uid + kakao_id 기반 단건 조회 */
-    suspend fun getBookmark(uid: String, kakaoId: String): PlaceBookmark? {
+    suspend fun getBookmark(uid: String?, kakaoId: String): PlaceBookmark? {
         val docId = "${uid}_${kakaoId}"
         return try {
             val snapshot = collection.document(docId).get().await()
@@ -77,7 +88,7 @@ class PlaceBookmarkService(
     }
 
     // 장소 북마크 삭제
-    suspend fun deletePlaceBookmarksByUid(uid: String): Boolean {
+    suspend fun deletePlaceBookmarksByUid(uid: String?): Boolean {
         val querySnapshot = db.collection("placeBookmarks").whereEqualTo("uid", uid).get().await()
         return try {
             val batch = db.batch()
