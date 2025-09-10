@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -55,20 +56,23 @@ fun PlaceSummaryScreen(
 ) {
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
-    LaunchedEffect(key1 = place.id) {
-        // 좌표 값이 유효한지 확인
-        val isValidCoordinates = place.longitude != 0.0 && place.latitude != 0.0
-        if (isValidCoordinates) {
-            val x = place.longitude.toString()
-            val y = place.latitude.toString()
+    val isLoading by viewModel.loading.collectAsState()
 
-            viewModel.fetchPlaceSummary(
-                placeName = place.name,
-                x = x,
-                y = y
-            )
-        } else {
-            viewModel.setSummaryText("유효한 좌표 정보가 없어 AI 요약을 불러올 수 없습니다.")
+    LaunchedEffect(key1 = place.id) {
+        val cachedSummary = viewModel.getCachedSummary()
+        if (cachedSummary.isNullOrBlank() || cachedSummary == "AI 작성 중...") {
+            val x = place.longitude?.toString() ?: "0.0"
+            val y = place.latitude?.toString() ?: "0.0"
+
+            if (x == "0.0" || y == "0.0" || x.isBlank() || y.isBlank()) {
+                viewModel.setSummaryText("유효한 좌표 정보가 없어 AI 요약을 불러올 수 없습니다.")
+            } else {
+                viewModel.fetchPlaceSummary(
+                    placeName = place.name,
+                    x = x,
+                    y = y
+                )
+            }
         }
     }
 
@@ -87,7 +91,7 @@ fun PlaceSummaryScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable(onClick = onExpandToDetail),
+                        .clickable(enabled = !isLoading, onClick = onExpandToDetail),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -98,12 +102,18 @@ fun PlaceSummaryScreen(
                         overflow = TextOverflow.Ellipsis,     // 길면 … 처리
                         modifier = Modifier.weight(1f)        // 오른쪽 아이콘 자리 확보
                     )
-                    Icon(
-                        painterResource(id = R.drawable.ic_right),
-                        contentDescription = "상세 보기",
-                        tint = Color.Black,                   // 필요하면 색상 지정
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
+                    if (isLoading) {
+                        Box(
+                            modifier = Modifier
+                        )
+                    } else {
+                        Icon(
+                            painterResource(id = R.drawable.ic_right),
+                            contentDescription = "상세 보기",
+                            tint = Color.Black,
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
                     Spacer(Modifier.height(20.dp))
                 }
             }
@@ -195,7 +205,9 @@ fun AiSummaryBox(text: String) {
             Text(
                 text,
                 style = AiSummaryTextStyle,
-                color = Color(0xFF535353)
+                color = Color(0xFF535353),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }

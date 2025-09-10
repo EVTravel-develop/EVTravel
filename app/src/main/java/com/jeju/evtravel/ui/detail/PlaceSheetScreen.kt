@@ -31,7 +31,6 @@ fun PlaceSheetScreen(
     isLoading: Boolean = false,
     onRetry: () -> Unit,
     onNavigateClick: () -> Unit,
-    onPlaceClick: (Place) -> Unit = {},
     onOpenPlaceDetail: (Place) -> Unit,
     onOpenChargerDetail: (Place) -> Unit,
     onCourseClick: (Course) -> Unit
@@ -41,7 +40,7 @@ fun PlaceSheetScreen(
             PlaceSummaryScreen(
                 place = place,
                 onNavigateClick = onNavigateClick,
-                onExpandToDetail = { onOpenPlaceDetail(place) }
+                onExpandToDetail = { onOpenPlaceDetail(place) },
             )
         }
         SummaryKind.CHARGER -> {
@@ -51,7 +50,7 @@ fun PlaceSheetScreen(
                 isLoading = isLoading,
                 onRetry = onRetry,
                 onNavigateClick = onNavigateClick,
-                onPlaceClick = onPlaceClick,
+                onPlaceClick = onOpenPlaceDetail,
                 onExpandToDetail = { onOpenChargerDetail(place) },
                 onCourseClick = onCourseClick
             )

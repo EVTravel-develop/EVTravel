@@ -37,6 +37,7 @@ import com.jeju.evtravel.navigation.BottomNavigationBar
 import com.jeju.evtravel.ui.detail.ChargerDetailScreen
 import com.jeju.evtravel.ui.detail.ErrorScreen
 import com.jeju.evtravel.ui.detail.PlaceDetailScreen
+import com.jeju.evtravel.ui.detail.SummarizePlaceViewModel
 import com.jeju.evtravel.ui.detail.TourPlaceDetailViewModel
 import com.jeju.evtravel.ui.detail.course.CourseDetailScreen
 import com.jeju.evtravel.ui.detail.course.CourseViewModel
@@ -191,11 +192,20 @@ fun MainScreen(
                     val cached = navController.previousBackStackEntry
                         ?.savedStateHandle?.get<Place>("cachedPlace")
 
+                    val summarizeViewModel: SummarizePlaceViewModel = if (navController.previousBackStackEntry != null) {
+                        hiltViewModel(navController.previousBackStackEntry!!)
+                    } else {
+                        // null일 경우 새로운 ViewModel 인스턴스를 생성하거나 다른 처리를 합니다.
+                        // 여기서는 현재 백 스택에 연결된 ViewModel을 사용하도록 변경
+                        hiltViewModel(backStackEntry)
+                    }
+
                     if (cached != null) {
                         PlaceDetailScreen(
                             place = cached,
                             onBack = { navController.popBackStack() },
-                            onNavigateClick = { /* ... */ }
+                            onNavigateClick = { /* ... */ },
+                            viewModel = summarizeViewModel
                         )
                     } else {
                         val vm: TourPlaceDetailViewModel = hiltViewModel(backStackEntry)
@@ -209,7 +219,7 @@ fun MainScreen(
                                 onNavigateClick = {
                                     navController.popBackStack()
                                 },
-                                viewModel = hiltViewModel(backStackEntry)
+                                viewModel = summarizeViewModel
                             )
                         }
                     }

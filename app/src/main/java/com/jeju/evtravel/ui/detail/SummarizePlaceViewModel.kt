@@ -1,41 +1,62 @@
 package com.jeju.evtravel.ui.detail
 
+import android.util.Log
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.functions.FirebaseFunctions
+import com.google.firebase.functions.FirebaseFunctionsException
+import com.jeju.evtravel.service.auth.FirebaseAuthService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
-class SummarizePlaceViewModel : ViewModel() {
+class SummarizePlaceViewModel(
+    private val savedStateHandle: SavedStateHandle
+) : ViewModel() {
     private val functions = FirebaseFunctions.getInstance("us-central1")
 
-    private val _summaryText = MutableStateFlow("AI 작성 중...")
+    private val SUMMARY_KEY = "summary_text"
+
+    private val _summaryText = MutableStateFlow(
+        savedStateHandle.get<String>(SUMMARY_KEY) ?: "AI 작성 중..."
+    )
     val summaryText: StateFlow<String> = _summaryText
+
+    private val _loading = MutableStateFlow(false)
+    val loading: StateFlow<Boolean> = _loading
 
     fun setSummaryText(text: String) {
         _summaryText.value = text
+        savedStateHandle[SUMMARY_KEY] = text
+        _loading.value = false
+    }
+
+    fun getCachedSummary(): String? {
+        return savedStateHandle.get<String>(SUMMARY_KEY)
     }
 
     // 장소 이름과 함께 x, y 좌표를 인자로 받도록 수정
     fun fetchPlaceSummary(placeName: String, x: String, y: String) {
+        if (!FirebaseAuthService.isLoggedIn()) {
+            setSummaryText("AI 요약 기능을 사용하려면 로그인이 필요합니다.")
+            return
+        }
+
         viewModelScope.launch {
+            _loading.value = true
             try {
-                // 1. 함수에 전달할 데이터를 Map 형태로 만듭니다.
-                //    "x"와 "y" 키를 추가하여 함수가 기대하는 페이로드 형식을 맞춥니다.
                 val payload = hashMapOf(
                     "placeName" to placeName,
                     "x" to x,
                     "y" to y
                 )
 
-                // 2. 함수를 호출하고 결과를 기다립니다.
                 val result = functions.getHttpsCallable("summarizePlace")
                     .call(payload)
                     .await()
 
-                // 3. 응답 데이터를 파싱합니다. (응답 형식은 이미 확인했으므로 이 코드는 그대로 둡니다.)
                 val data = result.data as? Map<String, Any?>
                 val summary = data?.get("summary") as? String
 
@@ -45,7 +66,12 @@ class SummarizePlaceViewModel : ViewModel() {
                     setSummaryText(summary)
                 }
             } catch (e: Exception) {
-                setSummaryText("요약 불러오기 실패: ${e.message}")
+                if (e is FirebaseFunctionsException && e.code == FirebaseFunctionsException.Code.UNAUTHENTICATED) {
+                    setSummaryText("인증 실패! 로그인을 다시 시도해주세요.")
+                } else {
+                    setSummaryText("요약 불러오기 실패: ${e.message}")
+                }
+                Log.e("SummarizeViewModel", "Function call failed", e)
             }
         }
     }

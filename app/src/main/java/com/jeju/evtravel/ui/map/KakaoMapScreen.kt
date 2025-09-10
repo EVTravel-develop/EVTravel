@@ -524,9 +524,6 @@ fun KakaoMapScreen(
                         isLoading = isDetailLoading,
                         onRetry = { selectedPlace?.id?.let { viewModel.fetchCharger(it, forceRefresh = true) } },
                         onNavigateClick = { coroutineScope.launch { sheetState.hide() } },
-                        onPlaceClick = { place ->
-                            openPlaceDetail(navController, place)
-                        },
                         onOpenPlaceDetail = { place ->
                             coroutineScope.launch { sheetState.hide() }
                             openPlaceDetail(navController, place)

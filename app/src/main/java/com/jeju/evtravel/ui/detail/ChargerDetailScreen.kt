@@ -115,7 +115,7 @@ fun ChargerDetailScreen(
             // 헤더(이미지/뒤로가기)
             item {
                 Box(Modifier.fillMaxWidth()) {
-                    HeaderImage(imageUrl = " ")
+//                    HeaderImage(imageUrl = " ")
                     IconButton(
                         onClick = onBack,
                         modifier = Modifier
@@ -135,7 +135,7 @@ fun ChargerDetailScreen(
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .offset(y = (-20).dp),
+                        .offset(y = (-15).dp),
                     shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
                     color = Color.White
                 ) {

@@ -1,16 +1,24 @@
 package com.jeju.evtravel.ui.detail
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Divider
@@ -32,7 +40,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jeju.evtravel.R
 import com.jeju.evtravel.domain.model.Place
-import com.jeju.evtravel.ui.summary.AiSummaryBox
 import com.jeju.evtravel.ui.theme.Variables
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,25 +51,25 @@ fun PlaceDetailScreen(
     onNavigateClick: () -> Unit = {},
     viewModel: SummarizePlaceViewModel = viewModel()
 ) {
-    LaunchedEffect(key1 = place.id) {
-        // 좌표 값이 유효한지 확인
-        val isValidCoordinates = place.longitude != 0.0 && place.latitude != 0.0
-        if (isValidCoordinates) {
-            val x = place.longitude.toString()
-            val y = place.latitude.toString()
+    val summaryText by viewModel.summaryText.collectAsState()
 
-            viewModel.fetchPlaceSummary(
-                placeName = place.name,
-                x = x,
-                y = y
-            )
-        } else {
-            viewModel.setSummaryText("유효한 좌표 정보가 없어 AI 요약을 불러올 수 없습니다.")
+    LaunchedEffect(key1 = place.id) {
+        val cachedSummary = viewModel.getCachedSummary()
+        if (cachedSummary.isNullOrBlank() || cachedSummary == "AI 작성 중...") {
+            val x = place.longitude?.toString() ?: "0.0"
+            val y = place.latitude?.toString() ?: "0.0"
+
+            if (x == "0.0" || y == "0.0" || x.isBlank() || y.isBlank()) {
+                viewModel.setSummaryText("유효한 좌표 정보가 없어 AI 요약을 불러올 수 없습니다.")
+            } else {
+                viewModel.fetchPlaceSummary(
+                    placeName = place.name,
+                    x = x,
+                    y = y
+                )
+            }
         }
     }
-
-    // ViewModel의 summaryText 상태를 관찰합니다.
-    val summaryText by viewModel.summaryText.collectAsState()
 
     Scaffold(
         floatingActionButton = { ActionFAB(onClick = onNavigateClick) }
@@ -77,7 +84,7 @@ fun PlaceDetailScreen(
             // 헤더(이미지/뒤로가기)
             item {
                 Box(Modifier.fillMaxWidth()) {
-                    HeaderImage(imageUrl = " ")
+//                    HeaderImage(imageUrl = " ")
                     IconButton(
                         onClick = onBack,
                         modifier = Modifier
@@ -98,7 +105,7 @@ fun PlaceDetailScreen(
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .offset(y = (-20).dp),
+                        .offset(y = (-15).dp),
                     shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
                     color = Color.White
                 ) {
@@ -116,20 +123,21 @@ fun PlaceDetailScreen(
                             Spacer(Modifier.height(18.dp))
                         }
 
-                        AiSummaryBox(text = summaryText)
+                        AiDescriptionBox(text = summaryText)
                     }
                 }
             }
 
-            item {
-                Divider(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(7.dp),
-                    color = Variables.Grayscale50,
-                    thickness = 7.dp
-                )
-            }
+            // overview가 있는 경우 추가
+//            item {
+//                Divider(
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .height(7.dp),
+//                    color = Variables.Grayscale50,
+//                    thickness = 7.dp
+//                )
+//            }
 //            item {
 //                Column(
 //                    modifier = Modifier
@@ -155,6 +163,50 @@ fun PlaceDetailScreen(
 //                    Spacer(Modifier.height(80.dp)) // FAB 간섭 방지
 //                }
 //            }
+        }
+    }
+}
+
+@Composable
+private fun AiDescriptionBox(text: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFEBF4FF), shape = RoundedCornerShape(12.dp))
+            .border(BorderStroke(1.dp, Color(0xFFEBF4FF)), shape = RoundedCornerShape(12.dp))
+            .padding(start = 7.dp, end = 7.dp, top = 6.dp, bottom = 10.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Image(
+                painter = painterResource(id = R.drawable.ic_ai),
+                contentDescription = null,
+                modifier = Modifier.size(15.dp)
+            )
+            Spacer(Modifier.width(6.dp))
+            Text("AI 요약", style = AiTitleTextStyle, color = Variables.Blue700)
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 6.dp)
+                .height(IntrinsicSize.Min),
+            verticalAlignment = Alignment.Top
+        ) {
+            // 왼쪽 인용구 라인
+            Box(
+                modifier = Modifier
+                    .width(2.dp)
+                    .fillMaxHeight()
+                    .background(Color(0xFF8BBFFF))
+            )
+            Spacer(Modifier.width(8.dp))
+            // 본문 텍스트
+            Text(
+                text,
+                style = AiSummaryTextStyle,
+                color = Color(0xFF535353)
+            )
         }
     }
 }
