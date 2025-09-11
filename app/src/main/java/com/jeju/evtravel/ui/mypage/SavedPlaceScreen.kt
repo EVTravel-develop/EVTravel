@@ -20,6 +20,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.jeju.evtravel.R
 import com.jeju.evtravel.ui.mypage.SavedItemRow
 
 
@@ -68,8 +69,15 @@ fun SavedPlaceScreen(
                 .fillMaxSize()
         ) {
             items(bookmarks.value) { bookmark ->
+// 수정 후
+                val imageModel = if (bookmark.image_url.isNullOrEmpty()) {
+                    R.drawable.jeju_place_sample // URL이 null이거나 비어있으면 리소스 ID 사용
+                } else {
+                    bookmark.image_url // URL이 있으면 URL 사용
+                }
+
                 SavedItemRow(
-                    imageUrl = bookmark.image_url ?: "",
+                    imageUrl = imageModel,
                     title = bookmark.place_name,
                     description = bookmark.description
                 )

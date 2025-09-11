@@ -7,6 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.jeju.evtravel.viewmodel.WithdrawalViewModel
+import com.jeju.evtravel.ui.onboarding.LoadingDialog // ⭐️ LoadingDialog 임포트 추가
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -17,8 +18,8 @@ fun WithdrawalScreen(
 ) {
     val user by viewModel.user
     val withdrawSuccess by viewModel.withdrawSuccess
-    // TODO: ViewModel에 isProcessing 상태를 추가하고 collectAsState()로 가져와야 합니다.
-    // val isProcessing by viewModel.isProcessing.collectAsState()
+    // ⭐️ ViewModel의 isProcessing 상태를 collectAsState()로 가져옵니다.
+    val isProcessing by viewModel.isProcessing.collectAsState()
 
     // 드롭다운 상태
     var expanded by remember { mutableStateOf(false) }
@@ -112,7 +113,8 @@ fun WithdrawalScreen(
             // 버튼 활성화/비활성화 로직 추가
             val isReasonSelected = selectedReason != "선택해주세요."
             val isOtherReasonValid = selectedReason != "기타" || customReason.isNotBlank()
-            val isButtonEnabled = isReasonSelected && isOtherReasonValid // && !isProcessing
+            // ⭐️ isProcessing 상태를 조건에 추가하여 로딩 중일 때 비활성화
+            val isButtonEnabled = isReasonSelected && isOtherReasonValid && !isProcessing
 
             Button(
                 onClick = {
@@ -126,10 +128,15 @@ fun WithdrawalScreen(
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 ),
-                enabled = isButtonEnabled // 활성화/비활성화 상태 적용
+                enabled = isButtonEnabled
             ) {
                 Text("탈퇴하기")
             }
         }
+    }
+
+    // ⭐️ isProcessing 상태가 true일 때 로딩 다이얼로그를 표시합니다.
+    if (isProcessing) {
+        LoadingDialog()
     }
 }

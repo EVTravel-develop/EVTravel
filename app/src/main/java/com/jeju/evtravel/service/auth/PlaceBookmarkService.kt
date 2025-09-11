@@ -5,11 +5,12 @@ import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.DocumentSnapshot
 import com.jeju.evtravel.domain.model.PlaceBookmark
 import kotlinx.coroutines.tasks.await
+import javax.inject.Inject
 
 class PlaceBookmarkService(
     private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) {
-    private val collection = db.collection("place_bookmarks")
+    private val collection = db.collection("placeBookmarks")
 
     /** uid + kakao_id 기반 북마크 저장 */
     suspend fun addBookmark(
@@ -59,7 +60,6 @@ class PlaceBookmarkService(
     ): Pair<List<PlaceBookmark>, DocumentSnapshot?> {
         var query = collection
             .whereEqualTo("uid", uid)
-            .orderBy("place_name", Query.Direction.ASCENDING) // 정렬 기준 변경 가능
             .limit(limit)
 
         if (lastSnapshot != null) {
@@ -76,14 +76,19 @@ class PlaceBookmarkService(
         }
     }
 
-    /** uid + kakao_id 기반 단건 삭제 */
-    suspend fun removeBookmark(uid: String, kakaoId: String): Boolean {
-        val docId = "${uid}_${kakaoId}"
+    // 장소 북마크 삭제
+    suspend fun deletePlaceBookmarksByUid(uid: String): Boolean {
+        val querySnapshot = db.collection("placeBookmarks").whereEqualTo("uid", uid).get().await()
         return try {
-            collection.document(docId).delete().await()
+            val batch = db.batch()
+            for (document in querySnapshot.documents) {
+                batch.delete(document.reference)
+            }
+            batch.commit().await()
             true
         } catch (e: Exception) {
             false
         }
     }
+
 }
