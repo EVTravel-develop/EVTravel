@@ -1,5 +1,8 @@
 package com.jeju.evtravel.ui.detail
 
+import android.location.Geocoder
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -15,12 +18,12 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -31,17 +34,29 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.android.gms.location.FusedLocationProviderClient
 import com.jeju.evtravel.R
 import com.jeju.evtravel.domain.model.Place
+import com.jeju.evtravel.utils.NavigationAppBottomSheet
+import com.jeju.evtravel.ui.map.getCurrentLocation
 import com.jeju.evtravel.ui.theme.Variables
+import com.jeju.evtravel.utils.getAvailableNavigationApps
+import com.kakao.vectormap.LatLng
+import kotlinx.coroutines.launch
+import java.net.URLEncoder
+import java.util.Locale
 
 data class ChargerRowUi(
     val label: String,      // 예) "100 kWDC콤보"
@@ -81,15 +96,55 @@ private fun kwBucket(output: String?): String? {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun ChargerDetailScreen(
+    fusedLocationClient: FusedLocationProviderClient,
     place: Place,
     onBack: () -> Unit,
-    onNavigateClick: () -> Unit,
     bookmarkViewModel: BookmarkViewModel = hiltViewModel()
 ) {
     val chargers = place.chargerList ?: emptyList()
     val isBookmarked by bookmarkViewModel.isPlaceBookmarked.collectAsState()
+
+    // 길 안내 관련 상태 변수 및 로직 추가
+    var showNavAppBottomSheet by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    var startLocation by remember { mutableStateOf<LatLng?>(null) }
+    var destinationAddress by remember { mutableStateOf("") }
+    val coroutineScope = rememberCoroutineScope()
+
+    val onNavigate: () -> Unit = {
+        val availableApps = getAvailableNavigationApps(context)
+        if (availableApps.isEmpty()) {
+            Toast.makeText(context, "설치된 길 안내 앱이 없습니다.", Toast.LENGTH_SHORT).show()
+        } else {
+            getCurrentLocation(context, fusedLocationClient) { loc ->
+                startLocation = loc
+
+                coroutineScope.launch {
+                    val geocoder = Geocoder(context, Locale.KOREAN)
+                    try {
+                        val addresses = geocoder.getFromLocation(
+                            place.latitude,
+                            place.longitude,
+                            1
+                        )
+                        if (addresses != null && addresses.isNotEmpty()) {
+                            val addressLine = addresses[0].getAddressLine(0)
+                            destinationAddress = URLEncoder.encode(addressLine, "UTF-8")
+                        } else {
+                            destinationAddress = URLEncoder.encode(place.name, "UTF-8")
+                        }
+                    } catch (e: Exception) {
+                        Log.e("Geocoder", "주소 변환 실패", e)
+                        destinationAddress = URLEncoder.encode(place.name, "UTF-8")
+                    }
+                    showNavAppBottomSheet = true
+                }
+            }
+        }
+    }
 
     // 화면 진입 시 북마크 상태 체크
     LaunchedEffect(key1 = place.id) {
@@ -117,7 +172,7 @@ fun ChargerDetailScreen(
         .sortedByDescending { it.total }
 
     Scaffold(
-        floatingActionButton = { ActionFAB(onClick = onNavigateClick) }
+        floatingActionButton = { ActionFAB(onClick = onNavigate) }
     ) { inner ->
         LazyColumn(
             modifier = Modifier
@@ -171,7 +226,8 @@ fun ChargerDetailScreen(
                                     },
                                     modifier = Modifier.size(24.dp)
                                 ) {
-                                    val iconRes = if (isBookmarked) R.drawable.ic_bookmark_filled else R.drawable.ic_bookmark_empty
+                                    val iconRes =
+                                        if (isBookmarked) R.drawable.ic_bookmark_filled else R.drawable.ic_bookmark_empty
                                     Image(
                                         painter = painterResource(id = iconRes),
                                         contentDescription = "북마크"
@@ -184,7 +240,8 @@ fun ChargerDetailScreen(
                             val location = chargers.firstOrNull()?.location
                                 ?.takeIf { !it.isNullOrBlank() && it.lowercase() != "null" }
                                 .orEmpty()
-                            val addr = place.roadAddress?.takeIf { it.isNotBlank() } ?: place.address
+                            val addr =
+                                place.roadAddress?.takeIf { it.isNotBlank() } ?: place.address
                             val fullAddress =
                                 if (!addr.isNullOrBlank())
                                     if (location.isNotEmpty()) "${addr}, $location" else addr!!
@@ -243,6 +300,17 @@ fun ChargerDetailScreen(
                 }
             }
         }
+    }
+
+    // 길 안내 앱 선택 바텀 모달 시트
+    if (showNavAppBottomSheet) {
+        NavigationAppBottomSheet(
+            context = context,
+            startLocation = startLocation,
+            endLocation = LatLng.from(place.latitude, place.longitude),
+            destinationAddress = destinationAddress,
+            onDismiss = { showNavAppBottomSheet = false }
+        )
     }
 }
 

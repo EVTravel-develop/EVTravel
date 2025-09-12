@@ -316,6 +316,30 @@ val AiSummaryTextStyle = TextStyle(
     )
 )
 
+val NavigationAppTextStyle = TextStyle(
+    fontFamily = RobotoFamily,
+    fontWeight = FontWeight.Medium,
+    fontSize = 17.sp,
+    lineHeight = 24.sp,
+    letterSpacing = 0.0125.em,
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.None
+    )
+)
+
+val NavigationAppButtonTextStyle = TextStyle(
+    fontFamily = RobotoFamily,
+    fontWeight = FontWeight.SemiBold,
+    fontSize = 17.sp,
+    lineHeight = 24.sp,
+    letterSpacing = 0.0125.em,
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.None
+    )
+)
+
 @Composable
 fun HeaderImage(
     imageUrl: String?,

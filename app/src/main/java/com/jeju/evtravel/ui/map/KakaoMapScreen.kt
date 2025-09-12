@@ -80,6 +80,7 @@ import com.jeju.evtravel.ui.detail.openChargerDetail
 import com.jeju.evtravel.ui.detail.openPlaceDetail
 import com.jeju.evtravel.ui.search.ClickableSearchBar
 import com.jeju.evtravel.ui.theme.Variables
+import com.jeju.evtravel.utils.CustomDragHandle
 import com.kakao.vectormap.GestureType
 import com.kakao.vectormap.KakaoMap
 import com.kakao.vectormap.LatLng
@@ -385,26 +386,38 @@ fun KakaoMapScreen(
     }
 
     /** 현재 위치 재점검 & 초기화 */
-    DisposableEffect(kakaoMap) {
+    DisposableEffect(Unit) { // Unit을 key로 사용해 컴포저블이 처음 생성될 때만 실행되도록 합니다.
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                if (cameBackFromSettings) {
-                    cameBackFromSettings = false
-
-                    val granted =
-                        permissionState.allPermissionsGranted // or permissionState.status.isGranted
-                    val gpsOn = isLocationEnabled(context)
-                    // 조건 충족해도 자동 이동/검색은 하지 않음. (오직 GPS 버튼에서만)
-                    gpsErrorMessage = when {
-                        !granted -> "정확한 위치 권한이 필요합니다. 설정에서 권한을 허용해 주세요."
-                        !gpsOn   -> "GPS가 꺼져 있습니다. 설정에서 위치 서비스를 켜주세요."
-                        else     -> null // 문제 없으면 메시지 제거만
+            when (event) {
+                // ✅ 앱이 다시 포그라운드로 돌아왔을 때
+                Lifecycle.Event.ON_RESUME -> {
+                    // 이전에 detach 되었던 arrowController를 다시 attach
+                    val currentLoc = viewModel.lastUserLocation
+                    if (currentLoc != null) {
+                        arrowController?.attachOrMove(currentLoc)
+                    } else {
+                        // 사용자 위치를 가져올 수 없으면 기본 위치로 돌아가기
+                        fallbackToDefaultCenter(viewModel, kakaoMap, arrowController)
                     }
                 }
+                // ✅ 앱이 백그라운드로 갈 때
+                Lifecycle.Event.ON_PAUSE -> {
+                    // MapView 컴포넌트는 onPause에서 자체적으로 렌더링을 멈추므로
+                    // 특별한 해제 로직을 추가할 필요가 없습니다.
+                }
+                // ✅ 이 부분이 중요합니다! onDestroy 일 때만 지도를 해제
+                Lifecycle.Event.ON_DESTROY -> {
+                    arrowController?.detach()
+                }
+                else -> {}
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { arrowController?.detach() }
+
+        // ✅ onDispose에서 해제하는 대신 옵저버만 제거합니다.
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     /** 선택 상태에 따른 시트 단계 제어 (선택 시 부분 확장, 해제 시 숨김) */
@@ -474,7 +487,7 @@ fun KakaoMapScreen(
         sheetContainerColor = Color.White,
         sheetTonalElevation = if (isExpanded) 0.dp else BottomSheetDefaults.Elevation,
         sheetShadowElevation = if (isExpanded) 0.dp else BottomSheetDefaults.Elevation,
-        sheetDragHandle = { if (!isExpanded) TinyHandle() },
+        sheetDragHandle = { if (!isExpanded) CustomDragHandle() },
         sheetPeekHeight = peekHeight,
         sheetSwipeEnabled = selectedPlace != null,
         sheetContent = {
@@ -491,7 +504,7 @@ fun KakaoMapScreen(
                         .navigationBarsPadding()
                         .imePadding()
                         .verticalScroll(rememberScrollState())
-                        .padding(vertical = 12.dp)
+                        .padding(horizontal = 20.dp, vertical = 8.dp)
                 ) {
                     if (showRequery && sheetState.currentValue == SheetValue.Expanded) {
                         AssistChip(
@@ -518,6 +531,7 @@ fun KakaoMapScreen(
                         Spacer(Modifier.height(8.dp))
                     }
                     PlaceSheetScreen(
+                        fusedLocationClient = fusedLocationClient,
                         place = selectedPlace!!,
                         kind = currentKind,
                         isFullScreen = isExpanded,
@@ -739,34 +753,6 @@ fun KakaoMapScreen(
                 }
             }
         }
-    }
-}
-
-/**
- * 하단 시트 Drag Handle(얇은 바) 컴포저블
- */
-@Composable
-private fun TinyHandle(
-    thickness: Dp = 4.dp,         // 바 두께
-    length: Dp = 50.dp,           // 바 길이
-    topPadding: Dp = 12.dp,       // 바와 시트 상단 간격
-    cornerRadius: Dp = 4.dp,
-    color: Color = Variables.Grayscale300
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(color = Color.White)
-            .padding(top = topPadding, bottom = 16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Box(
-            modifier = Modifier
-                .height(thickness)
-                .width(length)
-                .clip(RoundedCornerShape(cornerRadius))
-                .background(color)
-        )
     }
 }
 

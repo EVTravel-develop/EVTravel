@@ -204,7 +204,7 @@ fun MainScreen(
                         PlaceDetailScreen(
                             place = cached,
                             onBack = { navController.popBackStack() },
-                            onNavigateClick = { /* ... */ },
+                            fusedLocationClient = fusedLocationClient,
                             viewModel = summarizeViewModel
                         )
                     } else {
@@ -216,9 +216,7 @@ fun MainScreen(
                             ui.data != null -> PlaceDetailScreen(
                                 place = ui.data,
                                 onBack = { navController.popBackStack() },
-                                onNavigateClick = {
-                                    navController.popBackStack()
-                                },
+                                fusedLocationClient = fusedLocationClient,
                                 viewModel = summarizeViewModel
                             )
                         }
@@ -240,7 +238,7 @@ fun MainScreen(
                     ChargerDetailScreen(
                         place = place,
                         onBack = { navController.popBackStack() },
-                        onNavigateClick = { /* ... */ }
+                        fusedLocationClient = fusedLocationClient,
                     )
                 }
 
