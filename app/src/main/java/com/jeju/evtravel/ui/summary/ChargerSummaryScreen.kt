@@ -116,7 +116,11 @@ fun ChargerSummaryScreen(
 
     // 새로운 LaunchedEffect를 추가하여 place.id가 변경될 때마다 코스를 다시 조회
     LaunchedEffect(place.id) {
-        courseVm.fetchCoursesForPlace(place.id.toLong())
+        val pid = place.id.toLongOrNull()
+        if (pid == null) {
+            return@LaunchedEffect
+        }
+        courseVm.fetchCoursesForPlace(pid)
     }
 
     LazyColumn(

@@ -69,7 +69,7 @@ class SummarizePlaceViewModel(
                 if (e is FirebaseFunctionsException && e.code == FirebaseFunctionsException.Code.UNAUTHENTICATED) {
                     setSummaryText("인증 실패! 로그인을 다시 시도해주세요.")
                 } else {
-                    setSummaryText("요약 불러오기 실패: ${e.message}")
+                    setSummaryText("요약 불러오기에 실패했습니다. 잠시 후 다시 시도해 주세요.")
                 }
                 Log.e("SummarizeViewModel", "Function call failed", e)
             }

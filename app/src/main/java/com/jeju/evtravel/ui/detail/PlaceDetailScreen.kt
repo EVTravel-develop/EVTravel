@@ -55,7 +55,9 @@ import com.jeju.evtravel.ui.map.getCurrentLocation
 import com.jeju.evtravel.ui.theme.Variables
 import com.jeju.evtravel.utils.getAvailableNavigationApps
 import com.kakao.vectormap.LatLng
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.net.URLEncoder
 import java.util.Locale
 import kotlin.collections.isNotEmpty
@@ -91,11 +93,13 @@ fun PlaceDetailScreen(
                 coroutineScope.launch {
                     val geocoder = Geocoder(context, Locale.KOREAN)
                     try {
-                        val addresses = geocoder.getFromLocation(
-                            place.latitude,
-                            place.longitude,
-                            1
-                        )
+                        val addresses = withContext(Dispatchers.IO) {
+                            geocoder.getFromLocation(
+                                place.latitude,
+                                place.longitude,
+                                1
+                            )
+                        }
                         if (addresses != null && addresses.isNotEmpty()) {
                             val addressLine = addresses[0].getAddressLine(0)
                             destinationAddress = URLEncoder.encode(addressLine, "UTF-8")
@@ -258,7 +262,7 @@ fun PlaceDetailScreen(
         NavigationAppBottomSheet(
             context = context,
             startLocation = startLocation,
-            endLocation = LatLng.from(place.latitude, place.longitude),
+            endLocation = LatLng.from(place.latitude!!, place.longitude!!),
             destinationAddress = destinationAddress,
             onDismiss = { showNavAppBottomSheet = false }
         )

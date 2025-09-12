@@ -60,17 +60,17 @@ fun PlaceSummaryScreen(
 
     LaunchedEffect(key1 = place.id) {
         val cachedSummary = viewModel.getCachedSummary()
-        if (cachedSummary.isNullOrBlank() || cachedSummary == "AI 작성 중...") {
-            val x = place.longitude?.toString() ?: "0.0"
-            val y = place.latitude?.toString() ?: "0.0"
+        if (cachedSummary.isNullOrBlank() && !isLoading) {
+            val x = place.longitude
+            val y = place.latitude
 
-            if (x == "0.0" || y == "0.0" || x.isBlank() || y.isBlank()) {
+            if (x == null || y == null) {
                 viewModel.setSummaryText("유효한 좌표 정보가 없어 AI 요약을 불러올 수 없습니다.")
             } else {
                 viewModel.fetchPlaceSummary(
                     placeName = place.name,
-                    x = x,
-                    y = y
+                    x = x.toString(),
+                    y = y.toString()
                 )
             }
         }

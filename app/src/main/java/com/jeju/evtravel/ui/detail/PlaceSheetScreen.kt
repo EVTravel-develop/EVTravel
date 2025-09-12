@@ -23,6 +23,7 @@ import com.jeju.evtravel.ui.summary.PlaceSummaryScreen
 import com.jeju.evtravel.utils.getAvailableNavigationApps
 import com.kakao.vectormap.LatLng
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.net.URLEncoder
 import java.util.Locale
 
@@ -65,7 +66,11 @@ fun PlaceSheetScreen(
     var destinationAddress by remember { mutableStateOf("") }
 
     // "안내하기" 버튼을 눌렀을 때 실행될 함수
-    val onNavigate: () -> Unit = {
+    val onNavigate: () -> Unit = let@{
+        if (place.latitude == null || place.longitude == null) {
+            Toast.makeText(context, "좌표 정보가 없어 길 안내를 시작할 수 없습니다.", Toast.LENGTH_SHORT).show()
+            return@let
+        }
         val availableApps = getAvailableNavigationApps(context)
         if (availableApps.isEmpty()) {
             Toast.makeText(context, "설치된 길 안내 앱이 없습니다.", Toast.LENGTH_SHORT).show()
@@ -76,11 +81,13 @@ fun PlaceSheetScreen(
                 coroutineScope.launch {
                     val geocoder = Geocoder(context, Locale.KOREAN)
                     try {
-                        val addresses = geocoder.getFromLocation(
-                            place.latitude,
-                            place.longitude,
-                            1
-                        )
+                        val addresses = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            geocoder.getFromLocation(
+                                place.latitude,
+                                place.longitude,
+                                1
+                            )
+                        }
                         if (addresses != null && addresses.isNotEmpty()) {
                             val addressLine = addresses[0].getAddressLine(0)
                             val cleanedAddress = addressLine.replace("대한민국 ", "")

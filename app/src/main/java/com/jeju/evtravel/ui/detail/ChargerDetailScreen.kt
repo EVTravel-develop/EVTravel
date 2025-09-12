@@ -54,7 +54,9 @@ import com.jeju.evtravel.ui.map.getCurrentLocation
 import com.jeju.evtravel.ui.theme.Variables
 import com.jeju.evtravel.utils.getAvailableNavigationApps
 import com.kakao.vectormap.LatLng
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.net.URLEncoder
 import java.util.Locale
 
@@ -125,11 +127,11 @@ fun ChargerDetailScreen(
                 coroutineScope.launch {
                     val geocoder = Geocoder(context, Locale.KOREAN)
                     try {
-                        val addresses = geocoder.getFromLocation(
-                            place.latitude,
-                            place.longitude,
-                            1
-                        )
+                        val addresses = withContext(Dispatchers.IO) {
+                            if (Geocoder.isPresent())
+                                geocoder.getFromLocation(place.latitude, place.longitude, 1)
+                            else emptyList()
+                        }
                         if (addresses != null && addresses.isNotEmpty()) {
                             val addressLine = addresses[0].getAddressLine(0)
                             destinationAddress = URLEncoder.encode(addressLine, "UTF-8")
