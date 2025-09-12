@@ -8,7 +8,7 @@ import com.google.firebase.firestore.IgnoreExtraProperties
 @IgnoreExtraProperties
 data class CourseBookmark(
     val id: String = "",        // "$uid_$course_id"
-    val uid: String = "",
+    val uid: String? = "",
     val course_id: String = "",
     val course_name: String = "", // 코스 이름 추가
     val course_description: String = "", // 코스 설명 추가

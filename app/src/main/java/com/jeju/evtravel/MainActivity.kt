@@ -31,12 +31,16 @@ import androidx.navigation.navArgument
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.firebase.auth.FirebaseAuth
+import com.jeju.evtravel.domain.model.Course
 import com.jeju.evtravel.domain.model.Place
 import com.jeju.evtravel.navigation.BottomNavigationBar
 import com.jeju.evtravel.ui.detail.ChargerDetailScreen
 import com.jeju.evtravel.ui.detail.ErrorScreen
 import com.jeju.evtravel.ui.detail.PlaceDetailScreen
+import com.jeju.evtravel.ui.detail.SummarizePlaceViewModel
 import com.jeju.evtravel.ui.detail.TourPlaceDetailViewModel
+import com.jeju.evtravel.ui.detail.course.CourseDetailScreen
+import com.jeju.evtravel.ui.detail.course.CourseViewModel
 import com.jeju.evtravel.ui.map.KakaoMapScreen
 import com.jeju.evtravel.ui.map.MapViewModel
 import com.jeju.evtravel.ui.mypage.MyPageScreen
@@ -188,11 +192,20 @@ fun MainScreen(
                     val cached = navController.previousBackStackEntry
                         ?.savedStateHandle?.get<Place>("cachedPlace")
 
+                    val summarizeViewModel: SummarizePlaceViewModel = if (navController.previousBackStackEntry != null) {
+                        hiltViewModel(navController.previousBackStackEntry!!)
+                    } else {
+                        // null일 경우 새로운 ViewModel 인스턴스를 생성하거나 다른 처리를 합니다.
+                        // 여기서는 현재 백 스택에 연결된 ViewModel을 사용하도록 변경
+                        hiltViewModel(backStackEntry)
+                    }
+
                     if (cached != null) {
                         PlaceDetailScreen(
                             place = cached,
                             onBack = { navController.popBackStack() },
-                            onNavigateClick = { /* ... */ }
+                            fusedLocationClient = fusedLocationClient,
+                            viewModel = summarizeViewModel
                         )
                     } else {
                         val vm: TourPlaceDetailViewModel = hiltViewModel(backStackEntry)
@@ -200,9 +213,12 @@ fun MainScreen(
                         when {
                             ui.loading -> CircularProgressIndicator()
                             ui.error != null -> ErrorScreen(ui.error) { vm.reload() }
-                            ui.data != null -> PlaceDetailScreen(place = ui.data, onBack = {navController.popBackStack()}) {
-                                navController.popBackStack()
-                            }
+                            ui.data != null -> PlaceDetailScreen(
+                                place = ui.data,
+                                onBack = { navController.popBackStack() },
+                                fusedLocationClient = fusedLocationClient,
+                                viewModel = summarizeViewModel
+                            )
                         }
                     }
                 }
@@ -222,8 +238,25 @@ fun MainScreen(
                     ChargerDetailScreen(
                         place = place,
                         onBack = { navController.popBackStack() },
-                        onNavigateClick = { /* ... */ }
+                        fusedLocationClient = fusedLocationClient,
                     )
+                }
+
+                composable(
+                    route = "courseDetail/{courseId}",
+                    arguments = listOf(navArgument("courseId"){ type = NavType.StringType })
+                ) { backStackEntry ->
+                    val course = navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.get<Course>("selectedCourse")
+
+                    if (course != null) {
+                        CourseDetailScreen(
+                            course = course,
+                            onBack = { navController.popBackStack() },
+                            onNavigateToPlace = { }
+                        )
+                    }
                 }
 
                 // 마이페이지

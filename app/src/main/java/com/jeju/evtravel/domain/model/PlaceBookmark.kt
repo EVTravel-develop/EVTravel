@@ -7,7 +7,7 @@ import com.google.firebase.firestore.IgnoreExtraProperties
 @IgnoreExtraProperties
 data class PlaceBookmark(
     val id: String = "",          // "$uid_$kakao_id"
-    val uid: String = "",         // User.uid
+    val uid: String? = "",         // User.uid
     val kakao_id: String = "",    // Kakao Map Place ID
     val x: Double = 0.0,          // 경도
     val y: Double = 0.0,          // 위도

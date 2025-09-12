@@ -14,26 +14,36 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jeju.evtravel.R
 import com.jeju.evtravel.domain.model.Place
 import com.jeju.evtravel.ui.detail.AiSummaryTextStyle
 import com.jeju.evtravel.ui.detail.AiTitleTextStyle
 import com.jeju.evtravel.ui.detail.InfoRow
+import com.jeju.evtravel.ui.detail.SummarizePlaceViewModel
 import com.jeju.evtravel.ui.detail.TitleTextStyle
 import com.jeju.evtravel.ui.theme.Variables
 
@@ -41,50 +51,111 @@ import com.jeju.evtravel.ui.theme.Variables
 fun PlaceSummaryScreen(
     place: Place,
     onNavigateClick: () -> Unit,
-    onExpandToDetail: () -> Unit
+    onExpandToDetail: () -> Unit,
+    viewModel: SummarizePlaceViewModel = viewModel()
 ) {
-    Column(
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+
+    val isLoading by viewModel.loading.collectAsState()
+
+    LaunchedEffect(key1 = place.id) {
+        val cachedSummary = viewModel.getCachedSummary()
+        if (cachedSummary.isNullOrBlank() && !isLoading) {
+            val x = place.longitude
+            val y = place.latitude
+
+            if (x == null || y == null) {
+                viewModel.setSummaryText("유효한 좌표 정보가 없어 AI 요약을 불러올 수 없습니다.")
+            } else {
+                viewModel.fetchPlaceSummary(
+                    placeName = place.name,
+                    x = x.toString(),
+                    y = y.toString()
+                )
+            }
+        }
+    }
+
+    // ViewModel의 summaryText 상태를 관찰합니다.
+    val summaryText by viewModel.summaryText.collectAsState()
+
+    LazyColumn(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 16.dp, start = 16.dp, end = 16.dp)
+            .heightIn(max = screenHeight)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onExpandToDetail),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = place.name,
-                style = TitleTextStyle,
-                maxLines = 1,                         // 한 줄만 표시
-                overflow = TextOverflow.Ellipsis,     // 길면 … 처리
-                modifier = Modifier.weight(1f)        // 오른쪽 아이콘 자리 확보
+        item {
+            Column(modifier = Modifier
+                .padding(start = 12.dp, end = 12.dp, bottom = 14.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(enabled = !isLoading, onClick = onExpandToDetail),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = place.name,
+                        style = TitleTextStyle,
+                        maxLines = 1,                         // 한 줄만 표시
+                        overflow = TextOverflow.Ellipsis,     // 길면 … 처리
+                        modifier = Modifier.weight(1f)        // 오른쪽 아이콘 자리 확보
+                    )
+                    Icon(
+                        painterResource(id = R.drawable.ic_right),
+                        contentDescription = "상세 보기",
+                        tint = Color.Black,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                    Spacer(Modifier.height(20.dp))
+                }
+            }
+        }
+
+        item {
+            Column(modifier = Modifier
+                .padding(horizontal = 10.dp)
+            ) {
+                val addr = place.roadAddress?.takeIf { it.isNotBlank() } ?: place.address
+                if (!addr.isNullOrBlank()) {
+                    InfoRow(iconRes = R.drawable.ic_location, text = addr)
+                    Spacer(Modifier.height(16.dp))
+                }
+                if (!place.phone.isNullOrBlank()) {
+                    InfoRow(iconRes = R.drawable.ic_phone, text = place.phone)
+                    Spacer(Modifier.height(16.dp))
+                }
+            }
+        }
+
+        item {
+            Divider(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(7.dp),
+                color = Variables.Grayscale50,
+                thickness = 7.dp
             )
-            Icon(
-                painterResource(id = R.drawable.ic_right),
-                contentDescription = "상세 보기",
-                tint = Color.Black,                   // 필요하면 색상 지정
-                modifier = Modifier.padding(start = 8.dp)
-            )
+            Spacer(Modifier.height(16.dp))
         }
 
-        Spacer(Modifier.height(8.dp))
-        val addr = place.roadAddress?.takeIf { it.isNotBlank() } ?: place.address
-        if (!addr.isNullOrBlank()) {
-            InfoRow(iconRes = R.drawable.ic_location, text = addr)
+        item {
+            Column(modifier = Modifier
+                .padding(horizontal = 16.dp)
+            ) {
+                AiSummaryBox(text = summaryText)
+                Spacer(Modifier.height(16.dp))
+            }
         }
-        if (!place.phone.isNullOrBlank()) {
-            InfoRow(iconRes = R.drawable.ic_phone, text = place.phone)
+
+        item {
+            Column(modifier = Modifier
+                .padding(horizontal = 16.dp)
+            ) {
+                PrimaryActionButton(text = "안내하기", onClick = onNavigateClick)
+            }
         }
-
-        Spacer(Modifier.height(12.dp))
-
-        AiSummaryBox(text = "AI 작성 중...")
-        Spacer(Modifier.height(12.dp))
-
-        PrimaryActionButton(text = "안내하기", onClick = onNavigateClick)
     }
 }
 
@@ -128,7 +199,9 @@ fun AiSummaryBox(text: String) {
             Text(
                 text,
                 style = AiSummaryTextStyle,
-                color = Color(0xFF535353)
+                color = Color(0xFF535353),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }

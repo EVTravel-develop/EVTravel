@@ -15,17 +15,18 @@ class CourseBookmarkService(
     private val collection = db.collection("courseBookmarks")
 
     suspend fun addBookmark(
-        uid: String,
-        courseId: String,
+        uid: String?,
+        courseId: Long,
         courseName: String,
         courseDescription: String,
         imageUrl: String
     ): Boolean {
-        val docId = "${uid}_${courseId}"
+        val placeId = courseId.toString()
+        val docId = "${uid}_${placeId}"
         val bookmark = CourseBookmark(
             id = docId,
             uid = uid,
-            course_id = courseId,
+            course_id = placeId,
             course_name = courseName,
             course_description = courseDescription,
             imageUrl = imageUrl,
@@ -38,7 +39,19 @@ class CourseBookmarkService(
         }
     }
 
-    suspend fun getBookmark(uid: String, courseId: String): CourseBookmark? {
+    /** uid + courseId 기반 단건 삭제 */
+    suspend fun deleteBookmark(uid: String?, courseId: Long): Boolean {
+        val placeId = courseId.toString()
+        val docId = "${uid}_${placeId}"
+        return try {
+            collection.document(docId).delete().await()
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    suspend fun getBookmark(uid: String?, courseId: String): CourseBookmark? {
         val docId = "${uid}_${courseId}"
         return try {
             val snapshot = collection.document(docId).get().await()
@@ -49,7 +62,7 @@ class CourseBookmarkService(
     }
 
     // 코스 북마크 삭제
-    suspend fun deleteCourseBookmarksByUid(uid: String): Boolean {
+    suspend fun deleteCourseBookmarksByUid(uid: String?): Boolean {
         val querySnapshot = db.collection("courseBookmarks").whereEqualTo("uid", uid).get().await()
         return try {
             val batch = db.batch()

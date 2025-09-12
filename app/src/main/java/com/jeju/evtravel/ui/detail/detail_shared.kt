@@ -165,7 +165,60 @@ val PlaceTabTagTextStyle = TextStyle(
     )
 )
 
+/** 코스 카드 이름 */
 val CourseCardTitleTextStyle = TextStyle(
+    fontFamily = RobotoFamily,
+    fontWeight = FontWeight.Bold,
+    fontSize = 16.sp,
+    lineHeight = 24.sp,
+    letterSpacing = 0.001.em,
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.None
+    )
+)
+
+/** 코스 설명 */
+val CourseDescriptionTextStyle = TextStyle(
+    fontFamily = RobotoFamily,
+    fontWeight = FontWeight.Medium,
+    fontSize = 13.sp,
+    lineHeight = 19.5.sp,
+    letterSpacing = 0.01.em,
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.None
+    )
+)
+
+/** 코스 장소 제목 */
+val CoursePlaceTitleTextStyle = TextStyle(
+    fontFamily = RobotoFamily,
+    fontWeight = FontWeight.Bold,
+    fontSize = 18.sp,
+    lineHeight = 24.sp,
+    letterSpacing = 0.001.em,
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.None
+    )
+)
+
+/** 코스 이름 */
+val CourseTitleTextStyle = TextStyle(
+    fontFamily = RobotoFamily,
+    fontWeight = FontWeight.Bold,
+    fontSize = 20.sp,
+    lineHeight = 24.sp,
+    letterSpacing = 0.0015.em,
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.None
+    )
+)
+
+/** 코스 장소 카드 이름 */
+val CourseCardPlaceNameTextStyle = TextStyle(
     fontFamily = RobotoFamily,
     fontWeight = FontWeight.Bold,
     fontSize = 17.sp,
@@ -263,6 +316,30 @@ val AiSummaryTextStyle = TextStyle(
     )
 )
 
+val NavigationAppTextStyle = TextStyle(
+    fontFamily = RobotoFamily,
+    fontWeight = FontWeight.Medium,
+    fontSize = 17.sp,
+    lineHeight = 24.sp,
+    letterSpacing = 0.0125.em,
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.None
+    )
+)
+
+val NavigationAppButtonTextStyle = TextStyle(
+    fontFamily = RobotoFamily,
+    fontWeight = FontWeight.SemiBold,
+    fontSize = 17.sp,
+    lineHeight = 24.sp,
+    letterSpacing = 0.0125.em,
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.None
+    )
+)
+
 @Composable
 fun HeaderImage(
     imageUrl: String?,
@@ -320,7 +397,7 @@ fun ActionFAB(onClick: () -> Unit) {
         onClick = onClick,
         containerColor = Variables.Blue700,
         contentColor = Color.White,
-        shape = RoundedCornerShape(18.dp)
+//        shape = RoundedCornerShape(18.dp)
     ) {
         Image(
             painter = painterResource(id = R.drawable.ic_navigate),
