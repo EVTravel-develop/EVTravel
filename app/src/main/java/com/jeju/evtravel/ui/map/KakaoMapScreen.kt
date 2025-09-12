@@ -504,7 +504,7 @@ fun KakaoMapScreen(
                         .navigationBarsPadding()
                         .imePadding()
                         .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 20.dp, vertical = 8.dp)
+                        .padding(vertical = 8.dp)
                 ) {
                     if (showRequery && sheetState.currentValue == SheetValue.Expanded) {
                         AssistChip(
