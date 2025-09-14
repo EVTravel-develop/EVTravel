@@ -31,10 +31,8 @@ fun KakaoMapView(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // ✅ 1. MapView와 이를 담을 FrameLayout 컨테이너를 한 번만 생성합니다.
     val mapViewContainer = remember {
         FrameLayout(context).apply {
-            // FrameLayout의 ID를 설정해야 MapView가 정상적으로 동작할 수 있습니다.
             id = ViewGroup.generateViewId()
         }
     }
@@ -42,31 +40,26 @@ fun KakaoMapView(
         MapView(context)
     }
 
-    // ✅ 2. 생명주기 이벤트를 관찰하여 MapView를 컨테이너에 추가/제거합니다.
     DisposableEffect(lifecycleOwner) {
+        val mapLifeCycleCallback = object : MapLifeCycleCallback() {
+            override fun onMapDestroy() {}
+            override fun onMapError(error: Exception?) {
+                error?.printStackTrace()
+            }
+        }
+        val mapReadyCallback = object : KakaoMapReadyCallback() {
+            override fun onMapReady(kakaoMap: KakaoMap) {
+                onMapReady(kakaoMap)
+            }
+        }
+
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                // 앱이 화면에 보일 때 (RESUMED) MapView를 컨테이너에 추가합니다.
                 Lifecycle.Event.ON_RESUME -> {
-                    // mapView가 이미 다른 부모에 속해있을 수 있으므로 먼저 제거합니다.
                     (mapView.parent as? ViewGroup)?.removeView(mapView)
                     mapViewContainer.addView(mapView)
-                    mapView.start(
-                        object : MapLifeCycleCallback() {
-                            override fun onMapDestroy() {}
-                            override fun onMapError(error: Exception?) {
-                                error?.printStackTrace()
-                            }
-                        },
-                        object : KakaoMapReadyCallback() {
-                            override fun onMapReady(kakaoMap: KakaoMap) {
-                                onMapReady(kakaoMap)
-                            }
-                        }
-                    )
+                    mapView.start(mapLifeCycleCallback, mapReadyCallback)
                 }
-                // 앱이 백그라운드로 갈 때 (PAUSED) MapView를 컨테이너에서 제거합니다.
-                // 이렇게 하면 그래픽 리소스가 정리되고, 돌아왔을 때 새로 생성됩니다.
                 Lifecycle.Event.ON_PAUSE -> {
                     mapViewContainer.removeView(mapView)
                 }
@@ -80,9 +73,10 @@ fun KakaoMapView(
         }
     }
 
-    // ✅ 3. AndroidView는 이제 MapView가 아닌, 그것을 담는 컨테이너(FrameLayout)를 보여줍니다.
     AndroidView(
-        factory = { mapViewContainer },
+        factory = {
+            mapViewContainer
+        },
         modifier = modifier.fillMaxSize()
     )
 }

@@ -12,7 +12,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -57,6 +59,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -71,6 +74,7 @@ import com.jeju.evtravel.R
 import com.jeju.evtravel.domain.model.Course
 import com.jeju.evtravel.domain.model.Place
 import com.jeju.evtravel.ui.detail.PlaceSheetScreen
+import com.jeju.evtravel.ui.detail.ReroadTextStyle
 import com.jeju.evtravel.ui.detail.SummaryKind
 import com.jeju.evtravel.ui.detail.openChargerDetail
 import com.jeju.evtravel.ui.detail.openPlaceDetail
@@ -519,26 +523,12 @@ fun KakaoMapScreen(
                         .padding(vertical = 8.dp)
                 ) {
                     if (showRequery && sheetState.currentValue == SheetValue.Expanded) {
-                        AssistChip(
+                        Image(
+                            // ✅ res/drawable에 추가한 이미지 파일의 ID를 지정합니다.
+                            painter = painterResource(id = R.drawable.ic_reroad),
+                            contentDescription = "새로 고침", // 스크린 리더 등을 위한 접근성 설명
                             modifier = Modifier
-                                .align(Alignment.CenterHorizontally)
-                                .size(width = 120.dp, height = 28.dp),
-                            colors = AssistChipDefaults.assistChipColors(
-                                containerColor = Color.White,
-                                labelColor = Color.Black
-                            ),
-                            onClick = doRequery,
-                            shape = RoundedCornerShape(20.dp),
-                            border = BorderStroke(0.4.dp, Color.Black),
-                            label = { Text("이 지역 재검색", fontSize = 9.sp, fontWeight = FontWeight.Normal) },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Outlined.Refresh,
-                                    contentDescription = null,
-                                    tint = Color.Black,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
+                                .clickable { doRequery() } // ✅ clickable Modifier를 사용해 클릭 이벤트를 연결합니다.
                         )
                         Spacer(Modifier.height(8.dp))
                     }
@@ -660,30 +650,12 @@ fun KakaoMapScreen(
             ) {
                 val isExpanded = sheetState.currentValue == SheetValue.Expanded
                 AnimatedVisibility(visible = showRequery && !isExpanded) {
-                    AssistChip(
-                        modifier = Modifier.size(width = 120.dp, height = 28.dp),
-                        colors = AssistChipDefaults.assistChipColors(
-                            containerColor = Color.White,
-                            labelColor = Color.Black
-                        ),
-                        onClick = doRequery,
-                        shape = RoundedCornerShape(20.dp),
-                        border = BorderStroke(0.4.dp, Color.Black),
-                        label = {
-                            Text(
-                                "새로 고침",
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Normal
-                            )
-                        },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Outlined.Refresh,
-                                contentDescription = null,
-                                tint = Color.Black,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
+                    Image(
+                        // ✅ res/drawable에 추가한 이미지 파일의 ID를 지정합니다.
+                        painter = painterResource(id = R.drawable.ic_reroad),
+                        contentDescription = "새로 고침", // 스크린 리더 등을 위한 접근성 설명
+                        modifier = Modifier
+                            .clickable { doRequery() } // ✅ clickable Modifier를 사용해 클릭 이벤트를 연결합니다.
                     )
                 }
             }

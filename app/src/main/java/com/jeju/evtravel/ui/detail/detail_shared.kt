@@ -62,6 +62,14 @@ val RobotoFamily = FontFamily(
     Font(R.font.roboto_bold, FontWeight.Bold)
 )
 
+val ReroadTextStyle = TextStyle(
+    fontFamily = RobotoFamily,
+    fontWeight = FontWeight.Medium,
+    fontSize = 12.sp,
+    lineHeight = 24.sp,
+    letterSpacing = 0.sp
+)
+
 val OutputTextStyle = TextStyle(
     fontFamily = RobotoFamily,
     fontWeight = FontWeight.SemiBold,
