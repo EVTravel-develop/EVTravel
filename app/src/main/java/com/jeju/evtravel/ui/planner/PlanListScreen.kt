@@ -50,7 +50,8 @@ fun PlanListScreen(
     selectedEnd: String? = null,    // 새로 생성된 플랜의 종료일 (강조 표시용)
     onBackClick: () -> Unit,        // 상단 뒤로가기 버튼 클릭 시 동작
     onCreatePlanClick: () -> Unit,  // "플랜 생성" 버튼 클릭 시 동작 (CalendarScreen으로 이동)
-    onPlanClick: (PlanDto) -> Unit // EditPlanScreen으로 이동하는 콜백
+    onPlanEditClick: (PlanDto) -> Unit, // onPlanClick -> onPlanEditClick으로 변경
+    onPlanViewClick: (PlanDto) -> Unit // onViewClick 콜백 추가
 ) {
     val TAG = "PlannerDebug"
     val plans by viewModel.plans.collectAsState()
@@ -165,7 +166,8 @@ fun PlanListScreen(
                     onMenuClick = { plan ->
                         selectedPlanForMenu = plan
                         showEditDeleteSheet = true
-                    }
+                    },
+                    onViewClick = onPlanViewClick // onPlanViewClick 콜백 전달
                 )
             }
             
@@ -220,8 +222,8 @@ fun PlanListScreen(
             PlanItemBottomSheetContent(
                 onEditClick = {
                     selectedPlanForMenu?.let { plan ->
-                        Log.d(TAG, "PlanListScreen: 'Edit' clicked for planId '${plan.id}'. Calling onPlanClick.")
-                        onPlanClick(plan)
+                        Log.d(TAG, "PlanListScreen: 'Edit' clicked for planId '${plan.id}'. Calling onPlanEditClick.")
+                        onPlanEditClick(plan)
                     }
                     scope.launch { editDeleteSheetState.hide() }.invokeOnCompletion {
                         showEditDeleteSheet = false
@@ -244,7 +246,8 @@ fun PlanListForDate(
     selectedDate: LocalDate,
     plans: List<PlanDto>,
     highlightedPlan: Pair<String, String>?,
-    onMenuClick: (PlanDto) -> Unit
+    onMenuClick: (PlanDto) -> Unit,
+    onViewClick: (PlanDto) -> Unit // 새로운 onViewClick 매개변수 추가
 ) {
     // 날짜 포맷 지정: "yyyy년 M월 d일"
     val dateFormatter = DateTimeFormatter.ofPattern("yyyy년 M월 d일", Locale.KOREAN)
@@ -290,7 +293,8 @@ fun PlanListForDate(
                     PlanItem(
                         plan = plan,
                         isHighlighted = isHighlighted,
-                        onMenuClick = { onMenuClick(plan) }
+                        onMenuClick = { onMenuClick(plan) },
+                        onViewClick = { onViewClick(plan) } // onViewClick 콜백 전달
                     )
                 }
             }
@@ -510,7 +514,8 @@ fun PlanIndicator(isStart: Boolean, isEnd: Boolean) {
 fun PlanItem(
     plan: PlanDto,
     isHighlighted: Boolean = false,
-    onMenuClick: (PlanDto) -> Unit
+    onMenuClick: (PlanDto) -> Unit,
+    onViewClick: (PlanDto) -> Unit // 새로운 onViewClick 콜백 추가
 ) {
     Row(
         modifier = Modifier
@@ -523,6 +528,10 @@ fun PlanItem(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(
+            // 이 부분을 클릭했을 때 상세 보기 화면으로 이동
+            modifier = Modifier
+                .weight(1f) // Text와 Icon이 포함된 Row에 weight를 주어 나머지 공간을 차지하게 함
+                .clickable { onViewClick(plan) }, // 클릭 리스너를 이 Row에 추가
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -539,6 +548,7 @@ fun PlanItem(
             )
         }
         
+        // 더보기 아이콘은 onMenuClick만 호출
         Image(
             painter = painterResource(id = R.drawable.ic_list_menu),
             contentDescription = "더보기",
