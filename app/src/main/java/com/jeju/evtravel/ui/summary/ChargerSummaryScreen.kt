@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForward
@@ -66,6 +67,7 @@ import coil.request.ImageRequest
 import com.jeju.evtravel.R
 import com.jeju.evtravel.data.util.mapStatus
 import com.jeju.evtravel.domain.model.Course
+import com.jeju.evtravel.domain.model.CoursePlace
 import com.jeju.evtravel.domain.model.Place
 import com.jeju.evtravel.ui.detail.Block
 import com.jeju.evtravel.ui.detail.CategoryChipTextStyle
@@ -96,7 +98,8 @@ fun ChargerSummaryScreen(
     onCourseClick: (Course) -> Unit,
     nearbyVm: NearbyPlaceViewModel = hiltViewModel(),
     courseVm: CourseViewModel = hiltViewModel(),
-    onExpandToDetail: () -> Unit
+    onExpandToDetail: () -> Unit,
+    onNavigateToPlaceInCourse: (CoursePlace) -> Unit
 ) {
     val chargers = place.chargerList ?: emptyList()
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
@@ -173,7 +176,7 @@ fun ChargerSummaryScreen(
                         primaryText = "다시 시도",
                         onPrimary = onRetry,
                         secondaryText = "다른 장소 보기",
-                        onSecondary = onNavigateClick
+                        onSecondary = { }
                     )
                     return@Column
                 }
@@ -300,130 +303,131 @@ fun ChargerSummaryScreen(
                 Spacer(Modifier.height(12.dp))
             }
         }
-        item {
-            Column(Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-            ) {
-                // 🔹 스크롤을 없애고 Column으로 변경
-                if (tabIndex == 0) {
-                    when {
-                        courseUiState.loading -> {
-                            LoadingCard()
+        when (tabIndex) {
+            // --- 추천 코스 탭 ---
+            0 -> {
+                when {
+                    courseUiState.loading -> {
+                        // 로딩 상태는 하나의 아이템으로 표시
+                        item {
+                            Column(Modifier.padding(horizontal = 16.dp)) {
+                                LoadingCard()
+                            }
                         }
+                    }
 
-                        courseUiState.data == null -> {
-                            EmptyChargerCard(
-                                title = "추천 코스를 찾지 못했어요",
-                                subtitle = "잠시 후 다시 시도해주세요.",
-                                primaryText = "다시 시도",
-                                onPrimary = { /* reload */ }
-                            )
+                    courseUiState.data == null -> {
+                        // 데이터 없는 상태도 하나의 아이템으로 표시
+                        item {
+                            Column(Modifier.padding(horizontal = 16.dp)) {
+                                EmptyChargerCard(
+                                    title = "추천 코스를 찾지 못했어요",
+                                    subtitle = "잠시 후 다시 시도해주세요.",
+                                    primaryText = "다시 시도",
+                                    onPrimary = { /* TODO: reload logic */ }
+                                )
+                            }
                         }
+                    }
 
-                        else -> {
-                            val courseInfo = courseUiState.data.course_info.firstOrNull()
-                            if (courseInfo != null) {
-                                Column(modifier = Modifier.fillMaxWidth()) {
-                                    // ─── 상단 코스 이름 ───
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .background(Color.White, RoundedCornerShape(16.dp))
-                                            .clickable { onCourseClick(courseUiState.data) }
-                                            .padding(vertical = 6.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text(
-                                            text = courseInfo.course_name,
-                                            style = CourseCardTitleTextStyle,
-                                            color = Color.Black,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        Icon(
-                                            Icons.Filled.ArrowForward,
-                                            contentDescription = "코스 상세 보기",
-                                            tint = Color.Black,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                    }
+                    else -> {
+                        val courseInfo = courseUiState.data.course_info.firstOrNull()
+                        if (courseInfo != null) {
 
-                                    // ─── 하단 장소 카드 ───
-                                    courseInfo.places.forEach { placeName ->
-                                        CourseCard(
-                                            placeName = placeName,
-                                            onNavigateToPlace = { onNavigateClick() }
-                                        )
-                                    }
+                            item {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp) // 패딩을 여기에 적용
+                                        .background(Color.White, RoundedCornerShape(16.dp))
+                                        .clickable { onCourseClick(courseUiState.data) }
+                                        .padding(vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = courseInfo.course_name,
+                                        style = CourseCardTitleTextStyle,
+                                        color = Color.Black,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Icon(
+                                        Icons.Filled.ArrowForward,
+                                        contentDescription = "코스 상세 보기",
+                                        tint = Color.Black,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            }
+
+                            items(courseInfo.places) { placeInCourse ->
+                                // 각 카드에 좌우 패딩을 줍니다.
+                                Column(Modifier.padding(horizontal = 16.dp)) {
+                                    CourseCard(
+                                        place = placeInCourse,
+                                        onNavigateToPlace = onNavigateToPlaceInCourse
+                                    )
                                 }
                             }
                         }
                     }
-                } else {
-                    // [장소] — 카테고리 칩 + 2열 카드 그리드
-                    val categories = listOf("자연환경", "맛집", "카페", "박물관")
+                }
+            }
 
-                    Spacer(Modifier.height(12.dp))
-
+            // --- 장소 탭 ---
+            1 -> {
+                // '장소' 탭의 내용은 복잡하므로 하나의 item으로 묶어서 처리합니다.
+                item {
                     Column(
-                        modifier = Modifier
+                        Modifier
                             .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
                     ) {
-                        CategoryChips(
-                            categories = categories,
-                            selected = uiState.selectedCategory,
-                            onSelect = { label -> nearbyVm.selectCategory(label) }
-                        )
+                        val categories = listOf("자연환경", "맛집", "카페", "박물관")
 
                         Spacer(Modifier.height(12.dp))
 
-                        // 상태별 UI
-                        when {
-                            uiState.loading && uiState.items.isEmpty() -> {
-                                LoadingCard()
-                            }
+                        Column(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            CategoryChips(
+                                categories = categories,
+                                selected = uiState.selectedCategory,
+                                onSelect = { label -> nearbyVm.selectCategory(label) }
+                            )
+                            Spacer(Modifier.height(12.dp))
 
-                            uiState.error != null && uiState.items.isEmpty() -> {
-                                EmptyChargerCard(
-                                    title = "주변 장소를 불러오지 못했어요",
-                                    subtitle = "네트워크 상태를 확인해주세요.",
-                                    primaryText = "다시 시도",
-                                    onPrimary = { nearbyVm.selectTourPlace(place) }
-                                )
-                            }
-
-                            uiState.items.isEmpty() -> {
-                                EmptyChargerCard(
-                                    title = "반경 내 추천 장소가 없어요",
-                                    subtitle = "반경을 넓히거나 다른 카테고리를 선택해보세요.",
-                                    primaryText = "다시 시도",
-                                    onPrimary = { nearbyVm.selectTourPlace(place) }
-                                )
-                            }
-
-                            else -> {
-                                uiState.items.chunked(2).forEach { row ->
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 8.dp)
-                                    ) {
-                                        Box(Modifier.weight(1f)) {
-                                            PlaceGridCard(
-                                                item = row[0],
-                                                onClick = { clicked ->
-                                                    uiState.itemsRaw
-                                                        .firstOrNull { it.id == clicked.id }
-                                                        ?.let { onPlaceClick(it) }
-                                                }
-                                            )
-                                        }
-                                        if (row.size > 1) {
+                            when {
+                                uiState.loading && uiState.items.isEmpty() -> {
+                                    LoadingCard()
+                                }
+                                uiState.error != null && uiState.items.isEmpty() -> {
+                                    EmptyChargerCard(
+                                        title = "주변 장소를 불러오지 못했어요",
+                                        subtitle = "네트워크 상태를 확인해주세요.",
+                                        primaryText = "다시 시도",
+                                        onPrimary = { nearbyVm.selectTourPlace(place) }
+                                    )
+                                }
+                                uiState.items.isEmpty() -> {
+                                    EmptyChargerCard(
+                                        title = "반경 내 추천 장소가 없어요",
+                                        subtitle = "반경을 넓히거나 다른 카테고리를 선택해보세요.",
+                                        primaryText = "다시 시도",
+                                        onPrimary = { nearbyVm.selectTourPlace(place) }
+                                    )
+                                }
+                                else -> {
+                                    uiState.items.chunked(2).forEach { row ->
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 8.dp)
+                                        ) {
                                             Box(Modifier.weight(1f)) {
                                                 PlaceGridCard(
-                                                    item = row[1],
+                                                    item = row[0],
                                                     onClick = { clicked ->
                                                         uiState.itemsRaw
                                                             .firstOrNull { it.id == clicked.id }
@@ -431,8 +435,20 @@ fun ChargerSummaryScreen(
                                                     }
                                                 )
                                             }
-                                        } else {
-                                            Spacer(Modifier.weight(1f))
+                                            if (row.size > 1) {
+                                                Box(Modifier.weight(1f)) {
+                                                    PlaceGridCard(
+                                                        item = row[1],
+                                                        onClick = { clicked ->
+                                                            uiState.itemsRaw
+                                                                .firstOrNull { it.id == clicked.id }
+                                                                ?.let { onPlaceClick(it) }
+                                                        }
+                                                    )
+                                                }
+                                            } else {
+                                                Spacer(Modifier.weight(1f))
+                                            }
                                         }
                                     }
                                 }

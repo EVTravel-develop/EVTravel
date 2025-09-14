@@ -24,5 +24,13 @@ data class Course(
 data class CourseDetail(
     val course_name: String = "",
     val course_description: String = "",
-    val places: List<String> = emptyList()
+    val places: List<CoursePlace> = emptyList()
+) : Parcelable
+
+@Parcelize
+data class CoursePlace(
+    val id: String? = null,
+    val name: String? = null,
+    val x: Double? = null,
+    val y: Double? = null
 ) : Parcelable

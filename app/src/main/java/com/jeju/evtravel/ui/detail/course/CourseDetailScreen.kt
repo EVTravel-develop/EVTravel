@@ -40,15 +40,14 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jeju.evtravel.R
 import com.jeju.evtravel.domain.model.Course
+import com.jeju.evtravel.domain.model.CoursePlace
 import com.jeju.evtravel.ui.detail.BookmarkViewModel
 import com.jeju.evtravel.ui.detail.CourseCardPlaceNameTextStyle
 import com.jeju.evtravel.ui.detail.CourseDescriptionTextStyle
 import com.jeju.evtravel.ui.detail.CoursePlaceTitleTextStyle
 import com.jeju.evtravel.ui.detail.CourseTitleTextStyle
-import com.jeju.evtravel.ui.detail.DetailTitleTextStyle
 import com.jeju.evtravel.ui.detail.HeaderImage
 import com.jeju.evtravel.ui.theme.Variables
 
@@ -57,7 +56,7 @@ import com.jeju.evtravel.ui.theme.Variables
 fun CourseDetailScreen(
     course: Course,
     onBack: () -> Unit,
-    onNavigateToPlace: (String) -> Unit,
+    onNavigateToPlace: (CoursePlace) -> Unit,
     bookmarkViewModel: BookmarkViewModel = hiltViewModel()
 ) {
     val isBookmarked by bookmarkViewModel.isCourseBookmarked.collectAsState()
@@ -174,10 +173,10 @@ fun CourseDetailScreen(
                 }
             }
 
-            items(courseInfo.places) { placeName ->
+            items(courseInfo.places) { place ->
                 Column(modifier = Modifier.padding(horizontal = 12.dp)) {
                     CourseCard(
-                        placeName = placeName,
+                        place = place,
                         onNavigateToPlace = onNavigateToPlace
                     )
                 }
@@ -202,7 +201,7 @@ fun CourseDetailScreen(
 //}
 
 @Composable
-fun CourseCard(placeName: String, onNavigateToPlace: (String) -> Unit) {
+fun CourseCard(place: CoursePlace, onNavigateToPlace: (CoursePlace) -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -240,7 +239,7 @@ fun CourseCard(placeName: String, onNavigateToPlace: (String) -> Unit) {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = placeName,
+                        text = place.name ?: "장소 정보 없음",
                         style = CourseCardPlaceNameTextStyle,
                         color = Color.White,
                         modifier = Modifier
@@ -248,7 +247,7 @@ fun CourseCard(placeName: String, onNavigateToPlace: (String) -> Unit) {
                     )
 
                     FloatingActionButton(
-                        onClick = { onNavigateToPlace(placeName) },
+                        onClick = { onNavigateToPlace(place) },
                         containerColor = Variables.Blue700,
                         contentColor = Color.White,
                         modifier = Modifier.size(37.dp)

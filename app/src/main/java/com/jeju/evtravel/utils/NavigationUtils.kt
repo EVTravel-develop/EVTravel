@@ -27,7 +27,7 @@ private val navigationApps = listOf(
         scheme = { start, end, dname ->
             val startParam = start?.let { "sp=${it.latitude},${it.longitude}&" } ?: ""
             // dname이 아닌 epn을 사용합니다.
-            "kakaomap://route?${startParam}ep=${end.latitude},${end.longitude}&by=car"
+            "kakaomap://route?${startParam}ep=${end.latitude},${end.longitude}&by=foot"
         }
     ),
     // 네이버 지도
@@ -37,7 +37,7 @@ private val navigationApps = listOf(
         scheme = { start, end, dname ->
             val startParam = start?.let { "slat=${it.latitude}&slng=${it.longitude}&" } ?: ""
             // dname 파라미터 추가
-            "nmap://route?${startParam}dlat=${end.latitude}&dlng=${end.longitude}&dname=${dname}&appname=${applicationId}"
+            "nmap://route/walk?${startParam}dlat=${end.latitude}&dlng=${end.longitude}&dname=${dname}&appname=${applicationId}"
         }
     ),
     // 티맵 (T-Map)
@@ -47,7 +47,7 @@ private val navigationApps = listOf(
         scheme = { start, end, dname ->
             val startParam = start?.let { "startx=${it.longitude}&starty=${it.latitude}&" } ?: ""
             // T맵은 goalname을 사용합니다.
-            "tmap://route?${startParam}goalx=${end.longitude}&goaly=${end.latitude}&reqCoordType=WGS84"
+            "tmap://route?${startParam}goalx=${end.longitude}&goaly=${end.latitude}&reqCoordType=WGS84&resCoordType=WGS84"
         }
     )
 )

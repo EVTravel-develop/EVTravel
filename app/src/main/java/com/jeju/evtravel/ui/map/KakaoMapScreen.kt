@@ -1,9 +1,11 @@
 package com.jeju.evtravel.ui.map
 
 import android.content.Intent
+import android.location.Geocoder
 import android.location.LocationManager
 import android.net.Uri
 import android.provider.Settings
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -81,6 +83,8 @@ import com.jeju.evtravel.ui.detail.openPlaceDetail
 import com.jeju.evtravel.ui.search.ClickableSearchBar
 import com.jeju.evtravel.ui.theme.Variables
 import com.jeju.evtravel.utils.CustomDragHandle
+import com.jeju.evtravel.utils.NavigationAppBottomSheet
+import com.jeju.evtravel.utils.getAvailableNavigationApps
 import com.kakao.vectormap.GestureType
 import com.kakao.vectormap.KakaoMap
 import com.kakao.vectormap.LatLng
@@ -94,6 +98,9 @@ import com.kakao.vectormap.label.LabelStyles
 import com.kakao.vectormap.label.LabelTextBuilder
 import com.kakao.vectormap.label.LabelTextStyle
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.net.URLEncoder
+import java.util.Locale
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.pow
@@ -169,6 +176,28 @@ fun KakaoMapScreen(
 
     // 위치/GPS 설정 화면 런처
     var gpsMode by remember { mutableStateOf(false) } // GPS 버튼 눌러 위치 이동을 했는지 여부
+
+    // 길 안내 상태
+    var showNavAppBottomSheet by remember { mutableStateOf(false) }
+    var startLocation by remember { mutableStateOf<LatLng?>(null) }
+    var navigationTargetLocation by remember { mutableStateOf<LatLng?>(null) }
+    var navigationTargetAddress by remember { mutableStateOf("") }
+    val triggerNavigationModal = { targetName: String, targetLat: Double, targetLng: Double ->
+        val availableApps = getAvailableNavigationApps(context)
+        if (availableApps.isEmpty()) {
+            Toast.makeText(context, "설치된 길 안내 앱이 없습니다.", Toast.LENGTH_SHORT).show()
+        } else {
+            getCurrentLocation(context, fusedLocationClient) { loc ->
+                startLocation = loc
+                navigationTargetLocation = LatLng.from(targetLat, targetLng)
+
+                // ✅ Geocoder 대신 targetName을 직접 사용합니다.
+                // 더 이상 네트워크 통신이 필요 없으므로 coroutineScope도 필요 없습니다.
+                navigationTargetAddress = URLEncoder.encode(targetName, "UTF-8")
+                showNavAppBottomSheet = true
+            }
+        }
+    }
 
     val openLocationSettings = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -503,7 +532,7 @@ fun KakaoMapScreen(
                         .then(if (isExpanded) Modifier.statusBarsPadding() else Modifier)
                         .navigationBarsPadding()
                         .imePadding()
-                        .verticalScroll(rememberScrollState())
+//                        .verticalScroll(rememberScrollState())
                         .padding(vertical = 8.dp)
                 ) {
                     if (showRequery && sheetState.currentValue == SheetValue.Expanded) {
@@ -537,7 +566,14 @@ fun KakaoMapScreen(
                         isFullScreen = isExpanded,
                         isLoading = isDetailLoading,
                         onRetry = { selectedPlace?.id?.let { viewModel.fetchCharger(it, forceRefresh = true) } },
-                        onNavigateClick = { coroutineScope.launch { sheetState.hide() } },
+                        onNavigateClick = {
+                            Log.d("NavigationDebug", "Main Navigate Clicked!")
+                            triggerNavigationModal(
+                                selectedPlace!!.name,
+                                selectedPlace!!.latitude,
+                                selectedPlace!!.longitude
+                            )
+                        },
                         onOpenPlaceDetail = { place ->
                             coroutineScope.launch { sheetState.hide() }
                             openPlaceDetail(navController, place)
@@ -546,7 +582,21 @@ fun KakaoMapScreen(
                             coroutineScope.launch { sheetState.hide() }
                             openChargerDetail(navController, place)
                         },
-                        onCourseClick = onCourseClick
+                        onCourseClick = onCourseClick,
+                        onNavigateToPlaceInCourse = { coursePlace ->
+                            Log.d("NavigationDebug", "CourseCard Navigate Clicked! Data: $coursePlace")
+                            if (coursePlace.name != null && coursePlace.y != null && coursePlace.x != null) {
+                                Log.d("NavigationDebug", "Navigating to place: ${coursePlace.name}")
+                                triggerNavigationModal(
+                                    coursePlace.name,
+                                    coursePlace.y, // latitude
+                                    coursePlace.x  // longitude
+                                )
+                            } else {
+                                Log.d("NavigationDebug", "Navigation failed due to null data.")
+                                Toast.makeText(context, "장소 정보가 부족해 길 안내를 시작할 수 없습니다.", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                     )
 
                     detailError?.let { msg ->
@@ -753,6 +803,15 @@ fun KakaoMapScreen(
                 }
             }
         }
+    }
+    if (showNavAppBottomSheet && navigationTargetLocation != null) {
+        NavigationAppBottomSheet(
+            context = context,
+            startLocation = startLocation,
+            endLocation = navigationTargetLocation!!,
+            destinationAddress = navigationTargetAddress,
+            onDismiss = { showNavAppBottomSheet = false }
+        )
     }
 }
 
