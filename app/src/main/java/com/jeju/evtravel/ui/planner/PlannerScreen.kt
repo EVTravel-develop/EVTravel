@@ -33,7 +33,7 @@ fun PlannerScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(Color(0xFFF8F8F8))
             .padding(horizontal = 24.dp),  // 좌우 여백 24dp
         contentAlignment = Alignment.Center  // 중앙 정렬
     ) {

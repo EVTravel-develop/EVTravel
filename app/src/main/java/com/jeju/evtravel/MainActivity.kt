@@ -40,7 +40,7 @@ import com.jeju.evtravel.ui.detail.PlaceDetailScreen
 import com.jeju.evtravel.ui.detail.SummarizePlaceViewModel
 import com.jeju.evtravel.ui.detail.TourPlaceDetailViewModel
 import com.jeju.evtravel.ui.detail.course.CourseDetailScreen
-import com.jeju.evtravel.ui.detail.course.CourseViewModel
+import com.jeju.evtravel.ui.planner.ViewPlanScreen
 import com.jeju.evtravel.ui.map.KakaoMapScreen
 import com.jeju.evtravel.ui.map.MapViewModel
 import com.jeju.evtravel.ui.mypage.MyPageScreen
@@ -373,8 +373,11 @@ fun MainScreen(
                             plannerViewModel.clearPlanDetails()
                             navController.navigate("calendar")
                         },
-                        onPlanClick = { plan ->
+                        onPlanEditClick = { plan -> // 편집 클릭 시 EditPlanScreen으로 이동
                             navController.navigate("editPlan/${plan.id}")
+                        },
+                        onPlanViewClick = { plan -> // 상세 보기 클릭 시 ViewPlanScreen으로 이동
+                            navController.navigate("viewPlan/${plan.id}")
                         }
                     )
                 }
@@ -405,7 +408,19 @@ fun MainScreen(
                         onAddDestinationClick = { navController.navigate("searchDestination") }
                     )
                 }
-
+                
+                composable(
+                    route = "viewPlan/{planId}",
+                    arguments = listOf(navArgument("planId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val planId = backStackEntry.arguments?.getString("planId")
+                    ViewPlanScreen(
+                        viewModel = plannerViewModel,
+                        planId = planId,
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
+                
                 // 여행지 검색 화면 (하단바 숨김)
                 composable("searchDestination") {
                     var x by remember { mutableStateOf<Double?>(null) }
