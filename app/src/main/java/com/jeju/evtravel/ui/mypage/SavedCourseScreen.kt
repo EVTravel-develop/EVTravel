@@ -63,7 +63,8 @@ fun SavedCourseScreen(
                     containerColor = Color.White
                 )
             )
-        }
+        },
+        containerColor = Color.White
     ) { innerPadding ->
         LazyColumn(
             state = listState,

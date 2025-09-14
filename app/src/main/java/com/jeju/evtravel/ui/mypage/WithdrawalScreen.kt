@@ -1,13 +1,25 @@
 package com.jeju.evtravel.ui.mypage
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.jeju.evtravel.viewmodel.WithdrawalViewModel
-import com.jeju.evtravel.ui.onboarding.LoadingDialog // ⭐️ LoadingDialog 임포트 추가
+import com.jeju.evtravel.ui.onboarding.LoadingDialog
+import androidx.compose.ui.unit.IntSize
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -18,10 +30,8 @@ fun WithdrawalScreen(
 ) {
     val user by viewModel.user
     val withdrawSuccess by viewModel.withdrawSuccess
-    // ⭐️ ViewModel의 isProcessing 상태를 collectAsState()로 가져옵니다.
     val isProcessing by viewModel.isProcessing.collectAsState()
 
-    // 드롭다운 상태
     var expanded by remember { mutableStateOf(false) }
     val reasons = listOf(
         "선택해주세요.",
@@ -34,109 +44,173 @@ fun WithdrawalScreen(
     var selectedReason by remember { mutableStateOf(reasons[0]) }
     var customReason by remember { mutableStateOf("") }
 
+    var textFieldSize by remember { mutableStateOf(IntSize.Zero) }
+    val density = LocalDensity.current
+
     LaunchedEffect(withdrawSuccess) {
         if (withdrawSuccess == true) {
             onWithdrawComplete()
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text(
-            text = "${user?.displayName ?: "회원"}님의 탈퇴 이유가 궁금해요.",
-            style = MaterialTheme.typography.titleMedium
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "${user?.displayName ?: "회원"}님과의 이별이 너무 아쉬워요.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // 드롭다운 메뉴
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded }
-        ) {
-            OutlinedTextField(
-                value = selectedReason,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("탈퇴 사유") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                modifier = Modifier
-                    .menuAnchor()
-                    .fillMaxWidth()
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("탈퇴하기", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onCancel) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "뒤로가기")
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.White
+                )
             )
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
+        },
+        containerColor = Color.White
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = 16.dp)
+        ) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "${user?.displayName ?: "김별이"}님의 탈퇴 이유가 궁금해요.",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "${user?.displayName ?: "김별이"}님과의 이별이 너무 아쉬워요.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Gray
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onGloballyPositioned { coordinates ->
+                        textFieldSize = coordinates.size
+                    }
             ) {
-                reasons.forEach { reason ->
-                    DropdownMenuItem(
-                        text = { Text(reason) },
-                        onClick = {
-                            selectedReason = reason
-                            expanded = false
-                        }
+                OutlinedTextField(
+                    value = selectedReason,
+                    onValueChange = {},
+                    readOnly = true,
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color.Gray,
+                        unfocusedBorderColor = Color.LightGray
                     )
+                )
+
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(Color.Transparent)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = { expanded = true }
+                        )
+                )
+
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    modifier = Modifier
+                        .width(with(density) { textFieldSize.width.toDp() })
+                        .background(Color.White)
+                ) {
+                    // ✅ "선택해주세요." (reasons[0])를 제외한 나머지 항목만 메뉴에 표시
+                    reasons.drop(1).forEach { reason ->
+                        DropdownMenuItem(
+                            text = { Text(reason, modifier = Modifier.fillMaxWidth()) },
+                            onClick = {
+                                selectedReason = reason
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
+
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (selectedReason == "기타") {
+                OutlinedTextField(
+                    value = customReason,
+                    onValueChange = { customReason = it },
+                    placeholder = { Text("탈퇴 이유를 알려주세요.") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color.Gray,
+                        unfocusedBorderColor = Color.LightGray
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val isReasonSelected = selectedReason != reasons[0]
+                val isOtherReasonValid = selectedReason != "기타" || customReason.isNotBlank()
+                val isButtonEnabled = isReasonSelected && isOtherReasonValid && !isProcessing
+
+                Button(
+                    onClick = onCancel,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(52.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFE0E0E0),
+                        contentColor = Color.Black
+                    )
+                ) {
+                    Text("취소", fontSize = 16.sp)
+                }
+
+                Button(
+                    onClick = {
+                        val finalReason =
+                            if (selectedReason == "기타") customReason
+                            else selectedReason
+
+                        viewModel.withdrawAccount(finalReason)
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(52.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF0173FF),
+                        contentColor = Color.White,
+                        disabledContainerColor = Color(0xFFB0B0B0),
+                        disabledContentColor = Color.White
+                    ),
+                    enabled = isButtonEnabled
+                ) {
+                    Text("탈퇴하기", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        if (selectedReason == "기타") {
-            OutlinedTextField(
-                value = customReason,
-                onValueChange = { customReason = it },
-                label = { Text("탈퇴 이유를 알려주세요.") },
-                modifier = Modifier.fillMaxWidth()
-            )
+        if (isProcessing) {
+            LoadingDialog()
         }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Row {
-            Button(
-                onClick = onCancel,
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                Text("취소")
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // 버튼 활성화/비활성화 로직 추가
-            val isReasonSelected = selectedReason != "선택해주세요."
-            val isOtherReasonValid = selectedReason != "기타" || customReason.isNotBlank()
-            // ⭐️ isProcessing 상태를 조건에 추가하여 로딩 중일 때 비활성화
-            val isButtonEnabled = isReasonSelected && isOtherReasonValid && !isProcessing
-
-            Button(
-                onClick = {
-                    val finalReason =
-                        if (selectedReason == "기타") customReason
-                        else selectedReason
-
-                    viewModel.withdrawAccount(finalReason)
-                },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                ),
-                enabled = isButtonEnabled
-            ) {
-                Text("탈퇴하기")
-            }
-        }
-    }
-
-    // ⭐️ isProcessing 상태가 true일 때 로딩 다이얼로그를 표시합니다.
-    if (isProcessing) {
-        LoadingDialog()
     }
 }

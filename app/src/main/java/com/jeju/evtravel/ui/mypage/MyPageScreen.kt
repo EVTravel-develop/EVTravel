@@ -12,8 +12,10 @@ import androidx.compose.material.icons.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.R
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -139,7 +141,7 @@ fun MyPageScreen(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Default.LocationOn, contentDescription = "저장된 장소", tint = Color(0xFF424242))
+            Icon(imageVector = Icons.Outlined.LocationOn, contentDescription = "저장된 장소", tint = Color(0xFF424242))
             Spacer(modifier = Modifier.width(12.dp))
             Text("저장된 장소", fontSize = 16.sp)
             Spacer(modifier = Modifier.weight(1f))
