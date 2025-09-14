@@ -2,18 +2,24 @@ package com.jeju.evtravel.ui.detail
 
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.firestore.FirebaseFirestore
 import com.jeju.evtravel.data.util.TourCategoryMaps.mapCat3
 import com.jeju.evtravel.data.util.TourCategoryMaps.mapContentType
 import com.jeju.evtravel.domain.model.Place
 import com.jeju.evtravel.domain.model.TourPlace
 import com.jeju.evtravel.domain.usecase.SearchNearbyPlacesUseCase
+import com.jeju.evtravel.domain.usecase.TourPlaceDetailUseCase
 import com.jeju.evtravel.domain.usecase.TourPlaceUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 /** UI에서 그리드 카드에 쓸 데이터 */
@@ -34,9 +40,13 @@ data class NearbyUiState(
     val itemsRaw: List<Place> = emptyList()
 )
 
+private const val TAG = "NearbyPlaceVM"
+
 @HiltViewModel
 class NearbyPlaceViewModel @Inject constructor(
-    private val searchNearbyPlacesUseCase: SearchNearbyPlacesUseCase
+    private val searchNearbyPlacesUseCase: SearchNearbyPlacesUseCase,
+    private val tourPlaceDetailUseCase: TourPlaceDetailUseCase,
+    private val firestore: FirebaseFirestore
 ) : ViewModel() {
     private var lastX: Double? = null
     private var lastY: Double? = null
@@ -67,30 +77,8 @@ class NearbyPlaceViewModel @Inject constructor(
         fetch()
     }
 
-    // -------------------- 내부 헬퍼 --------------------
-
-    /** 선택된 카테고리에 맞춰 서버 파라미터(contentTypeId, cat1/2/3) 구성 */
-//    private data class ServerFilter(
-//        val contentTypeId: String? = null,
-//        val cat1: String? = null,
-//        val cat2: String? = null,
-//        val cat3: String? = null,
-//    )
-//
-//    private fun buildServerFilterFor(label: String): ServerFilter = when (label) {
-//        "자연환경" -> ServerFilter(contentTypeId = "12") // 관광지
-//        "박물관"   -> ServerFilter(contentTypeId = "14") // 문화시설
-//        "맛집"     -> ServerFilter(contentTypeId = "39") // 음식점 전체
-//        "카페"     -> ServerFilter(
-//            contentTypeId = "39",         // 음식점
-//            cat1 = "A05",                  // 대분류
-//            cat2 = "A0502",                // 중분류
-//            cat3 = "A05020900"             // 소분류: 카페/전통찻집
-//        )
-//        else -> ServerFilter()
-//    }
     private fun getCategoryQuery(category: String): String = when (category) {
-        "자연환경" -> "공원"
+        "자연환경" -> "관광지"
         "박물관" -> "박물관"
         "맛집" -> "맛집"
         "카페" -> "카페"
@@ -104,7 +92,6 @@ class NearbyPlaceViewModel @Inject constructor(
         if (x == null || y == null) return
 
         _state.value = _state.value.copy(loading = true, error = null)
-//        val filter = buildServerFilterFor(_state.value.selectedCategory)
 
         viewModelScope.launch {
             runCatching {
@@ -112,21 +99,52 @@ class NearbyPlaceViewModel @Inject constructor(
                     query = getCategoryQuery(_state.value.selectedCategory), // 카테고리명을 쿼리로 넘김
                     x = x,
                     y = y,
-                    radius = lastRadius,
-                    page = 1,
-                    size = 15
+                    radius = lastRadius
                 )
-            }.onSuccess { list ->
-                val mapped = list.map { it.toUi() }
+            }.onSuccess { kakaoPlaces ->
+                Log.d(TAG, "Kakao API로 ${kakaoPlaces.size}개의 장소 검색 성공.")
+                val placesWithImages = kakaoPlaces.map { place ->
+                    async {
+                        var imageUrl: String? = null
+                        var contentId: String? = null
+
+                        try {
+                            val document =
+                                firestore.collection("kakaoPlaceList").document(place.id).get()
+                                    .await()
+                            if (document.exists()) {
+                                contentId = document.getString("contentId")
+                                if (!contentId.isNullOrBlank()) {
+                                    // 2-2. contentId로 Tour API 호출하여 이미지 URL 가져오기
+                                    val tourDetail = tourPlaceDetailUseCase(contentId)
+                                    if (tourDetail != null) {
+                                        imageUrl = tourDetail.firstImage?.takeIf { it.isNotBlank() }
+                                            ?: tourDetail.firstImage2
+                                    }
+                                } else {
+                                    Log.w(TAG, "Firestore 문서에 contentId 필드가 없습니다: ${place.id}")
+                                }
+                            } else {
+                                Log.w(TAG, "Firestore에서 kakaoPlaceList 문서 찾을 수 없음: ${place.id}")
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "장소(${place.name}) 이미지 URL 가져오기 실패", e)
+                        }
+                        place.copy(imageUrl = imageUrl)
+                    }
+                }.awaitAll() // 모든 비동기 작업이 완료될 때까지 대기
+
+                val mapped = placesWithImages.map { it.toUi() }
                 _state.value = _state.value.copy(
                     loading = false,
                     itemsAll = mapped,
                     items = mapped,
-                    itemsRaw = list
+                    itemsRaw = placesWithImages
                 )
                 onComplete()
             }.onFailure { e ->
-                _state.value = _state.value.copy(loading = false, error = e.message ?: "정보를 불러오지 못했습니다.")
+                _state.value =
+                    _state.value.copy(loading = false, error = e.message ?: "정보를 불러오지 못했습니다.")
                 onComplete()
             }
         }
@@ -142,7 +160,7 @@ class NearbyPlaceViewModel @Inject constructor(
             id = this.id,
             title = this.name,
             tags = this.category,
-            imageUrl = null,
+            imageUrl = this.imageUrl,
             contentId = null
         )
     }

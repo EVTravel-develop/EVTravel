@@ -12,6 +12,6 @@ data class PlaceBookmark(
     val x: Double = 0.0,          // 경도
     val y: Double = 0.0,          // 위도
     val place_name: String = "",
-    val description: String = "",
+    val description: String? = "",
     val image_url: String? = null
 )

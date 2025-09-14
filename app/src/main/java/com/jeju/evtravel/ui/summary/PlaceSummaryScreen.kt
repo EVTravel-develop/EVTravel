@@ -22,7 +22,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -32,6 +31,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
@@ -42,6 +42,7 @@ import com.jeju.evtravel.R
 import com.jeju.evtravel.domain.model.Place
 import com.jeju.evtravel.ui.detail.AiSummaryTextStyle
 import com.jeju.evtravel.ui.detail.AiTitleTextStyle
+import com.jeju.evtravel.ui.detail.HeaderImage
 import com.jeju.evtravel.ui.detail.InfoRow
 import com.jeju.evtravel.ui.detail.SummarizePlaceViewModel
 import com.jeju.evtravel.ui.detail.TitleTextStyle
@@ -56,11 +57,9 @@ fun PlaceSummaryScreen(
 ) {
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
-    val isLoading by viewModel.loading.collectAsState()
-
     LaunchedEffect(key1 = place.id) {
         val cachedSummary = viewModel.getCachedSummary()
-        if (cachedSummary.isNullOrBlank() && !isLoading) {
+        if (cachedSummary.isNullOrBlank()) {
             val x = place.longitude
             val y = place.latitude
 
@@ -85,46 +84,54 @@ fun PlaceSummaryScreen(
             .heightIn(max = screenHeight)
     ) {
         item {
-            Column(modifier = Modifier
-                .padding(start = 12.dp, end = 12.dp, bottom = 14.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(enabled = !isLoading, onClick = onExpandToDetail),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = place.name,
-                        style = TitleTextStyle,
-                        maxLines = 1,                         // 한 줄만 표시
-                        overflow = TextOverflow.Ellipsis,     // 길면 … 처리
-                        modifier = Modifier.weight(1f)        // 오른쪽 아이콘 자리 확보
-                    )
-                    Icon(
-                        painterResource(id = R.drawable.ic_right),
-                        contentDescription = "상세 보기",
-                        tint = Color.Black,
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
-                    Spacer(Modifier.height(20.dp))
+            Column {
+                if (!place.imageUrl.isNullOrBlank()) {
+                    Box(modifier = Modifier.padding(start = 20.dp, end = 20.dp)) {
+                        HeaderImage(
+                            imageUrl = place.imageUrl,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(161.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                        )
+                    }
                 }
-            }
-        }
 
-        item {
-            Column(modifier = Modifier
-                .padding(horizontal = 10.dp)
-            ) {
-                val addr = place.roadAddress?.takeIf { it.isNotBlank() } ?: place.address
-                if (!addr.isNullOrBlank()) {
-                    InfoRow(iconRes = R.drawable.ic_location, text = addr)
-                    Spacer(Modifier.height(16.dp))
-                }
-                if (!place.phone.isNullOrBlank()) {
-                    InfoRow(iconRes = R.drawable.ic_phone, text = place.phone)
-                    Spacer(Modifier.height(16.dp))
+                Column(
+                    modifier = Modifier
+                        .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 14.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onExpandToDetail),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = place.name,
+                            style = TitleTextStyle,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Icon(
+                            painterResource(id = R.drawable.ic_right),
+                            contentDescription = "상세 보기",
+                            tint = Color.Black,
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
+                    Spacer(Modifier.height(20.dp))
+
+                    val addr = place.roadAddress?.takeIf { it.isNotBlank() } ?: place.address
+                    if (!addr.isNullOrBlank()) {
+                        InfoRow(iconRes = R.drawable.ic_location, text = addr)
+                        Spacer(Modifier.height(16.dp))
+                    }
+                    if (!place.phone.isNullOrBlank()) {
+                        InfoRow(iconRes = R.drawable.ic_phone, text = place.phone)
+                    }
                 }
             }
         }

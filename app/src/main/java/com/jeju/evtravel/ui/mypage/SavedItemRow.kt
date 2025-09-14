@@ -24,7 +24,7 @@ import coil.compose.AsyncImage
 fun SavedItemRow(
     imageUrl: Any,
     title: String,
-    description: String
+    description: String?
 ) {
     // Column 으로 감싸는 대신 Row 만 사용해도 됩니다.
     Row(
@@ -59,7 +59,7 @@ fun SavedItemRow(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = description,
+                text = description ?: "",
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.bodyMedium.copy(color = Color.Gray)

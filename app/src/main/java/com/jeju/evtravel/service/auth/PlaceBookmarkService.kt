@@ -19,7 +19,7 @@ class PlaceBookmarkService(
         x: Double,
         y: Double,
         placeName: String,
-        description: String,
+        description: String?,
         imageUrl: String?
     ): Boolean {
         val docId = "${uid}_${kakaoId}"

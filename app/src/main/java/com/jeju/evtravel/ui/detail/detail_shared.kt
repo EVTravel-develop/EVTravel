@@ -352,9 +352,9 @@ val NavigationAppButtonTextStyle = TextStyle(
 fun HeaderImage(
     imageUrl: String?,
     modifier: Modifier = Modifier,
-    fallbackRes: Int = R.drawable.placeholder_large // 프로젝트에 맞게 교체
+    fallbackRes: Int = R.drawable.jeju_place_sample
 ) {
-    Box(modifier = modifier.height(220.dp)) {
+    Box(modifier = modifier) {
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
                 .data(imageUrl)
@@ -379,7 +379,6 @@ fun HeaderImage(
         )
     }
 }
-
 
 @Composable
 fun InfoRow(iconRes: Int, text: String) {

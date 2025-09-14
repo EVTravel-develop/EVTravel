@@ -2,6 +2,7 @@ package com.jeju.evtravel
 
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -18,9 +19,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -40,6 +43,7 @@ import com.jeju.evtravel.ui.detail.PlaceDetailScreen
 import com.jeju.evtravel.ui.detail.SummarizePlaceViewModel
 import com.jeju.evtravel.ui.detail.TourPlaceDetailViewModel
 import com.jeju.evtravel.ui.detail.course.CourseDetailScreen
+import com.jeju.evtravel.ui.detail.openPlaceDetail
 import com.jeju.evtravel.ui.planner.ViewPlanScreen
 import com.jeju.evtravel.ui.map.KakaoMapScreen
 import com.jeju.evtravel.ui.map.MapViewModel
@@ -60,6 +64,7 @@ import com.jeju.evtravel.ui.splash.SplashScreen
 import com.jeju.evtravel.ui.mypage.WithdrawalScreen
 import com.kakao.vectormap.utils.MapUtils
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -187,33 +192,25 @@ fun MainScreen(
                 // 장소 상세
                 composable(
                     route = "placeDetail/{placeId}",
-                    arguments = listOf(navArgument("placeId"){ type = NavType.StringType })
+                    arguments = listOf(navArgument("placeId") { type = NavType.StringType })
                 ) { backStackEntry ->
-                    val cached = navController.previousBackStackEntry
-                        ?.savedStateHandle?.get<Place>("cachedPlace")
+                    val summarizeViewModel: SummarizePlaceViewModel = hiltViewModel(
+                        navController.previousBackStackEntry ?: backStackEntry
+                    )
 
-                    val summarizeViewModel: SummarizePlaceViewModel = if (navController.previousBackStackEntry != null) {
-                        hiltViewModel(navController.previousBackStackEntry!!)
-                    } else {
-                        // null일 경우 새로운 ViewModel 인스턴스를 생성하거나 다른 처리를 합니다.
-                        // 여기서는 현재 백 스택에 연결된 ViewModel을 사용하도록 변경
-                        hiltViewModel(backStackEntry)
-                    }
+                    // ✅ if/else 분기를 완전히 제거하고 항상 ViewModel을 통해 UI를 그리도록 통합합니다.
+                    val vm: TourPlaceDetailViewModel = hiltViewModel(backStackEntry)
+                    val ui = vm.state.collectAsState().value
 
-                    if (cached != null) {
-                        PlaceDetailScreen(
-                            place = cached,
-                            onBack = { navController.popBackStack() },
-                            fusedLocationClient = fusedLocationClient,
-                            viewModel = summarizeViewModel
-                        )
-                    } else {
-                        val vm: TourPlaceDetailViewModel = hiltViewModel(backStackEntry)
-                        val ui = vm.state.collectAsState().value
-                        when {
-                            ui.loading -> CircularProgressIndicator()
-                            ui.error != null -> ErrorScreen(ui.error) { vm.reload() }
-                            ui.data != null -> PlaceDetailScreen(
+                    when {
+                        ui.loading && ui.data == null -> {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator()
+                            }
+                        }
+                        ui.error != null -> ErrorScreen(ui.error) { vm.reload() }
+                        ui.data != null -> {
+                            PlaceDetailScreen(
                                 place = ui.data,
                                 onBack = { navController.popBackStack() },
                                 fusedLocationClient = fusedLocationClient,
@@ -250,11 +247,27 @@ fun MainScreen(
                         ?.savedStateHandle
                         ?.get<Course>("selectedCourse")
 
+                    val mapViewModel: MapViewModel = hiltViewModel()
+                    val coroutineScope = rememberCoroutineScope()
+                    val context = LocalContext.current
+
                     if (course != null) {
                         CourseDetailScreen(
                             course = course,
                             onBack = { navController.popBackStack() },
-                            onNavigateToPlace = { }
+                            onNavigateToPlace = { /* 길안내 로직 (기존과 동일) */ },
+                            // ✅ [수정] onCoursePlaceClick 람다를 KakaoMapScreen과 동일하게 수정합니다.
+                            onCoursePlaceClick = { coursePlace ->
+                                coroutineScope.launch {
+                                    val fullPlace = mapViewModel.findPlaceFromCoursePlace(coursePlace)
+
+                                    if (fullPlace != null) {
+                                        openPlaceDetail(navController, fullPlace)
+                                    } else {
+                                        Toast.makeText(context, "장소 정보를 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
                         )
                     }
                 }

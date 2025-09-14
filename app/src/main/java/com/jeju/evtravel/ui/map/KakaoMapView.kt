@@ -1,17 +1,9 @@
 package com.jeju.evtravel.ui.map
 
-import android.view.ViewGroup
-import android.widget.FrameLayout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import com.kakao.vectormap.KakaoMap
 import com.kakao.vectormap.KakaoMapReadyCallback
 import com.kakao.vectormap.MapLifeCycleCallback
@@ -28,55 +20,24 @@ fun KakaoMapView(
     modifier: Modifier = Modifier,
     onMapReady: (KakaoMap) -> Unit
 ) {
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-
-    val mapViewContainer = remember {
-        FrameLayout(context).apply {
-            id = ViewGroup.generateViewId()
-        }
-    }
-    val mapView = remember {
-        MapView(context)
-    }
-
-    DisposableEffect(lifecycleOwner) {
-        val mapLifeCycleCallback = object : MapLifeCycleCallback() {
-            override fun onMapDestroy() {}
-            override fun onMapError(error: Exception?) {
-                error?.printStackTrace()
-            }
-        }
-        val mapReadyCallback = object : KakaoMapReadyCallback() {
-            override fun onMapReady(kakaoMap: KakaoMap) {
-                onMapReady(kakaoMap)
-            }
-        }
-
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_RESUME -> {
-                    (mapView.parent as? ViewGroup)?.removeView(mapView)
-                    mapViewContainer.addView(mapView)
-                    mapView.start(mapLifeCycleCallback, mapReadyCallback)
-                }
-                Lifecycle.Event.ON_PAUSE -> {
-                    mapViewContainer.removeView(mapView)
-                }
-                else -> {}
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
-
     AndroidView(
-        factory = {
-            mapViewContainer
-        },
-        modifier = modifier.fillMaxSize()
+        modifier = modifier.fillMaxSize(),
+        factory = { ctx ->
+            MapView(ctx).apply {
+                start(
+                    object : MapLifeCycleCallback() {
+                        override fun onMapDestroy() {}
+                        override fun onMapError(exception: Exception?) {
+                            exception?.printStackTrace()
+                        }
+                    },
+                    object : KakaoMapReadyCallback() {
+                        override fun onMapReady(map: KakaoMap) {
+                            onMapReady(map)
+                        }
+                    }
+                )
+            }
+        }
     )
 }

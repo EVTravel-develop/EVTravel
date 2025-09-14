@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -58,7 +59,6 @@ import java.net.URLEncoder
 fun PlaceDetailScreen(
     fusedLocationClient: FusedLocationProviderClient,
     place: Place,
-//    tour: TourPlaceDetailUi? = null,
     onBack: () -> Unit,
     viewModel: SummarizePlaceViewModel = viewModel(),
     bookmarkViewModel: BookmarkViewModel = hiltViewModel()
@@ -120,12 +120,14 @@ fun PlaceDetailScreen(
             // 헤더(이미지/뒤로가기)
             item {
                 Box(Modifier.fillMaxWidth()) {
-//                    HeaderImage(imageUrl = " ")
+                    if (!place.imageUrl.isNullOrBlank()) {
+                        HeaderImage(imageUrl = place.imageUrl)
+                    }
                     IconButton(
                         onClick = onBack,
                         modifier = Modifier
                             .statusBarsPadding()
-                            .padding(3.dp)
+                            .padding(top = 8.dp, start = 8.dp)
                             .align(Alignment.TopStart)
                     ) {
                         Icon(
@@ -189,40 +191,35 @@ fun PlaceDetailScreen(
             }
 
             // overview가 있는 경우 추가
-//            item {
-//                Divider(
-//                    modifier = Modifier
-//                        .fillMaxWidth()
-//                        .height(7.dp),
-//                    color = Variables.Grayscale50,
-//                    thickness = 7.dp
-//                )
-//            }
-//            item {
-//                Column(
-//                    modifier = Modifier
-//                        .padding(16.dp)
-//                ) {
-//                    Text("상세 설명", style = DetailInfoTextStyle)
-//                    Spacer(Modifier.height(8.dp))
-//
-//                    val overview = tour?.overview
-//                    if (!overview.isNullOrBlank()) {
-//                        Text(overview,
-//                             style = DetailOverviewTextStyle,
-//                             color = Color(0xFF5E5E5E)
-//                        )
-//                    } else {
-//                        Text(
-//                            "등록된 상세 설명이 없습니다.",
-//                            style = DetailOverviewTextStyle,
-//                            color = Color(0xFF5E5E5E)
-//                        )
-//                    }
-//
-//                    Spacer(Modifier.height(80.dp)) // FAB 간섭 방지
-//                }
-//            }
+            if (!place.overview.isNullOrBlank()) {
+                // 구분선 아이템
+                item {
+                    Divider(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(7.dp),
+                        color = Variables.Grayscale50,
+                        thickness = 7.dp
+                    )
+                }
+
+                // 상세 설명 아이템
+                item {
+                    Column(
+                        modifier = Modifier
+                            .padding(16.dp)
+                    ) {
+                        Text("상세 설명", style = DetailInfoTextStyle)
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = place.overview,
+                            style = DetailOverviewTextStyle,
+                            color = Color(0xFF5E5E5E)
+                        )
+                        Spacer(Modifier.height(80.dp)) // FAB 간섭 방지
+                    }
+                }
+            }
         }
     }
     // 길 안내 앱 선택 바텀 모달 시트

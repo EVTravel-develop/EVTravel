@@ -3,6 +3,7 @@ package com.jeju.evtravel.ui.detail.course
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,9 +38,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.jeju.evtravel.R
 import com.jeju.evtravel.domain.model.Course
 import com.jeju.evtravel.domain.model.CoursePlace
@@ -57,6 +61,7 @@ fun CourseDetailScreen(
     course: Course,
     onBack: () -> Unit,
     onNavigateToPlace: (CoursePlace) -> Unit,
+    onCoursePlaceClick: (CoursePlace) -> Unit,
     bookmarkViewModel: BookmarkViewModel = hiltViewModel()
 ) {
     val isBookmarked by bookmarkViewModel.isCourseBookmarked.collectAsState()
@@ -177,7 +182,8 @@ fun CourseDetailScreen(
                 Column(modifier = Modifier.padding(horizontal = 12.dp)) {
                     CourseCard(
                         place = place,
-                        onNavigateToPlace = onNavigateToPlace
+                        onNavigateToPlace = onNavigateToPlace,
+                        onCardClick = onCoursePlaceClick
                     )
                 }
             }
@@ -201,22 +207,34 @@ fun CourseDetailScreen(
 //}
 
 @Composable
-fun CourseCard(place: CoursePlace, onNavigateToPlace: (CoursePlace) -> Unit) {
+fun CourseCard(
+    place: CoursePlace,
+    onNavigateToPlace: (CoursePlace) -> Unit,
+    onCardClick: (CoursePlace) -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .height(140.dp)
-            .padding(vertical = 12.dp),
+            .padding(vertical = 12.dp)
+            .clickable { onCardClick(place) },
         shape = RoundedCornerShape(15.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
         Box {
-            Image(
-                painter = painterResource(id = R.drawable.placeholder_large),
-                contentDescription = null,
+            // ✅ [수정] 정적 Image를 Coil의 AsyncImage로 변경
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(place.imageUrl) // ViewModel에서 가져온 이미지 URL 사용
+                    .crossfade(true)
+                    .build(),
+                placeholder = painterResource(id = R.drawable.jeju_place_sample), // 로딩 중 표시할 이미지
+                error = painterResource(id = R.drawable.placeholder_large),       // 에러 시 표시할 이미지
+                contentDescription = place.name,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
+
             Box(
                 modifier = Modifier
                     .matchParentSize()

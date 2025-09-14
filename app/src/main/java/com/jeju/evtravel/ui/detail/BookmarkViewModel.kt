@@ -49,8 +49,8 @@ class BookmarkViewModel @Inject constructor(
                     x = place.longitude,
                     y = place.latitude,
                     placeName = place.name,
-                    description = "",
-                    imageUrl = ""
+                    description = place.overview,
+                    imageUrl = place.imageUrl
                 )
             }
             _isPlaceBookmarked.value = !_isPlaceBookmarked.value
@@ -69,12 +69,16 @@ class BookmarkViewModel @Inject constructor(
             if (_isCourseBookmarked.value) {
                 courseBookmarkService.deleteBookmark(uid, course.id)
             } else {
+                val courseInfo = course.course_info.firstOrNull()
+                val description = courseInfo?.course_description ?: ""
+                val imageUrl = courseInfo?.places?.firstOrNull()?.imageUrl ?: ""
+
                 courseBookmarkService.addBookmark(
                     uid = uid,
                     courseId = course.id,
-                    courseName = course.place_name,
-                    courseDescription = "",
-                    imageUrl = ""
+                    courseName = course.course_info.firstOrNull()?.course_name ?: course.place_name,
+                    courseDescription = description,
+                    imageUrl = imageUrl
                 )
             }
             _isCourseBookmarked.value = !_isCourseBookmarked.value

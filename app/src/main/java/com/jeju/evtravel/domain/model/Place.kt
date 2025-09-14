@@ -30,6 +30,9 @@ data class Place(
     val distanceMeters: Int?, // distance
     val phone: String?, // phone
 
+    val overview: String? = null,
+    val imageUrl: String? = null,
+
     @IgnoredOnParcel
     var chargerList: List<ChargerInfo> = emptyList()
 ) : Parcelable

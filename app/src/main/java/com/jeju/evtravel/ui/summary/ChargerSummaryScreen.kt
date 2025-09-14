@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -99,7 +100,8 @@ fun ChargerSummaryScreen(
     nearbyVm: NearbyPlaceViewModel = hiltViewModel(),
     courseVm: CourseViewModel = hiltViewModel(),
     onExpandToDetail: () -> Unit,
-    onNavigateToPlaceInCourse: (CoursePlace) -> Unit
+    onNavigateToPlaceInCourse: (CoursePlace) -> Unit,
+    onCoursePlaceClick: (CoursePlace) -> Unit
 ) {
     val chargers = place.chargerList ?: emptyList()
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
@@ -365,7 +367,8 @@ fun ChargerSummaryScreen(
                                 Column(Modifier.padding(horizontal = 16.dp)) {
                                     CourseCard(
                                         place = placeInCourse,
-                                        onNavigateToPlace = onNavigateToPlaceInCourse
+                                        onNavigateToPlace = onNavigateToPlaceInCourse,
+                                        onCardClick = onCoursePlaceClick
                                     )
                                 }
                             }
@@ -713,44 +716,53 @@ private fun PlaceGridCard(
     item: UiNearbyPlace,
     onClick: (UiNearbyPlace) -> Unit
 ) {
-    Box(
+    // ✅ 카드 전체를 감싸는 Column. 그림자, 둥근 모서리, 배경색, 클릭 효과를 적용합니다.
+    Column(
         modifier = Modifier
-//            .size(width = 184.dp, height = 209.dp)  이미지가 추가 하면 적용
-            .width(184.dp)
-            .shadow(
-                elevation = 4.dp,
-                shape = RoundedCornerShape(10.dp),          // border-radius
-                clip = false
-            )
+            .size(width = 184.dp, height = 199.dp)
+            .shadow(elevation = 4.dp, shape = RoundedCornerShape(10.dp))
             .background(Color.White, RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(10.dp)) // 자식 요소들이 부모의 둥근 모서리를 넘어가지 않도록 클리핑
             .clickable { onClick(item) }
     ) {
+        // 1. 이미지 영역
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(item.imageUrl)
+                .crossfade(true)
+                .build(),
+            placeholder = painterResource(id = R.drawable.placeholder_large),
+            error = painterResource(id = R.drawable.placeholder_large), // 에러 시에도 동일한 샘플 이미지 표시
+            contentDescription = item.title,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(122.dp), // 이미지 높이를 고정합니다.
+            contentScale = ContentScale.Crop
+        )
+
+        // 2. 텍스트 정보 영역
         Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp) // gap
+            modifier = Modifier
+                .fillMaxSize() // 남은 공간을 모두 채웁니다.
+                .padding(horizontal = 12.dp, vertical = 12.dp), // 텍스트 영역 내부 패딩
+            verticalArrangement = Arrangement.spacedBy(6.dp) // 텍스트 사이의 간격
         ) {
-            val ctx = LocalContext.current
-            if (!item.imageUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = ImageRequest.Builder(ctx)
-                        .data(item.imageUrl)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(108.dp)
-                        .clip(RoundedCornerShape(10.dp)),   // 이미지도 radius 적용
-                    contentScale = ContentScale.Crop
-                )
-            }
-            Text(item.title, style = PlaceTabTitleTextStyle, maxLines = 1)
+            // 메인 타이틀
+            Text(
+                text = item.title,
+                style = PlaceTabTitleTextStyle,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            // 태그 정보
             if (item.tags != null) {
                 Text(
                     text = item.tags,
                     style = PlaceTabTagTextStyle,
                     color = Variables.Grayscale400,
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }

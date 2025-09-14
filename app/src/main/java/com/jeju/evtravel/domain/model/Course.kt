@@ -11,7 +11,7 @@ import kotlinx.parcelize.Parcelize
 data class Course(
     val id: Long = 0,
     val place_name: String = "",
-    val road_address_name: String = "",
+    val road_address_name: String? = "",
     val address_name: String = "",
     val x: Double = 0.0,
     val y: Double = 0.0,
@@ -32,5 +32,7 @@ data class CoursePlace(
     val id: String? = null,
     val name: String? = null,
     val x: Double? = null,
-    val y: Double? = null
+    val y: Double? = null,
+
+    val imageUrl: String? = null
 ) : Parcelable

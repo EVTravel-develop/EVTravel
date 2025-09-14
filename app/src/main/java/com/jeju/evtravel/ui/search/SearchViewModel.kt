@@ -89,6 +89,7 @@ class SearchViewModel @Inject constructor(
 
                     val result = runCatching {
                         if (params.rawQuery.isBlank()) {
+                            val (lon, lat) = params.loc!!
                             searchNearbyPlacesUseCase(
                                 query = params.query,
                                 x = DEFAULT_CENTER.longitude,
@@ -96,10 +97,11 @@ class SearchViewModel @Inject constructor(
                                 radius = params.radius
                             )
                         } else {
+                            val loc = params.loc
                             searchNearbyPlacesUseCase(
                                 query = params.query,
-                                x = DEFAULT_CENTER.longitude,
-                                y = DEFAULT_CENTER.latitude,
+                                x = 0.0,
+                                y = 0.0,
                                 radius = params.radius
                             )
                         }

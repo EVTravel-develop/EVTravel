@@ -281,40 +281,28 @@ fun KakaoMapScreen(
     LaunchedEffect(kakaoMap) {
         val map = kakaoMap ?: return@LaunchedEffect
 
-        val center = viewModel.lastCenter
-        val zoom = viewModel.lastZoomLevel ?: DEFAULT_ZOOM
+        // 아직 지도 상태가 복원되지 않았을 때만 아래 로직을 실행
+        if (!viewModel.isMapRestored) {
+            val center = viewModel.lastCenter
+            val zoom = viewModel.lastZoomLevel ?: DEFAULT_ZOOM
 
-        if (center != null) {
-            map.moveCamera(CameraUpdateFactory.newCenterPosition(center, zoom))
-            viewModel.searchNearby("제주 전기차 충전소", center.longitude, center.latitude, 2000)
-            viewModel.markSearched(center, zoom)
-        } else {
-            fallbackToDefaultCenter(viewModel, map, arrowController)
+            if (center != null) {
+                // 저장된 마지막 위치가 있으면 거기로 이동
+                map.moveCamera(CameraUpdateFactory.newCenterPosition(center, zoom))
+                viewModel.searchNearby("제주 전기차 충전소", center.longitude, center.latitude, 2000)
+                viewModel.markSearched(center, zoom)
+                Log.d("KakaoMapScreen", "지도 상태 복원: ${center.latitude}, ${center.longitude}")
+            } else {
+                // 저장된 위치가 없으면 (앱 최초 실행 시) 기본 위치로 이동
+                fallbackToDefaultCenter(viewModel, map, arrowController)
+                Log.d("KakaoMapScreen", "기본 위치로 설정.")
+            }
+            // 상태 복원이 완료되었으므로 플래그를 true로 설정
+            viewModel.isMapRestored = true
         }
 
         showRequery = false
         gpsMode = false
-    }
-
-    /** 검색에서 돌아온 경우: lastCenter로 카메라 이동 + 주변 검색 */
-    LaunchedEffect(kakaoMap, viewModel.lastCenter) {
-        if (!gpsMode) return@LaunchedEffect
-
-        val map = kakaoMap ?: return@LaunchedEffect
-        val center = viewModel.lastCenter ?: return@LaunchedEffect
-
-        // 맵이 새로 갱신 때마다 1회만 복원
-        if (restoredOnce.value) return@LaunchedEffect
-
-        val zoom = viewModel.lastZoomLevel ?: 16
-        map.moveCamera(CameraUpdateFactory.newCenterPosition(center, zoom))
-
-        // 선택한 지점을 기준으로 주변 검색 실행
-        viewModel.searchNearby("제주 전기차 충전소", center.longitude, center.latitude, 2000)
-        viewModel.markSearched(center, kakaoMap?.zoomLevel)
-        showRequery = false
-
-        restoredOnce.value = true
     }
 
     /** Heading(단말 나침반) 값이 변하면 즉시 현재 위치 마커 회전을 갱신 */
@@ -334,6 +322,7 @@ fun KakaoMapScreen(
         kakaoMap?.setOnCameraMoveEndListener { _, cameraPos, gestureType ->
             // 지도 상태 저장/보정
             viewModel.lastCenter = cameraPos.position
+            viewModel.lastZoomLevel = cameraPos.zoomLevel
             viewModel.isMapRestored = false
             arrowController?.onHeadingOrCameraChanged()
 
@@ -411,9 +400,6 @@ fun KakaoMapScreen(
                     val currentLoc = viewModel.lastUserLocation
                     if (currentLoc != null) {
                         arrowController?.attachOrMove(currentLoc)
-                    } else {
-                        // 사용자 위치를 가져올 수 없으면 기본 위치로 돌아가기
-                        fallbackToDefaultCenter(viewModel, kakaoMap, arrowController)
                     }
                 }
                 // ✅ 앱이 백그라운드로 갈 때
@@ -462,16 +448,16 @@ fun KakaoMapScreen(
      * - Partial -> Hide + 선택 해제
      * - Hidden  -> 선택 해제
      */
-    BackHandler(enabled = sheetState.currentValue != SheetValue.Hidden) {
+    BackHandler(enabled = selectedPlace != null) {
         coroutineScope.launch {
-            when (sheetState.currentValue) {
-                SheetValue.Expanded -> sheetState.partialExpand()
-                SheetValue.PartiallyExpanded -> {
-                    sheetState.hide()
-                    viewModel.clearSelection()
-                }
-
-                else -> viewModel.clearSelection()
+            // 시트가 완전히 펼쳐져 있으면, 반만 펼칩니다.
+            if (sheetState.currentValue == SheetValue.Expanded) {
+                sheetState.partialExpand()
+            } else {
+                // 그 외의 경우(반만 펼쳐진 경우)에는 선택을 해제합니다.
+                // 선택이 해제되면 selectedPlace가 null이 되고,
+                // BackHandler는 비활성화되어 다음 뒤로 가기 시 앱이 종료됩니다.
+                viewModel.clearSelection()
             }
         }
     }
@@ -489,7 +475,15 @@ fun KakaoMapScreen(
     val peekHeight = when {
         selectedPlace == null -> 0.dp // 아무 것도 선택 안 함 → 시트 숨김
         currentKind == SummaryKind.CHARGER -> 480.dp
-        else -> 350.dp // 장소
+        else -> { // SummaryKind.PLACE 인 경우
+            if (!selectedPlace?.imageUrl.isNullOrBlank()) {
+                // ✅ 장소 정보에 이미지가 있으면 높이를 530dp로 설정
+                530.dp
+            } else {
+                // ✅ 이미지가 없으면 기본 높이 350dp로 설정
+                350.dp
+            }
+        }
     }
     /**
      * 화면 레이아웃 및 하단 시트 구성
@@ -528,7 +522,8 @@ fun KakaoMapScreen(
                             painter = painterResource(id = R.drawable.ic_reroad),
                             contentDescription = "새로 고침", // 스크린 리더 등을 위한 접근성 설명
                             modifier = Modifier
-                                .clickable { doRequery() } // ✅ clickable Modifier를 사용해 클릭 이벤트를 연결합니다.
+                                .align(Alignment.CenterHorizontally) // 중앙 정렬
+                                .clickable { doRequery() }// ✅ clickable Modifier를 사용해 클릭 이벤트를 연결합니다.
                         )
                         Spacer(Modifier.height(8.dp))
                     }
@@ -568,6 +563,23 @@ fun KakaoMapScreen(
                             } else {
                                 Log.d("NavigationDebug", "Navigation failed due to null data.")
                                 Toast.makeText(context, "장소 정보가 부족해 길 안내를 시작할 수 없습니다.", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        onCoursePlaceClick = { coursePlace ->
+                            // ✅ [수정] 클릭 시 코루틴을 실행하여 장소를 검색하고 화면을 전환합니다.
+                            coroutineScope.launch {
+                                // 1. ViewModel의 함수를 호출하여 API로 완전한 Place 정보를 가져옵니다.
+                                val fullPlace = viewModel.findPlaceFromCoursePlace(coursePlace)
+
+                                // 2. 성공적으로 Place를 가져왔는지 확인합니다.
+                                if (fullPlace != null) {
+                                    // 3. 바텀 시트를 숨기고 상세 페이지로 이동합니다.
+                                    sheetState.hide()
+                                    openPlaceDetail(navController, fullPlace)
+                                } else {
+                                    // 4. 실패 시 사용자에게 알림
+                                    Toast.makeText(context, "장소 정보를 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
+                                }
                             }
                         }
                     )
