@@ -28,9 +28,9 @@ fun OnboardingScreen(
     onKakaoClick: (Boolean) -> Unit
 ) {
     val pages = listOf(
-        OnboardingPage("충전소를 소중한 추억으로", "djkaskfakfdjskajdkfajdkfjas", R.drawable.onboarding_1),
-        OnboardingPage("여행지 준비를 철저하게", "djsakfakfdjfdjajczpwkjakdfjas", R.drawable.onboarding_2),
-        OnboardingPage("에디터 선정 맞춤 코스로 좋은 경험을", "dkgakfakfdjajd22wjkajdkfjas", R.drawable.onboarding_3)
+        OnboardingPage("충전소를 소중한 추억으로", "충전소를 클릭하면 주변 관광지를 확인할 수 있어요.", R.drawable.onboarding_1),
+        OnboardingPage("여행지 준비를 철저하게", "플래너에 관광지와 관광지 주변 충전소를 \n한 번에 담아보세요.", R.drawable.onboarding_2),
+        OnboardingPage("에디터 선정 맞춤 코스로 좋은 경험을", "충전시간동안 추천 코스를 따라 여행해보세요.", R.drawable.onboarding_3)
     )
 
     val pagerState = rememberPagerState(initialPage = 0) { pages.size }

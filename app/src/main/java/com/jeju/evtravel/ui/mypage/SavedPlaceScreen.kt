@@ -1,4 +1,4 @@
-package com.jeju.evtravel.viewmodel
+package com.jeju.evtravel.ui.mypage
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -7,24 +7,25 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.jeju.evtravel.R
-import com.jeju.evtravel.ui.mypage.SavedItemRow
+import com.jeju.evtravel.viewmodel.SavedPlaceViewModel
 
-
-@OptIn(ExperimentalMaterial3Api::class)   // ✅ Experimental API 사용 허용
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SavedPlaceScreen(
     navController: NavController,
@@ -52,13 +53,18 @@ fun SavedPlaceScreen(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
+            // 👇 [수정] CenterAlignedTopAppBar 를 TopAppBar 로 변경
+            TopAppBar(
                 title = { Text("저장된 장소") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "뒤로가기")
                     }
-                }
+                },
+                // 👇 [추가] 배경색을 흰색으로 지정
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White
+                )
             )
         }
     ) { innerPadding ->
@@ -69,7 +75,6 @@ fun SavedPlaceScreen(
                 .fillMaxSize()
         ) {
             items(bookmarks.value) { bookmark ->
-// 수정 후
                 val imageModel = if (bookmark.image_url.isNullOrEmpty()) {
                     R.drawable.jeju_place_sample // URL이 null이거나 비어있으면 리소스 ID 사용
                 } else {

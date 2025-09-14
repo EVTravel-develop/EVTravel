@@ -107,7 +107,7 @@ object FirestoreUserService {
 
     // 여행 계획 삭제
     suspend fun deletePlansByUid(uid: String): Boolean {
-        val querySnapshot = db.collection("plans").whereEqualTo("uid", uid).get().await()
+        val querySnapshot = db.collection("plans").whereEqualTo("userId", uid).get().await()
         return try {
             val batch = db.batch()
             for (document in querySnapshot.documents) {

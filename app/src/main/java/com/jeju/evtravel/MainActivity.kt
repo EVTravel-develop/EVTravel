@@ -46,6 +46,7 @@ import com.jeju.evtravel.ui.map.MapViewModel
 import com.jeju.evtravel.ui.mypage.MyPageScreen
 import com.jeju.evtravel.ui.mypage.ProfileEditScreen
 import com.jeju.evtravel.ui.mypage.SavedCourseScreen
+import com.jeju.evtravel.ui.mypage.SavedPlaceScreen
 import com.jeju.evtravel.ui.onboarding.OnboardingScreen
 import com.jeju.evtravel.ui.planner.CalendarScreen
 import com.jeju.evtravel.ui.planner.EditPlanScreen
@@ -57,7 +58,6 @@ import com.jeju.evtravel.ui.search.SearchScreen
 import com.jeju.evtravel.ui.search.SearchViewModel
 import com.jeju.evtravel.ui.splash.SplashScreen
 import com.jeju.evtravel.ui.mypage.WithdrawalScreen
-import com.jeju.evtravel.viewmodel.SavedPlaceScreen
 import com.kakao.vectormap.utils.MapUtils
 import dagger.hilt.android.AndroidEntryPoint
 

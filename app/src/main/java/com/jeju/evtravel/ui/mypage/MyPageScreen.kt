@@ -31,23 +31,20 @@ fun MyPageScreen(
     onEditProfileClick: () -> Unit = {},
     onSavedCourseClick: () -> Unit = {},
     onSavedPlaceClick: () -> Unit = {},
-    onDeleteAccountClick: () -> Unit = {} // '탈퇴하기' 클릭 핸들러 추가
+    onDeleteAccountClick: () -> Unit = {}
 ) {
     var user by remember { mutableStateOf<User?>(null) }
 
-    // Firestore에서 사용자 정보를 가져옵니다.
     LaunchedEffect(Unit) {
         FirestoreUserService.getUserFromFirestore { fetchedUser ->
             user = fetchedUser
         }
     }
 
-    Log.d("MyPageScreen", "현재 user 상태: $user")
-
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White) // 전체 배경을 흰색으로 설정
+            .background(Color.White)
     ) {
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -57,7 +54,6 @@ fun MyPageScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             if (!user?.imageUrl.isNullOrEmpty()) {
-                Log.d("MyPageScreen", "프로필 이미지 URL: ${user?.imageUrl}")
                 AsyncImage(
                     model = user?.imageUrl,
                     contentDescription = "Profile Image",
@@ -67,8 +63,6 @@ fun MyPageScreen(
                     contentScale = ContentScale.Crop
                 )
             } else {
-                // 이미지가 없을 때 기본 아이콘을 보여주는 Box
-                Log.d("MyPageScreen", "기본 프로필 아이콘 사용")
                 Box(
                     modifier = Modifier
                         .size(80.dp)
@@ -88,7 +82,7 @@ fun MyPageScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = user?.displayName ?: "제주도여행자",
+                text = user?.displayName ?: "제주도 여행자_3664",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -96,10 +90,7 @@ fun MyPageScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Button(
-                onClick = {
-                    Log.d("MyPageScreen", "프로필 편집 클릭됨")
-                    onEditProfileClick()
-                },
+                onClick = onEditProfileClick,
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0173FF))
             ) {
@@ -108,24 +99,23 @@ fun MyPageScreen(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
-        Divider(color = Color(0xFFE0E0E0))
+
+        // ✅ 1. 프로필과 즐겨찾기 사이의 구분 블록 추가
+        Divider(color = Color(0xFFF5F5F5), thickness = 8.dp)
 
         // 🔹 즐겨찾기
         Text(
             "즐겨찾기",
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 8.dp)
         )
 
         // 저장된 코스
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable {
-                    Log.d("MyPageScreen", "저장된 코스 클릭")
-                    onSavedCourseClick()
-                }
+                .clickable { onSavedCourseClick() }
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -141,16 +131,11 @@ fun MyPageScreen(
             )
         }
 
-        Divider(modifier = Modifier.padding(horizontal = 16.dp), color = Color(0xFFE0E0E0))
-
         // 저장된 장소
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable {
-                    Log.d("MyPageScreen", "저장된 장소 클릭")
-                    onSavedPlaceClick()
-                }
+                .clickable { onSavedPlaceClick() }
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -166,20 +151,18 @@ fun MyPageScreen(
             )
         }
 
-        Divider(color = Color(0xFFE0E0E0))
+        // ✅ 2. 즐겨찾기와 탈퇴하기 사이의 구분 블록 추가
+        Divider(color = Color(0xFFF5F5F5), thickness = 8.dp)
 
         // 🔹 탈퇴하기
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable {
-                    Log.d("MyPageScreen", "탈퇴하기 클릭")
-                    onDeleteAccountClick()
-                }
+                .clickable { onDeleteAccountClick() }
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("탈퇴하기", fontSize = 16.sp, color = Color.Red)
+            Text("탈퇴하기", fontSize = 16.sp)
             Spacer(modifier = Modifier.weight(1f))
             Icon(
                 imageVector = Icons.Default.ArrowForwardIos,
@@ -188,7 +171,5 @@ fun MyPageScreen(
                 modifier = Modifier.size(16.dp)
             )
         }
-
-        Divider(color = Color(0xFFE0E0E0))
     }
 }

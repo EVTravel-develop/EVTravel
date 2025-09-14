@@ -1,3 +1,5 @@
+// com/jeju/evtravel/ui/mypage/SavedCourseScreen.kt
+
 package com.jeju.evtravel.ui.mypage
 
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,10 +15,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.jeju.evtravel.R
 import com.jeju.evtravel.viewmodel.SavedCourseViewModel
-import com.jeju.evtravel.R // R 클래스 임포트
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,13 +50,18 @@ fun SavedCourseScreen(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
+            // 👇 [수정] CenterAlignedTopAppBar 를 TopAppBar 로 변경
+            TopAppBar(
                 title = { Text("저장된 코스") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "뒤로가기")
                     }
-                }
+                },
+                // 👇 [추가] 배경색을 흰색으로 지정
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White
+                )
             )
         }
     ) { innerPadding ->
