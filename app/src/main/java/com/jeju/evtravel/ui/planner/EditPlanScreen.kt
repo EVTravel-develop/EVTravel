@@ -278,157 +278,154 @@ fun EditPlanScreen(
                         .reorderable(reorderableState)
                         .detectReorderAfterLongPress(reorderableState)
                 ) {
-                    itemsIndexed(dayPlans, key = { _, plan -> plan.date }) { _, dayPlan ->
-                        if (selectedDate == dayPlan.date && dayPlan.places.isNotEmpty()) {
-                            Column {
-                                dayPlan.places.forEach { place ->
-                                    Log.d(
-                                        "PlannerDebug",
-                                        "[2. UI 렌더링] '${place.name}' UI 생성 중. 포함된 충전소 개수: ${place.chargers?.size ?: "null"}"
+                    itemsIndexed(
+                        dayPlans.find { it.date == selectedDate }?.places ?: emptyList(),
+                        key = { _, place -> place.id }
+                    ) { _, place ->
+                        Log.d(
+                            "PlannerDebug",
+                            "[2. UI 렌더링] '${place.name}' UI 생성 중. 포함된 충전소 개수: ${place.chargers?.size ?: "null"}"
+                        )
+                        Column(modifier = Modifier.padding(bottom = 12.dp)) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(60.dp)
+                                    .shadow(
+                                        elevation = 4.dp,
+                                        shape = RoundedCornerShape(10.dp),
+                                        ambientColor = Color(0x40A7A7A7),
+                                        spotColor = Color(0x40A7A7A7)
                                     )
-                                    Column(modifier = Modifier.padding(bottom = 12.dp)) {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(60.dp)
-                                                .shadow(
-                                                    elevation = 4.dp,
-                                                    shape = RoundedCornerShape(10.dp),
-                                                    ambientColor = Color(0x40A7A7A7),
-                                                    spotColor = Color(0x40A7A7A7)
-                                                )
-                                                .background(
-                                                    Color.White,
-                                                    shape = RoundedCornerShape(10.dp)
-                                                ),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(id = R.drawable.ic_menu),
-                                                contentDescription = "메뉴",
-                                                tint = Color.Black,
-                                                modifier = Modifier
-                                                    .padding(start = 16.dp)
-                                                    .size(18.dp)
-                                            )
-                                            
-                                            Text(
-                                                text = place.name,
-                                                style = TextStyle(
-                                                    fontSize = 15.sp,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    fontFamily = FontFamily(Font(R.font.roboto)),
-                                                    color = Color(0xFF1C1917)
-                                                ),
-                                                modifier = Modifier
-                                                    .weight(1f) // Row 내부에서 weight 사용
-                                                    .padding(start = 16.dp)
-                                            )
-                                            
-                                            val chargerIconId = if (expandedPlaceId == place.id) {
-                                                R.drawable.ic_charger_on // 선택 시 ic_charger_on
-                                            } else {
-                                                R.drawable.ic_charger_off // 미선택 시 ic_charger_off
-                                            }
-                                            
-                                            Icon(
-                                                painter = painterResource(id = chargerIconId),
-                                                contentDescription = "충전 현황",
-                                                tint = if (expandedPlaceId == place.id) Color(
-                                                    0xFF000000
-                                                ) else Color(0xFF9D9D9D),
-                                                modifier = Modifier
-                                                    .padding(end = 12.dp)
-                                                    .size(20.dp)
-                                                    .clickable {
-                                                        expandedPlaceId =
-                                                            if (expandedPlaceId == place.id) null else place.id
-                                                    }
-                                            )
-                                            IconButton(
-                                                onClick = {
-                                                    viewModel.removePlaceFromDate(
-                                                        dayPlan.date,
-                                                        place.id
-                                                    )
-                                                },
-                                                modifier = Modifier
-                                                    .padding(end = 16.dp)
-                                                    .size(20.dp)
-                                            ) {
-                                                Icon(
-                                                    painter = painterResource(id = R.drawable.ic_close),
-                                                    contentDescription = "삭제",
-                                                    tint = Color.Black
-                                                )
-                                            }
+                                    .background(
+                                        Color.White,
+                                        shape = RoundedCornerShape(10.dp)
+                                    ),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_menu),
+                                    contentDescription = "메뉴",
+                                    tint = Color.Black,
+                                    modifier = Modifier
+                                        .padding(start = 16.dp)
+                                        .size(18.dp)
+                                )
+                                
+                                Text(
+                                    text = place.name,
+                                    style = TextStyle(
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontFamily = FontFamily(Font(R.font.roboto)),
+                                        color = Color(0xFF1C1917)
+                                    ),
+                                    modifier = Modifier
+                                        .weight(1f) // Row 내부에서 weight 사용
+                                        .padding(start = 16.dp)
+                                )
+                                
+                                val chargerIconId = if (expandedPlaceId == place.id) {
+                                    R.drawable.ic_charger_on // 선택 시 ic_charger_on
+                                } else {
+                                    R.drawable.ic_charger_off // 미선택 시 ic_charger_off
+                                }
+                                
+                                Icon(
+                                    painter = painterResource(id = chargerIconId),
+                                    contentDescription = "충전 현황",
+                                    tint = if (expandedPlaceId == place.id) Color(
+                                        0xFF000000
+                                    ) else Color(0xFF9D9D9D),
+                                    modifier = Modifier
+                                        .padding(end = 12.dp)
+                                        .size(20.dp)
+                                        .clickable {
+                                            expandedPlaceId =
+                                                if (expandedPlaceId == place.id) null else place.id
                                         }
-                                        
-                                        // 충전소 목록
-                                        if (expandedPlaceId == place.id && !place.chargers.isNullOrEmpty()) {
-                                            Column(
-                                                modifier = Modifier
-                                                    .padding(start = 8.dp, end = 0.dp)
-                                                    .offset(y = (-4).dp)
-                                            ) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .shadow(
-                                                            elevation = 4.dp,
-                                                            spotColor = Color(0x40A7A7A7),
-                                                            ambientColor = Color(0x40A7A7A7),
-                                                            shape = RoundedCornerShape(
-                                                                bottomStart = 10.dp,
-                                                                bottomEnd = 10.dp
-                                                            )
-                                                        )
-                                                        .background(
-                                                            color = Color(0xFFFFFFFF),
-                                                            shape = RoundedCornerShape(
-                                                                bottomStart = 10.dp,
-                                                                bottomEnd = 10.dp
-                                                            )
-                                                        )
-                                                        .padding(
-                                                            vertical = 12.dp,
-                                                            horizontal = 16.dp
-                                                        )
+                                )
+                                IconButton(
+                                    onClick = {
+                                        viewModel.removePlaceFromDate(
+                                            selectedDate!!,
+                                            place.id
+                                        )
+                                    },
+                                    modifier = Modifier
+                                        .padding(end = 16.dp)
+                                        .size(20.dp)
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_close),
+                                        contentDescription = "삭제",
+                                        tint = Color.Black
+                                    )
+                                }
+                            }
+                            
+                            // 충전소 목록
+                            if (expandedPlaceId == place.id && !place.chargers.isNullOrEmpty()) {
+                                Column(
+                                    modifier = Modifier
+                                        .padding(start = 8.dp, end = 0.dp)
+                                        .offset(y = (-4).dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .shadow(
+                                                elevation = 4.dp,
+                                                spotColor = Color(0x40A7A7A7),
+                                                ambientColor = Color(0x40A7A7A7),
+                                                shape = RoundedCornerShape(
+                                                    bottomStart = 10.dp,
+                                                    bottomEnd = 10.dp
+                                                )
+                                            )
+                                            .background(
+                                                color = Color(0xFFFFFFFF),
+                                                shape = RoundedCornerShape(
+                                                    bottomStart = 10.dp,
+                                                    bottomEnd = 10.dp
+                                                )
+                                            )
+                                            .padding(
+                                                vertical = 12.dp,
+                                                horizontal = 16.dp
+                                            )
+                                    ) {
+                                        Column {
+                                            place.chargers!!.forEachIndexed { index, charger ->
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    verticalAlignment = Alignment.CenterVertically
                                                 ) {
-                                                    Column {
-                                                        place.chargers!!.forEachIndexed { index, charger ->
-                                                            Row(
-                                                                modifier = Modifier.fillMaxWidth(),
-                                                                verticalAlignment = Alignment.CenterVertically
-                                                            ) {
-                                                                Text(
-                                                                    text = charger.name,
-                                                                    style = TextStyle(
-                                                                        fontSize = 14.sp,
-                                                                        fontFamily = FontFamily(
-                                                                            Font(
-                                                                                R.font.roboto
-                                                                            )
-                                                                        ),
-                                                                        fontWeight = FontWeight(400),
-                                                                        color = Color(0xFF000000),
-                                                                    )
+                                                    Text(
+                                                        text = charger.name,
+                                                        style = TextStyle(
+                                                            fontSize = 14.sp,
+                                                            fontFamily = FontFamily(
+                                                                Font(
+                                                                    R.font.roboto
                                                                 )
-                                                            }
-                                                            
-                                                            // 마지막 아이템이 아닌 경우에만 구분선 추가
-                                                            if (index < place.chargers.size - 1) {
-                                                                Spacer(modifier = Modifier.height(8.dp))
-                                                                Box(
-                                                                    modifier = Modifier
-                                                                        .fillMaxWidth()
-                                                                        .height(0.5.dp)
-                                                                        .background(Color(0xFFDBDBDB))
-                                                                )
-                                                                Spacer(modifier = Modifier.height(8.dp))
-                                                            }
-                                                        }
-                                                    }
+                                                            ),
+                                                            fontWeight = FontWeight(400),
+                                                            color = Color(0xFF000000),
+                                                        )
+                                                    )
+                                                }
+                                                
+                                                // 마지막 아이템이 아닌 경우에만 구분선 추가
+                                                if (index < place.chargers.size - 1) {
+                                                    Spacer(modifier = Modifier.height(8.dp))
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .height(0.5.dp)
+                                                            .background(Color(0xFFDBDBDB))
+                                                    )
+                                                    Spacer(modifier = Modifier.height(8.dp))
                                                 }
                                             }
                                         }
@@ -437,45 +434,45 @@ fun EditPlanScreen(
                             }
                         }
                     }
+                    
+                    // 여행지 추가 버튼
+                    item {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(59.dp)
+                                .background(
+                                    color = Color(0xFFE9E9E9),
+                                    shape = RoundedCornerShape(size = 10.dp)
+                                )
+                                .clickable {
+                                    Log.d(
+                                        "PlannerDebug",
+                                        "Navigating to SearchScreen. Current state: selectedDate='${viewModel.selectedDate.value}', currentPlanId='${viewModel.currentPlanId.value}'"
+                                    )
+                                    onAddDestinationClick()
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = " + 여행지 추가하기",
+                                style = TextStyle(
+                                    fontSize = 15.sp,
+                                    lineHeight = 24.sp,
+                                    fontFamily = FontFamily(Font(R.font.roboto)),
+                                    fontWeight = FontWeight(700),
+                                    color = Color(0xFF9D9D9D),
+                                )
+                            )
+                        }
+                    }
                 }
             }
             
-            // 하단 버튼 영역을 LazyColumn과 분리하여 Column 내부에서 관리
+            // "다음" 버튼은 Column의 가장 아래에 고정
             Spacer(modifier = Modifier.height(12.dp))
             if (hasAnyPlace) {
-                // 여행지 추가 버튼
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(59.dp)
-                        .background(
-                            color = Color(0xFFE9E9E9),
-                            shape = RoundedCornerShape(size = 10.dp)
-                        )
-                        .clickable {
-                            Log.d(
-                                "PlannerDebug",
-                                "Navigating to SearchScreen. Current state: selectedDate='${viewModel.selectedDate.value}', currentPlanId='${viewModel.currentPlanId.value}'"
-                            )
-                            onAddDestinationClick()
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = " + 여행지 추가하기",
-                        style = TextStyle(
-                            fontSize = 15.sp,
-                            lineHeight = 24.sp,
-                            fontFamily = FontFamily(Font(R.font.roboto)),
-                            fontWeight = FontWeight(700),
-                            color = Color(0xFF9D9D9D),
-                        )
-                    )
-                }
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                // "다음" 버튼
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -490,16 +487,12 @@ fun EditPlanScreen(
                                     TAG,
                                     "EditPlanScreen: 'Next' button clicked. Calling viewModel.saveOrUpdatePlan."
                                 )
-                                
-                                // 1. 화면 전환 로직을 onSaveComplete 라는 이름의 람다로 정의
                                 val onSaveComplete = {
                                     navController.navigate("planList?start=${startDate}&end=${endDate}") {
                                         popUpTo("planList") { inclusive = true }
                                         launchSingleTop = true
                                     }
                                 }
-                                
-                                // 2. ViewModel 함수를 호출하며 위에서 정의한 람다를 전달
                                 viewModel.saveOrUpdatePlan(
                                     start = startDate.toString(),
                                     end = endDate.toString(),
