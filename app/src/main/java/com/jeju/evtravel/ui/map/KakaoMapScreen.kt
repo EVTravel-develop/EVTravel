@@ -1,7 +1,6 @@
 package com.jeju.evtravel.ui.map
 
 import android.content.Intent
-import android.location.Geocoder
 import android.location.LocationManager
 import android.net.Uri
 import android.provider.Settings
@@ -25,10 +24,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.outlined.Refresh
@@ -58,13 +54,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -84,7 +78,6 @@ import com.jeju.evtravel.ui.search.ClickableSearchBar
 import com.jeju.evtravel.ui.theme.Variables
 import com.jeju.evtravel.utils.CustomDragHandle
 import com.jeju.evtravel.utils.NavigationAppBottomSheet
-import com.jeju.evtravel.utils.getAvailableNavigationApps
 import com.kakao.vectormap.GestureType
 import com.kakao.vectormap.KakaoMap
 import com.kakao.vectormap.LatLng
@@ -98,9 +91,7 @@ import com.kakao.vectormap.label.LabelStyles
 import com.kakao.vectormap.label.LabelTextBuilder
 import com.kakao.vectormap.label.LabelTextStyle
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.net.URLEncoder
-import java.util.Locale
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.pow
@@ -183,19 +174,11 @@ fun KakaoMapScreen(
     var navigationTargetLocation by remember { mutableStateOf<LatLng?>(null) }
     var navigationTargetAddress by remember { mutableStateOf("") }
     val triggerNavigationModal = { targetName: String, targetLat: Double, targetLng: Double ->
-        val availableApps = getAvailableNavigationApps(context)
-        if (availableApps.isEmpty()) {
-            Toast.makeText(context, "설치된 길 안내 앱이 없습니다.", Toast.LENGTH_SHORT).show()
-        } else {
-            getCurrentLocation(context, fusedLocationClient) { loc ->
-                startLocation = loc
-                navigationTargetLocation = LatLng.from(targetLat, targetLng)
-
-                // ✅ Geocoder 대신 targetName을 직접 사용합니다.
-                // 더 이상 네트워크 통신이 필요 없으므로 coroutineScope도 필요 없습니다.
-                navigationTargetAddress = URLEncoder.encode(targetName, "UTF-8")
-                showNavAppBottomSheet = true
-            }
+        getCurrentLocation(context, fusedLocationClient) { loc ->
+            startLocation = loc
+            navigationTargetLocation = LatLng.from(targetLat, targetLng)
+            navigationTargetAddress = URLEncoder.encode(targetName, "UTF-8")
+            showNavAppBottomSheet = true
         }
     }
 
@@ -688,7 +671,7 @@ fun KakaoMapScreen(
                         border = BorderStroke(0.4.dp, Color.Black),
                         label = {
                             Text(
-                                "이 지역 재검색",
+                                "새로 고침",
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Normal
                             )

@@ -19,7 +19,7 @@ data class NavigationApp(
 
 val applicationId = BuildConfig.APPLICATION_ID
 
-private val navigationApps = listOf(
+val navigationApps = listOf(
     // 카카오 맵
     NavigationApp(
         name = "카카오 맵",
@@ -52,51 +52,19 @@ private val navigationApps = listOf(
     )
 )
 
-fun getAvailableNavigationApps(context: Context): List<NavigationApp> {
-    val pm = context.packageManager
-    return navigationApps.filter { app ->
-        try {
-            pm.getPackageInfo(app.packageName, 0)
-            true
-        } catch (e: Exception) {
-            false
-        }
-    }
-}
-
-// 수정된 launchNavigationApp 함수
+// launchNavigationApp 함수
 fun launchNavigationApp(context: Context, app: NavigationApp, start: LatLng?, end: LatLng, dname: String) {
     try {
         val schemeUri = Uri.parse(app.scheme(start, end, dname))
         Log.d("NaviLog", "생성된 URL: $schemeUri")
 
-        val intent = Intent(Intent.ACTION_VIEW, schemeUri)
-        intent.addCategory(Intent.CATEGORY_BROWSABLE)
-
-        val packageManager = context.packageManager
-        val installed = try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                // Android 13 이상
-                packageManager.getPackageInfo(app.packageName, PackageManager.PackageInfoFlags.of(0))
-            } else {
-                // 이전 버전
-                @Suppress("Deprecation")
-                packageManager.getPackageInfo(app.packageName, 0)
-            }
-            true
-        } catch (e: PackageManager.NameNotFoundException) {
-            false
+        val intent = Intent(Intent.ACTION_VIEW, schemeUri).apply {
+            addCategory(Intent.CATEGORY_BROWSABLE)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-
-        if (installed) {
-            context.startActivity(intent)
-        } else {
-            // 설치되어 있지 않으면 플레이 스토어로 이동
-            val marketUri = Uri.parse("market://details?id=${app.packageName}")
-            val marketIntent = Intent(Intent.ACTION_VIEW, marketUri)
-            context.startActivity(marketIntent)
-        }
+        context.startActivity(intent)
     } catch (e: Exception) {
+        Log.e("NaviLog", "앱 실행 실패: ${app.name}", e)
         Toast.makeText(context, "${app.name}을(를) 실행할 수 없습니다.", Toast.LENGTH_SHORT).show()
     }
 }

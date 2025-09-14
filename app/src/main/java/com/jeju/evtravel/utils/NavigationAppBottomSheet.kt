@@ -1,6 +1,10 @@
 package com.jeju.evtravel.utils
 
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -35,6 +39,20 @@ import com.jeju.evtravel.ui.detail.NavigationAppTextStyle
 import com.jeju.evtravel.ui.theme.Variables
 import com.kakao.vectormap.LatLng
 
+private fun isAppInstalled(context: Context, packageName: String): Boolean {
+    return try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.packageManager.getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(0))
+        } else {
+            @Suppress("DEPRECATION")
+            context.packageManager.getPackageInfo(packageName, 0)
+        }
+        true
+    } catch (e: PackageManager.NameNotFoundException) {
+        false
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NavigationAppBottomSheet(
@@ -60,8 +78,7 @@ fun NavigationAppBottomSheet(
             CustomDragHandle()
 
             // 앱 목록
-            val availableApps = getAvailableNavigationApps(context)
-            availableApps.forEach { app ->
+            navigationApps.forEach { app ->
                 NavigationAppItem(
                     app = app,
                     onClick = {
@@ -74,14 +91,16 @@ fun NavigationAppBottomSheet(
             // 완료 버튼
             Button(
                 onClick = {
-                    selectedApp?.let {
-                        launchNavigationApp(
-                            context,
-                            it,
-                            startLocation,
-                            endLocation,
-                            destinationAddress
-                        )
+                    selectedApp?.let { app ->
+                        if (isAppInstalled(context, app.packageName)) {
+                            // 설치됨 -> 길 안내 실행
+                            launchNavigationApp(context, app, startLocation, endLocation, destinationAddress)
+                        } else {
+                            // 미설치 -> 플레이 스토어로 이동
+                            val marketUri = Uri.parse("market://details?id=${app.packageName}")
+                            val marketIntent = Intent(Intent.ACTION_VIEW, marketUri)
+                            context.startActivity(marketIntent)
+                        }
                     }
                     onDismiss()
                 },
