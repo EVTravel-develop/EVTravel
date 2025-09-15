@@ -115,7 +115,13 @@ class TourPlaceDetailViewModel @Inject constructor(
                 Log.d(TAG, "TourAPI 요청 시작. contentId: '$contentId'")
                 val tourDetail = tourPlaceDetailUseCase(contentId)
                 Log.d(TAG, "TourAPI 응답 성공. overview: ${tourDetail.overview?.take(30)}...")
-                val imageUrl = tourDetail.firstImage?.takeIf { it.isNotBlank() } ?: tourDetail.firstImage2
+                var imageUrl = tourDetail.firstImage?.takeIf { it.isNotBlank() } ?: tourDetail.firstImage2
+
+                Log.d(TAG, "원본 이미지 URL: $imageUrl")
+                if (imageUrl?.startsWith("http://") == true) {
+                    imageUrl = imageUrl.replace("http://", "https://")
+                    Log.d(TAG, "HTTPS로 변환된 URL: $imageUrl")
+                }
 
                 Log.d(TAG, "최종 이미지 URL: $imageUrl")
 
