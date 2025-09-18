@@ -36,6 +36,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
@@ -346,6 +348,50 @@ val NavigationAppButtonTextStyle = TextStyle(
         alignment = LineHeightStyle.Alignment.Center,
         trim = LineHeightStyle.Trim.None
     )
+)
+
+// "차량 등록/수정" 버튼 텍스트 스타일
+val RegisterButtonTextStyle = TextStyle(
+    fontFamily = RobotoFamily,
+    fontWeight = FontWeight.Medium, // 500
+    fontSize = 14.sp,
+    lineHeight = 26.sp,
+    letterSpacing = TextUnit.Unspecified, // 0%
+    textAlign = TextAlign.Center
+)
+
+// "충전 예상 시간" 라벨 텍스트 스타일
+val EstimatedTimeLabelTextStyle = TextStyle(
+    fontFamily = RobotoFamily,
+    fontWeight = FontWeight.Medium, // 500
+    fontSize = 10.sp,
+    lineHeight = 24.sp,
+    letterSpacing = 0.001.em, // 0.1%
+)
+
+// "1시간 35분"의 숫자 부분 스타일 (23px)
+val EstimatedTimeValueStyle = TextStyle(
+    fontFamily = RobotoFamily,
+    fontWeight = FontWeight.Bold, // 700
+    fontSize = 23.sp,
+    lineHeight = 33.22.sp,
+    letterSpacing = TextUnit.Unspecified, // 0%
+    textAlign = TextAlign.Center
+)
+
+// "1시간 35분"의 단위(시간, 분) 부분 스타일 (16.61px)
+val EstimatedTimeUnitStyle = TextStyle(
+    fontFamily = RobotoFamily,
+    fontWeight = FontWeight.Bold, // 700
+    fontSize = 16.sp, // 16.61sp를 근사값으로 사용
+    lineHeight = 33.22.sp,
+    letterSpacing = TextUnit.Unspecified, // 0%
+    textAlign = TextAlign.Center
+)
+
+// 시간 텍스트에 적용할 그라데이션 브러시
+val timeGradientBrush = Brush.linearGradient(
+    colors = listOf(Variables.Blue700, Color(0xFF004599))
 )
 
 @Composable
