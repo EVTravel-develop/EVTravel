@@ -154,7 +154,13 @@ fun VehicleInfoScreen(
                 value = currentSoc,
                 onValueChange = { soc ->
                     // 숫자만 입력받도록 처리
-                    currentSoc = soc.filter { it.isDigit() }
+                    val digits = soc.filter { it.isDigit() }.take(3)
+                    val v = digits.toIntOrNull()
+                    currentSoc = when {
+                        v == null -> ""
+                        v > 100 -> "100"
+                        else -> v.toString()
+                    }
                 },
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = {
@@ -226,6 +232,9 @@ fun VehicleInfoScreen(
 
             // --- 저장 버튼 ---
             Button(
+                enabled = selectedCarModel.isNotBlank() &&
+                        selectedSpeed.isNotBlank() &&
+                        (currentSoc.toIntOrNull()?.let { it in 0..100 } == true),
                 onClick = {
                     val socInt = currentSoc.toIntOrNull() ?: 0
                     if (selectedCarModel.isNotBlank() && currentSoc.isNotBlank() && selectedSpeed.isNotBlank()) {
