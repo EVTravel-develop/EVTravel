@@ -1,19 +1,19 @@
 // 파일명: ChargeTimeService.kt
-package com.example.evcharging.service
+package com.jeju.evtravel.service
 
 import kotlin.math.round
 
 class ChargeTimeService {
 
     // 차종별 배터리 용량(kWh)
-    private val batteryCapacityMap = mapOf(
+    val batteryCapacityMap = mapOf(
         // 국산차
-        "Hyundai Ioniq 5" to 77.4,
-        "Hyundai Ioniq 6" to 84.0,
-        "Hyundai Kona Electric" to 64.8,
-        "Kia EV6" to 77.4,
-        "Kia EV9" to 99.8,
-        "Kia Niro EV" to 64.8,
+        "현대 Ioniq 5" to 77.4,
+        "현대 Ioniq 6" to 84.0,
+        "현대 Kona Electric" to 64.8,
+        "기아 EV6" to 77.4,
+        "기아 EV9" to 99.8,
+        "기아 Niro EV" to 64.8,
         "Genesis GV60" to 77.4,
         "Genesis Electrified G80" to 87.2,
         "Genesis Electrified GV70" to 77.4,

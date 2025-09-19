@@ -42,6 +42,7 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,27 +57,35 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.google.common.io.Files.append
 import com.jeju.evtravel.R
 import com.jeju.evtravel.data.util.mapStatus
 import com.jeju.evtravel.domain.model.Course
 import com.jeju.evtravel.domain.model.CoursePlace
 import com.jeju.evtravel.domain.model.Place
+import com.jeju.evtravel.service.ChargeTimeService
 import com.jeju.evtravel.ui.detail.Block
 import com.jeju.evtravel.ui.detail.CategoryChipTextStyle
 import com.jeju.evtravel.ui.detail.CourseCardTitleTextStyle
+import com.jeju.evtravel.ui.detail.EstimatedTimeLabelTextStyle
+import com.jeju.evtravel.ui.detail.EstimatedTimeUnitStyle
+import com.jeju.evtravel.ui.detail.EstimatedTimeValueStyle
 import com.jeju.evtravel.ui.detail.NearbyPlaceViewModel
 import com.jeju.evtravel.ui.detail.OutputTextStyle
 import com.jeju.evtravel.ui.detail.PlaceTabTagTextStyle
 import com.jeju.evtravel.ui.detail.PlaceTabTitleTextStyle
+import com.jeju.evtravel.ui.detail.RegisterButtonTextStyle
 import com.jeju.evtravel.ui.detail.RobotoFamily
 import com.jeju.evtravel.ui.detail.SelectedTabTextStyle
 import com.jeju.evtravel.ui.detail.StatTextStyle
@@ -86,7 +95,10 @@ import com.jeju.evtravel.ui.detail.UiNearbyPlace
 import com.jeju.evtravel.ui.detail.UnselectedTabTextStyle
 import com.jeju.evtravel.ui.detail.course.CourseCard
 import com.jeju.evtravel.ui.detail.course.CourseViewModel
+import com.jeju.evtravel.ui.detail.timeGradientBrush
 import com.jeju.evtravel.ui.theme.Variables
+import com.jeju.evtravel.ui.viewmodel.UserVehicleViewModel
+import kotlin.math.roundToInt
 
 @Composable
 fun ChargerSummaryScreen(
@@ -101,7 +113,9 @@ fun ChargerSummaryScreen(
     courseVm: CourseViewModel = hiltViewModel(),
     onExpandToDetail: () -> Unit,
     onNavigateToPlaceInCourse: (CoursePlace) -> Unit,
-    onCoursePlaceClick: (CoursePlace) -> Unit
+    onCoursePlaceClick: (CoursePlace) -> Unit,
+    onNavigateToVehicleInfo: () -> Unit, // 네비게이션 콜백 추가
+    userVehicleVm: UserVehicleViewModel = hiltViewModel(), // ViewModel 주입
 ) {
     val chargers = place.chargerList ?: emptyList()
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
@@ -112,6 +126,57 @@ fun ChargerSummaryScreen(
     val tabs = listOf("추천 코스", "장소")
 
     val uiState = nearbyVm.state.collectAsState().value
+
+    // 예상 차량 충전 시간
+    val userVehicleInfo by userVehicleVm.vehicleInfo.collectAsState() // ViewModel 상태 구독
+
+    // 충전 시간 계산 로직
+    val estimatedTimeString by remember(userVehicleInfo, place.chargerList) {
+        derivedStateOf {
+            val info = userVehicleInfo
+            val chargers = place.chargerList
+            if (info == null || chargers.isNullOrEmpty()) {
+                return@derivedStateOf null // 정보 없으면 null
+            }
+
+            // 1. 선호하는 속도의 충전기 찾기
+            val preferredChargers = chargers.filter { charger ->
+                when (info.preferredSpeed) {
+                    "초급속" -> (charger.output.toDoubleOrNull() ?: 0.0) >= 200
+                    "급속" -> (charger.output.toDoubleOrNull() ?: 0.0) in 50.0..199.9
+                    "완속" -> (charger.output.toDoubleOrNull() ?: 0.0) < 50
+                    else -> false
+                }
+            }
+
+            // 2. 사용할 충전기 결정 (선호 충전기가 있으면 그 중 가장 빠른 것, 없으면 전체에서 가장 빠른 것)
+            val targetCharger = (if (preferredChargers.isNotEmpty()) {
+                preferredChargers
+            } else {
+                chargers
+            }).maxByOrNull { it.output.toDoubleOrNull() ?: 0.0 }
+
+
+            if (targetCharger == null) return@derivedStateOf null
+
+            // 충전 시간 계산
+            val chargerKw = targetCharger.output.toDoubleOrNull() ?: return@derivedStateOf null
+            try {
+                // [수정] 목표 충전량을 현재 배터리 상태에 따라 동적으로 결정
+                val targetSoc = if (info.currentSoc < 80) 80.0 else 100.0
+
+                val timeInHours = ChargeTimeService().estimateChargeTime(
+                    carModel = info.carModel,
+                    chargerKw = chargerKw,
+                    currentSoc = info.currentSoc.toDouble(),
+                    targetSoc = targetSoc // 동적으로 결정된 목표치 사용
+                )
+                formatHoursToHHmm(timeInHours)
+            } catch (e: Exception) {
+                "계산 불가"
+            }
+        }
+    }
 
     LaunchedEffect(tabIndex, place.longitude, place.latitude) {
         if (tabIndex == 1) {
@@ -137,13 +202,12 @@ fun ChargerSummaryScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 16.dp, start = 16.dp, end = 16.dp)
+                    .padding(16.dp)
             ) {
                 // --- 상단 타이틀 ---
                 Row(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(onClick = onExpandToDetail),
+                        .fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -152,14 +216,51 @@ fun ChargerSummaryScreen(
                         style = TitleTextStyle,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable(onClick = onExpandToDetail)
                     )
-                    Icon(
-                        painterResource(id = R.drawable.ic_right),
-                        contentDescription = "상세 보기",
-                        tint = Color.Black,
-                        modifier = Modifier.padding(start = 8.dp)
+                    Text(
+                        text = if (userVehicleInfo == null) "차량 등록" else "차량정보수정",
+                        style = RegisterButtonTextStyle,
+                        color = Variables.Blue700,
+                        modifier = Modifier
+                            .clickable(onClick = onNavigateToVehicleInfo)
                     )
+                }
+
+                val timeStringValue = estimatedTimeString
+
+                // --- 충전 예상 시간 표시 ---
+                if (timeStringValue != null) {
+                    Spacer(Modifier.height(12.dp))
+                    Column {
+                        Text(
+                            text = "충전 예상 시간",
+                            style = EstimatedTimeLabelTextStyle,
+                            color = Variables.Grayscale300
+                        )
+
+                        Text(
+                            text = buildAnnotatedString {
+                                // "1시간 35분" 과 같은 문자열을 숫자와 단위로 분리
+                                val parts = timeStringValue.split(Regex("(?<=\\d)(?=\\D)|(?<=\\D)(?=\\d)"))
+                                parts.forEach { part ->
+                                    if (part.all { it.isDigit() }) {
+                                        // 숫자 부분 스타일
+                                        withStyle(style = EstimatedTimeValueStyle.toSpanStyle().copy(brush = timeGradientBrush)) {
+                                            append(part)
+                                        }
+                                    } else {
+                                        // 단위(시간, 분) 부분 스타일
+                                        withStyle(style = EstimatedTimeUnitStyle.toSpanStyle().copy(brush = timeGradientBrush)) {
+                                            append(part)
+                                        }
+                                    }
+                                }
+                            }
+                        )
+                    }
                 }
 
                 Spacer(Modifier.height(12.dp))
@@ -226,7 +327,7 @@ fun ChargerSummaryScreen(
                 Button(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 16.dp),
+                        .height(47.dp),
                     onClick = onNavigateClick,
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
@@ -236,7 +337,7 @@ fun ChargerSummaryScreen(
                 ) {
                     Text("안내하기")
                 }
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(18.dp))
             }
         }
 
@@ -461,6 +562,20 @@ fun ChargerSummaryScreen(
                 }
             }
         }
+    }
+}
+
+// 시간 포맷팅 헬퍼 함수
+private fun formatHoursToHHmm(hours: Double): String {
+    if (hours <= 0) return "0분"
+    val totalMinutes = (hours * 60).roundToInt()
+    val h = totalMinutes / 60
+    val m = totalMinutes % 60
+
+    return when {
+        h > 0 && m > 0 -> "${h}시간 ${m}분"
+        h > 0 -> "${h}시간"
+        else -> "${m}분"
     }
 }
 

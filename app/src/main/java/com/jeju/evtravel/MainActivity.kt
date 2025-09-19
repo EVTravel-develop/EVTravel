@@ -62,6 +62,8 @@ import com.jeju.evtravel.ui.search.SearchScreen
 import com.jeju.evtravel.ui.search.SearchViewModel
 import com.jeju.evtravel.ui.splash.SplashScreen
 import com.jeju.evtravel.ui.mypage.WithdrawalScreen
+import com.jeju.evtravel.ui.summary.VehicleInfoScreen
+import com.jeju.evtravel.ui.viewmodel.UserVehicleViewModel
 import com.kakao.vectormap.utils.MapUtils
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -171,10 +173,12 @@ fun MainScreen(
 
                 // 지도
                 composable("map") {
+                    val userVehicleVm: UserVehicleViewModel = hiltViewModel()
                     KakaoMapScreen(
                         fusedLocationClient = fusedLocationClient,
                         viewModel = mapViewModel,
-                        navController = navController
+                        navController = navController,
+                        userVehicleVm = userVehicleVm
                     )
                 }
 
@@ -238,7 +242,21 @@ fun MainScreen(
                         fusedLocationClient = fusedLocationClient,
                     )
                 }
+                // 차량 정보 입력 화면
+                composable("vehicleInfo") {
+                    val mapBackStackEntry = remember(it) {
+                        navController.getBackStackEntry("map")
+                    }
+                    val userVehicleVm: UserVehicleViewModel = hiltViewModel(mapBackStackEntry)
 
+                    VehicleInfoScreen(
+                        onSave = {
+                            navController.popBackStack()
+                        },
+                        vm = userVehicleVm
+                    )
+                }
+                // 코스 상세
                 composable(
                     route = "courseDetail/{courseId}",
                     arguments = listOf(navArgument("courseId"){ type = NavType.StringType })

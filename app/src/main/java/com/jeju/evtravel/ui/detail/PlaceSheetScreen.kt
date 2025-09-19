@@ -16,6 +16,7 @@ import com.jeju.evtravel.domain.model.CoursePlace
 import com.jeju.evtravel.domain.model.Place
 import com.jeju.evtravel.ui.summary.ChargerSummaryScreen
 import com.jeju.evtravel.ui.summary.PlaceSummaryScreen
+import com.jeju.evtravel.ui.viewmodel.UserVehicleViewModel
 import com.kakao.vectormap.LatLng
 
 // 충전소 상세로
@@ -48,7 +49,9 @@ fun PlaceSheetScreen(
     onOpenChargerDetail: (Place) -> Unit,
     onCourseClick: (Course) -> Unit,
     onNavigateToPlaceInCourse: (coursePlace: CoursePlace) -> Unit,
-    onCoursePlaceClick: (CoursePlace) -> Unit
+    onCoursePlaceClick: (CoursePlace) -> Unit,
+    userVehicleVm: UserVehicleViewModel,
+    onNavigateToVehicleInfo: () -> Unit
 ) {
 
     when (kind) {
@@ -71,7 +74,9 @@ fun PlaceSheetScreen(
                 onExpandToDetail = { onOpenChargerDetail(place) },
                 onCourseClick = onCourseClick,
                 onNavigateToPlaceInCourse = onNavigateToPlaceInCourse,
-                onCoursePlaceClick = onCoursePlaceClick
+                onCoursePlaceClick = onCoursePlaceClick,
+                userVehicleVm = userVehicleVm,
+                onNavigateToVehicleInfo = onNavigateToVehicleInfo
             )
         }
     }

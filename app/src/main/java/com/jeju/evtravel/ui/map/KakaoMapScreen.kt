@@ -64,6 +64,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -80,6 +81,7 @@ import com.jeju.evtravel.ui.detail.openChargerDetail
 import com.jeju.evtravel.ui.detail.openPlaceDetail
 import com.jeju.evtravel.ui.search.ClickableSearchBar
 import com.jeju.evtravel.ui.theme.Variables
+import com.jeju.evtravel.ui.viewmodel.UserVehicleViewModel
 import com.jeju.evtravel.utils.CustomDragHandle
 import com.jeju.evtravel.utils.NavigationAppBottomSheet
 import com.kakao.vectormap.GestureType
@@ -120,7 +122,8 @@ private const val DEFAULT_ZOOM = 15
 fun KakaoMapScreen(
     fusedLocationClient: FusedLocationProviderClient,
     viewModel: MapViewModel,
-    navController: NavController
+    navController: NavController,
+    userVehicleVm: UserVehicleViewModel
 ) {
     /** Compose / 상태 준비 */
     val context = LocalContext.current
@@ -581,6 +584,10 @@ fun KakaoMapScreen(
                                     Toast.makeText(context, "장소 정보를 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
                                 }
                             }
+                        },
+                        userVehicleVm = userVehicleVm,
+                        onNavigateToVehicleInfo = {
+                            navController.navigate("vehicleInfo")
                         }
                     )
 
